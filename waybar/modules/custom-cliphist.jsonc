@@ -3,8 +3,8 @@
     "format": "󰅌",
     "rotate": 0,
     "tooltip-format": "Clipboard History (Click to browse, Right-click to wipe)",
-    "on-click": "bash -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy'",
-    "on-click-right": "cliphist wipe",
+    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/clipboard.sh",
+    "on-click-right": "cliphist wipe && notify-send -i edit-clear 'Clipboard' 'Clipboard history cleared'",
     "tooltip": true
   }
 }

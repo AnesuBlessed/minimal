@@ -469,6 +469,27 @@ class MinimalTests(unittest.TestCase):
         self.assertIn('quickshell/wallpaper-picker/shell.qml', wallchange_text)
         self.assertIn('quickshell kill -p', wallchange_text)
 
+    def test_clipboard_quickshell_integration(self):
+        clip_script = self.repo / 'scripts/clipboard.sh'
+        self.assertTrue(clip_script.is_file())
+        self.assertTrue(os.access(clip_script, os.X_OK))
+        clip_text = clip_script.read_text()
+        self.assertIn('quickshell/clipboard/shell.qml', clip_text)
+        self.assertIn('quickshell kill -p', clip_text)
+
+        clip_qml = self.repo / 'quickshell/clipboard/ClipboardManager.qml'
+        self.assertTrue(clip_qml.is_file())
+        qml_text = clip_qml.read_text()
+        # Verify broom brush wipe button is present
+        self.assertIn('󰃢', qml_text)
+        self.assertIn('cliphist wipe', qml_text)
+
+    def test_looknfeel_gaps_and_curved_edges(self):
+        look_text = (self.repo / 'hypr/looknfeel.lua').read_text()
+        self.assertIn('gaps_in  = 2', look_text)
+        self.assertIn('gaps_out = 4', look_text)
+        self.assertIn('rounding = 10', look_text)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
