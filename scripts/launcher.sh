@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+# Toggle: if fuzzel is already open, kill existing instance and return cleanly
+if pgrep -x fuzzel >/dev/null 2>&1; then
+    pkill -x fuzzel || true
+    exit 0
+fi
+
 # Fuzzel ignores margins with anchor=center. A top anchor centers horizontally;
 # calculate the vertical margin in logical pixels on the focused monitor.
 geometry=$(hyprctl -j monitors 2>/dev/null | jq -r '
@@ -22,4 +28,5 @@ if [[ -n $geometry ]]; then
         args+=(--output "$output" --anchor top --y-margin "$margin" --lines "$lines")
     fi
 fi
-exec fuzzel "${args[@]}" "$@"
+fuzzel "${args[@]}" "$@" || true
+exit 0

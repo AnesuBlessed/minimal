@@ -1,0 +1,11 @@
+{
+  "custom/updates": {
+    "exec": "bash -c 'c=$(checkupdates 2>/dev/null | wc -l); if [ \"$c\" -gt 0 ]; then echo \"{\\\"text\\\":\\\"󰚰 $c\\\",\\\"tooltip\\\":\\\"$c updates available\\\"}\"; else echo \"{\\\"text\\\":\\\"󰚰 0\\\",\\\"tooltip\\\":\\\"System up to date\\\"}\"; fi'",
+    "return-type": "json",
+    "format": "{}",
+    "rotate": 0,
+    "on-click": "foot -e sudo pacman -Syu",
+    "interval": 3600,
+    "tooltip": true
+  }
+}

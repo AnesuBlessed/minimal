@@ -1,0 +1,14 @@
+{
+  "network": {
+    "tooltip": true,
+    "format-wifi": "󰤨",
+    "format-ethernet": "󰈀",
+    "format-linked": "󰈀 {ifname} (No IP)",
+    "format-disconnected": "󰤭",
+    "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\nIP: {ipaddr}\nInterface: {ifname}",
+    "tooltip-format-ethernet": "Ethernet: {ipaddr}\nInterface: {ifname}",
+    "tooltip-format-disconnected": "Disconnected",
+    "format-alt": "󰤨 {essid} ({signalStrength}%)",
+    "interval": 2
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "hyprland/language": {
+    "format": "{}",
+    "format-en": "US",
+    "rotate": 0,
+    "on-click": "hyprctl switchxkblayout next"
+  }
+}

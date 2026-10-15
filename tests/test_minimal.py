@@ -187,6 +187,21 @@ class MinimalTests(unittest.TestCase):
         self.assertEqual(args[args.index('--y-margin') + 1], '266')
         self.assertEqual(args[args.index('--output') + 1], 'test')
 
+    def test_launcher_toggle_kills_running_fuzzel(self):
+        self.mock('pgrep', 'sys.exit(0)')
+        self.mock('pkill', '')
+        self.mock('fuzzel', '')
+        self.run_script('scripts/launcher.sh')
+        events = self.events()
+        self.assertIn(['pgrep', '-x', 'fuzzel'], events)
+        self.assertIn(['pkill', '-x', 'fuzzel'], events)
+        self.assertFalse(any(e[0] == 'fuzzel' for e in events))
+
+    def test_launcher_cancels_cleanly_on_fuzzel_exit(self):
+        self.mock('fuzzel', 'sys.exit(1)')
+        result = self.run_script('scripts/launcher.sh', expected=0)
+        self.assertEqual(result.returncode, 0)
+
     def test_failed_wallpaper_preserves_saved_selection(self):
         self.mock('hyprctl', 'sys.exit(1)')
         state = self.base / 'state/minimal'
@@ -356,6 +371,103 @@ class MinimalTests(unittest.TestCase):
         proc = subprocess.run(["Hyprland", "--verify-config", "-c", str(hypr_lua)], capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("config ok", proc.stdout)
+
+    def test_waybar_modular_architecture(self):
+        import re
+        modules_dir = self.repo / 'waybar/modules'
+        self.assertTrue(modules_dir.is_dir(), "waybar/modules directory must exist")
+        module_files = list(modules_dir.glob('*.jsonc'))
+        self.assertGreater(len(module_files), 50, "Should have 50+ modular jsonc files")
+
+        forbidden = ['hyde-shell', 'wallbash', '.local/lib/hyde', 'rofilaunch', 'hl.dsp', 'HYDE_WAYBAR_MENU_DIR']
+        for mf in module_files:
+            text = mf.read_text(encoding='utf-8')
+            for bad in forbidden:
+                self.assertNotIn(bad, text, f"Found forbidden '{bad}' in {mf.name}")
+
+        config_path = self.repo / 'waybar/config.jsonc'
+        self.assertTrue(config_path.is_file(), "waybar/config.jsonc must exist")
+        cfg_text = config_path.read_text(encoding='utf-8')
+        # Check modular include directive
+        self.assertIn('$HOME/.config/waybar/modules/*.jsonc', cfg_text)
+
+        # Verify waybar execution parses modular config and style
+        try:
+            res = subprocess.run([
+                "waybar", "-c", str(config_path), "-s", str(self.repo / 'waybar/style.css'), "-l", "info"
+            ], capture_output=True, text=True, timeout=2)
+            combined = res.stdout + res.stderr
+        except subprocess.TimeoutExpired as e:
+            out = e.stdout.decode('utf-8', errors='replace') if isinstance(e.stdout, bytes) else (e.stdout or "")
+            err = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else (e.stderr or "")
+            combined = out + err
+        self.assertNotIn("Failed to read config file", combined)
+        self.assertNotIn("JSON", combined.lower())
+        self.assertIn("Bar configured", combined)
+
+    def test_wallpaper_picker_self_contained_files(self):
+        wp_dir = ROOT / 'quickshell/wallpaper-picker'
+        required_files = (
+            'shell.qml', 'WallpaperPicker.qml', 'ddg_search.sh', 'get_ddg_links.py',
+            'generate_thumbs.sh', 'Caching.qml', 'Scaler.qml', 'WindowRegistry.js',
+            'MatugenColors.qml', 'GlobalTheme.qml', 'GlobalSettingsWatcher.qml', 'qmldir'
+        )
+        for req in required_files:
+            self.assertTrue((wp_dir / req).is_file(), f"Missing required file: {req}")
+
+        # Scripts must be executable
+        for script in ('ddg_search.sh', 'get_ddg_links.py', 'generate_thumbs.sh'):
+            self.assertTrue(os.access(wp_dir / script, os.X_OK), f"{script} should be executable")
+
+        # No hardcoded ~/.config/hypr paths in WallpaperPicker.qml
+        qml_text = (wp_dir / 'WallpaperPicker.qml').read_text()
+        self.assertNotIn('.config/hypr', qml_text)
+
+    def test_wallchange_fallback_when_quickshell_missing(self):
+        walls_dir = self.repo / 'wallpapers'
+        walls_dir.mkdir(parents=True, exist_ok=True)
+        from PIL import Image
+        wall1 = walls_dir / '01_test.png'
+        wall2 = walls_dir / '02_test.png'
+        Image.new('RGB', (32, 32), 'blue').save(wall1)
+        Image.new('RGB', (32, 32), 'green').save(wall2)
+
+        state = self.base / 'state/minimal'
+        state.mkdir(parents=True, exist_ok=True)
+        (state / 'current_wallpaper').write_text(str(wall1.resolve()))
+
+        self.mock('hyprctl', 'sys.exit(0)')
+        self.mock('notify-send', 'sys.exit(0)')
+
+        # Hide quickshell by removing from PATH or mocking failure
+        env = dict(self.env)
+        # Create dummy bin without quickshell
+        temp_bin = self.base / 'no_qs_bin'
+        temp_bin.mkdir(parents=True, exist_ok=True)
+        for f in os.listdir('/usr/bin'):
+            if f != 'quickshell':
+                try:
+                    os.symlink(os.path.join('/usr/bin', f), temp_bin / f)
+                except Exception:
+                    pass
+        # Include our mocked tools
+        for f in os.listdir(self.bin):
+            if f != 'quickshell':
+                try:
+                    (temp_bin / f).unlink(missing_ok=True)
+                    os.symlink(self.bin / f, temp_bin / f)
+                except Exception:
+                    pass
+        env['PATH'] = str(temp_bin)
+
+        result = subprocess.run([str(self.repo / 'scripts/wallchange.sh')], env=env, text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((state / 'current_wallpaper').read_text().strip(), str(wall2.resolve()))
+
+    def test_wallchange_targets_wallpaper_picker_quickshell(self):
+        wallchange_text = (self.repo / 'scripts/wallchange.sh').read_text()
+        self.assertIn('quickshell/wallpaper-picker/shell.qml', wallchange_text)
+        self.assertIn('quickshell kill -p', wallchange_text)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,9 @@
+{
+  "custom/gpuinfo#amd": {
+    "exec": "python3 -c 'import glob; p=glob.glob(\"/sys/class/drm/card*/device/gpu_busy_percent\"); print(open(p[0]).read().strip() + \"%\") if p else print(\"\")'",
+    "format": "󰢮 {}",
+    "rotate": 0,
+    "interval": 5,
+    "tooltip": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "custom/cpuinfo": {
+    "exec": "python3 -c \"import psutil; u=psutil.cpu_percent(interval=0.5); print('{\\\"text\\\":\\\"󰍛 ' + str(round(u)) + '%\\\",\\\"tooltip\\\":\\\"CPU Usage: ' + str(u) + '%\\\"}')\"",
+    "return-type": "json",
+    "format": "{}",
+    "rotate": 0,
+    "interval": 5,
+    "tooltip": true
+  }
+}

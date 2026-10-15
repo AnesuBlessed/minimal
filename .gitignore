@@ -10,3 +10,8 @@ quickshell/**/.cache/
 
 # Local validation bytecode
 __pycache__/
+
+# Runtime external artifacts
+hypr/themes/
+waybar/layouts/
+

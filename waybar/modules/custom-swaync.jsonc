@@ -1,0 +1,16 @@
+{
+  "custom/swaync": {
+    "exec-if": "which swaync-client >/dev/null 2>&1 && pgrep -x swaync >/dev/null 2>&1",
+    "format": "{icon} {}",
+    "tooltip": true,
+    "format-icons": {
+      "notification": "",
+      "none": "",
+      "dnd": ""
+    },
+    "return-type": "json",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "escape": true
+  }
+}

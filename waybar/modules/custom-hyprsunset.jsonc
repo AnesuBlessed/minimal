@@ -1,0 +1,8 @@
+{
+  "custom/hyprsunset": {
+    "format": "󰛨",
+    "tooltip": true,
+    "tooltip-format": "Night Light / Hyprsunset (Click to toggle)",
+    "on-click": "bash -c 'pidof hyprsunset >/dev/null && pkill hyprsunset || (hyprsunset -t 4500 >/dev/null 2>&1 &)'"
+  }
+}

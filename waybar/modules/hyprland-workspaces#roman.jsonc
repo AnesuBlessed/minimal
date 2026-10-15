@@ -1,0 +1,28 @@
+{
+  "hyprland/workspaces#roman": {
+    "rotate": 0,
+    "all-outputs": true,
+    "active-only": false,
+    "disable-scroll": false,
+    "tooltip": false,
+    "on-scroll-up": "hyprctl dispatch workspace e-1",
+    "on-scroll-down": "hyprctl dispatch workspace e+1",
+    "persistent-workspaces": {},
+    "format": "{icon}",
+    "format-icons": {
+      "1": "I",
+      "2": "II",
+      "3": "III",
+      "4": "IV",
+      "5": "V",
+      "6": "VI",
+      "7": "VII",
+      "8": "VIII",
+      "9": "IX",
+      "10": "X",
+      "urgent": "",
+      "focused": "",
+      "default": ""
+    }
+  }
+}

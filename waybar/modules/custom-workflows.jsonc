@@ -1,0 +1,8 @@
+{
+  "custom/workflows": {
+    "format": "󰑮",
+    "tooltip": true,
+    "tooltip-format": "Workspaces & Windows",
+    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/launcher.sh"
+  }
+}

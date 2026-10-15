@@ -1,0 +1,11 @@
+{
+  "custom/wbar": {
+    "format": "",
+    "rotate": 0,
+    "tooltip-format": "Reload Bar (Click) | Toggle Bar (Right-click)",
+    "on-click": "killall -SIGUSR2 waybar",
+    "on-click-right": "killall -SIGUSR1 waybar",
+    "interval": 86400,
+    "tooltip": true
+  }
+}

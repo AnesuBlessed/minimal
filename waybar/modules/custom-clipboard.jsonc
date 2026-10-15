@@ -1,0 +1,9 @@
+{
+  "custom/clipboard": {
+    "format": "󰅌",
+    "tooltip": true,
+    "tooltip-format": "Clipboard (Click to browse, Right-click to wipe)",
+    "on-click": "bash -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy'",
+    "on-click-right": "cliphist wipe"
+  }
+}

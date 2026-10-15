@@ -1,0 +1,10 @@
+{
+  "custom/powermenu": {
+    "format": "⏻",
+    "rotate": 0,
+    "tooltip": true,
+    "tooltip-format": "Power Menu",
+    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/powermenu.sh",
+    "interval": 86400
+  }
+}

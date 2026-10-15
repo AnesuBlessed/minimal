@@ -1,0 +1,7 @@
+{
+  "image#profile": {
+    "path": "$HOME/.face.icon",
+    "size": 24,
+    "tooltip": false
+  }
+}

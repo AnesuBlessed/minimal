@@ -1,0 +1,8 @@
+{
+  "custom/weather": {
+    "exec": "curl -s 'https://wttr.in/?format=1' 2>/dev/null || echo ''",
+    "tooltip": true,
+    "format": "{}",
+    "interval": 3600
+  }
+}

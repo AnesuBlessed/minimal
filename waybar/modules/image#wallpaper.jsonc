@@ -1,0 +1,9 @@
+{
+  "image#wallpaper": {
+    "exec": "cat \"${MINIMAL_STATE:-$HOME/.local/state/minimal}/current_wallpaper\" 2>/dev/null || echo ''",
+    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/wallchange.sh --random",
+    "on-click-right": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/wallchange.sh",
+    "tooltip": true,
+    "tooltip-format": "Current Wallpaper (Click: Random | Right-click: Picker)"
+  }
+}

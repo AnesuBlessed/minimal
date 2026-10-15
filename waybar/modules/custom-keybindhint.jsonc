@@ -1,0 +1,9 @@
+{
+  "custom/keybindhint": {
+    "format": " ",
+    "tooltip": true,
+    "tooltip-format": "  Keybinds Hint",
+    "rotate": 0,
+    "on-click": "foot --title='Keybinds' less \"${MINIMAL_ROOT:-$HOME/.config/minimal}/RULES.md\""
+  }
+}
