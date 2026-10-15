@@ -13,6 +13,7 @@ if [ -n "$WALL" ] && [ -f "$WALL" ]; then
         if command -v hyde-shell >/dev/null 2>&1; then
             hyde-shell wallpaper --set "$WALL" --backend awww --global >/dev/null 2>&1
         fi
+        "$(dirname "$0")/../../scripts/update_fuzzel_colors.py" 2>/dev/null || true
         killall -SIGUSR2 waybar 2>/dev/null || true
     ) &
 

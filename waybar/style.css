@@ -38,7 +38,7 @@ window#waybar {
     border-radius: 4px;
     padding: 2px 8px;
     margin: 1px 4px;
-    box-shadow: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.30);
     transition: background-color 0.2s ease;
 }
 
@@ -63,13 +63,14 @@ window#waybar {
     padding: 1px 8px;
     margin: 1px 2px;
     border-radius: 3px;
-    color: @text-muted;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 700;
     background-color: transparent;
     transition: all 0.15s ease;
 }
 
 #workspaces button:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.20);
     color: #ffffff;
 }
 
@@ -77,7 +78,7 @@ window#waybar {
 #workspaces button.active {
     background-color: @accent;
     color: @accent-dark;
-    font-weight: 700;
+    font-weight: 800;
     padding: 1px 12px;
     border-radius: 3px;
 }
