@@ -1,7 +1,12 @@
 # Screenshots and temp test captures
-*.png
+/*.png
 !fastfetch/assets/*.png
+!wallpapers/*.png
+customisations i need/
 
 # Thumbnails and caches
 .cache/
 quickshell/**/.cache/
+
+# Local validation bytecode
+__pycache__/

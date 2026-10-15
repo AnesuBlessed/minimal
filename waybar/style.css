@@ -1,24 +1,28 @@
 /* =============================================================================
- *  MINIMAL WAYBAR — FLOATING GLASS CAPSULES (STYLE)
+ *  MINIMAL WAYBAR — FROSTED GLASS CAPSULES (HYDE AESTHETIC)
  * =============================================================================
- *  - Faithful spacing and proportions matching HyDE
- *  - Nerd Font iconography (no colored emojis)
- *  - Native Glass Transparency (rgba(22, 22, 28, 0.60))
- *  - Dynamic Color Tokens imported from colors.css
+ *  - Faithful spacing and proportions matching HyDE reference screenshots
+ *  - Translucent frosted glass (~82% dark charcoal) with background blur
+ *  - High-contrast pure off-white typography (12px, font-weight: 600)
+ *  - Softer 9px rounded island pills, almost touching top bezel (margin-top: 2px)
+ *  - Workspaces + Active window title combined in center capsule
+ *  - Expanding clock with date toggle
+ *  - Real battery glyphs with charging indication
+ *  - Pale Lavender (@accent) readable active highlights
  * ============================================================================= */
 
-@import "../colors.css";
+@import "colors.css";
 
 * {
     border: none;
     border-radius: 0;
     font-family: "JetBrainsMono Nerd Font", "CaskaydiaCove Nerd Font", monospace;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 600;
     min-height: 0;
 }
 
-/* Base Bar Container (Transparent to allow island floating effect) */
+/* Base Bar Container */
 window#waybar {
     background-color: transparent;
     color: @text-main;
@@ -29,67 +33,75 @@ window#waybar {
  * ----------------------------------------------------------------------------- */
 #hardware,
 #time-caffeine,
+#center,
 #controls,
 #connectivity,
-#workspaces,
 #custom-power {
     background-color: @bg-glass;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 8px;
-    margin: 1px 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.30);
-    transition: background-color 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    padding: 2px 10px;
+    margin: 0 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: background-color 0.12s ease;
 }
 
 #hardware:hover,
 #time-caffeine:hover,
+#center:hover,
 #controls:hover,
 #connectivity:hover,
-#workspaces:hover,
 #custom-power:hover {
     background-color: @bg-glass-hover;
 }
 
 /* -----------------------------------------------------------------------------
- * Workspaces (Pure Numbered Pills)
+ * Center Capsule: Workspaces + Active Window Title
  * ----------------------------------------------------------------------------- */
-#workspaces {
-    padding: 2px 4px;
-    border-radius: 4px;
+#center {
+    padding: 2px 6px;
 }
 
 #workspaces button {
-    padding: 1px 8px;
+    padding: 1px 7px;
     margin: 1px 2px;
-    border-radius: 3px;
-    color: rgba(255, 255, 255, 0.75);
+    border-radius: 6px;
+    color: rgba(244, 244, 245, 0.65);
     font-weight: 700;
     background-color: transparent;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
 }
 
 #workspaces button:hover {
-    background-color: rgba(255, 255, 255, 0.20);
+    background-color: rgba(255, 255, 255, 0.15);
     color: #ffffff;
 }
 
-/* Active Workspace Pill (Dynamic Wallpaper Accent Pill) */
+/* Active Workspace Pill (Pale Lavender Accent) */
 #workspaces button.active {
     background-color: @accent;
     color: @accent-dark;
     font-weight: 800;
-    padding: 1px 12px;
-    border-radius: 3px;
+    padding: 1px 11px;
+    border-radius: 6px;
 }
 
 #workspaces button.urgent {
     background-color: @critical;
-    color: @accent-dark;
+    color: #ffffff;
+    border-radius: 6px;
+}
+
+/* Active Window Title */
+#window {
+    padding-left: 8px;
+    padding-right: 4px;
+    color: @text-main;
+    font-weight: 600;
 }
 
 /* -----------------------------------------------------------------------------
- * Module Spacing inside Capsule Groups
+ * Module Spacing & Colors inside Capsule Groups
  * ----------------------------------------------------------------------------- */
 #cpu,
 #memory,
@@ -100,15 +112,11 @@ window#waybar {
 #wireplumber,
 #idle_inhibitor,
 #clock {
-    padding: 0 6px;
+    padding: 0 5px;
     color: @text-main;
 }
 
-/* Subtle Highlights */
-#cpu {
-    color: @accent;
-}
-
+/* Subtle highlights for state changes */
 #battery.charging,
 #battery.plugged {
     color: @accent;
@@ -126,17 +134,16 @@ window#waybar {
     color: @text-dim;
 }
 
-/* Microphone Muted */
 #wireplumber.source.muted {
     color: @critical;
 }
 
 /* -----------------------------------------------------------------------------
- * Caffeine Mode (Nerd Font Coffee Icon 󰛊 / 󰅶)
+ * Caffeine Mode
  * ----------------------------------------------------------------------------- */
 #idle_inhibitor {
     padding-right: 2px;
-    font-size: 13px;
+    font-size: 13.5px;
 }
 
 #idle_inhibitor.activated {
@@ -153,21 +160,15 @@ window#waybar {
 #clock {
     color: @text-main;
     font-weight: 700;
-    padding-left: 4px;
+    padding: 0 4px;
 }
 
 #custom-power {
-    color: @accent;
-    min-width: 18px;
-    padding: 2px 7px;
-    margin: 4px 6px;
-    font-size: 12px;
-    transition: all 0.15s ease;
-}
-
-#custom-power label {
-    margin: 0;
-    padding: 0;
+    color: @text-main;
+    font-size: 13.5px;
+    padding: 2px 10px;
+    margin: 0 4px;
+    transition: all 0.10s ease;
 }
 
 #custom-power:hover {
@@ -179,13 +180,15 @@ window#waybar {
  * Tooltips
  * ----------------------------------------------------------------------------- */
 tooltip {
-    background: rgba(18, 18, 22, 0.95);
+    background: rgba(18, 18, 24, 0.96);
     border: 1px solid @border-glass;
     border-radius: 8px;
     color: @text-main;
+    padding: 4px;
 }
 
 tooltip label {
-    padding: 6px;
+    padding: 4px 6px;
     color: @text-main;
+    font-size: 12px;
 }

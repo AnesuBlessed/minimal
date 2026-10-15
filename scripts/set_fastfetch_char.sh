@@ -10,7 +10,7 @@ case "$1" in
     "random")
         CHAR=$(find "$ASSETS_DIR" -type f -name "*.png" ! -name "current.png" | shuf -n 1)
         if [ -n "$CHAR" ]; then
-            ln -sf "$CHAR" "$TARGET"
+            ln -sf "$(basename "$CHAR")" "$TARGET"
             echo "Fastfetch character set to: $(basename "$CHAR" .png)"
         fi
         ;;
@@ -20,7 +20,7 @@ case "$1" in
         ;;
     *)
         if [ -f "$ASSETS_DIR/$1.png" ]; then
-            ln -sf "$ASSETS_DIR/$1.png" "$TARGET"
+            ln -sf "$1.png" "$TARGET"
             echo "Fastfetch character set to: $1"
         else
             echo "Usage: $0 [ryuzaki|pochita|agk_clan|aisaka|geass|loli|random|list]"

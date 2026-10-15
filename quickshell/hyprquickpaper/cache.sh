@@ -1,35 +1,33 @@
 #!/usr/bin/env bash
-CONFIG="$1/config.json"
-wallpaper_path="$HOME/$(jq -r '.wallpaper_path' "$CONFIG")"
-cache_path="$HOME/$(jq -r '.cache_path' "$CONFIG")"
-
-mkdir -p "$cache_path"
-
-python3 -c "
+set -euo pipefail
+root=$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")
+source "$root/scripts/paths.sh"
+mkdir -p -- "$MINIMAL_CACHE/thumbs"
+# Pass paths as data, not Python source; a renamed wallpaper invalidates its cache.
+python3 - "$MINIMAL_ROOT/wallpapers" "$MINIMAL_CACHE/thumbs" <<'PY'
 from PIL import Image
-import os, glob
-
-wall_dir = '$wallpaper_path'
-thumb_dir = '$cache_path'
-
-files = glob.glob(os.path.join(wall_dir, '*'))
-for f in files:
-    bn = os.path.basename(f)
-    out = os.path.join(thumb_dir, bn)
-    if os.path.exists(out):
+from pathlib import Path
+import os, sys, tempfile
+for path in Path(sys.argv[1]).iterdir():
+    if path.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp'):
         continue
+    target = Path(sys.argv[2]) / path.name
+    if target.exists() and target.stat().st_mtime_ns >= path.stat().st_mtime_ns:
+        continue
+    temporary = None
     try:
-        with Image.open(f) as im:
-            if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
-                im = im.convert('RGBA')
-                bg = Image.new('RGBA', im.size, (20, 20, 26, 255))
-                im = Image.alpha_composite(bg, im).convert('RGB')
-            else:
-                im = im.convert('RGB')
-            im.thumbnail((600, 500), Image.Resampling.LANCZOS)
-            tmp = out + '.tmp'
-            im.save(tmp, 'PNG' if bn.lower().endswith('.png') else 'JPEG', quality=85)
-            os.replace(tmp, out)
-    except Exception:
-        pass
-"
+        with Image.open(path) as source:
+            source.thumbnail((600, 500), Image.Resampling.LANCZOS)
+            image = Image.new('RGB', source.size, (20, 20, 26))
+            rgba = source.convert('RGBA')
+            image.paste(rgba, mask=rgba.getchannel('A'))
+            fd, temporary = tempfile.mkstemp(dir=target.parent, suffix='.tmp')
+            os.close(fd)
+            image.save(temporary, 'PNG')
+            os.replace(temporary, target)
+    except (OSError, ValueError) as error:
+        print(f'Thumbnail skipped: {path.name}: {error}', file=sys.stderr)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
+PY

@@ -1,7 +1,4 @@
 {
-    "wallpaper_path": "Projects/minimal/wallpapers/",
-    "cache_path": ".cache/minimal/thumbs/",
     "number_of_pictures": 7,
-    "border_color": "#b8c470",
-    "cache_batch_size": 20
+    "border_color": "#b8c470"
 }

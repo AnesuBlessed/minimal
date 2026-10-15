@@ -8,7 +8,7 @@ PanelWindow {
     id: main
 
     // ---- Settings ----
-    property int animDuration: 180
+    property int animDuration: 120
     property real zoomScale: 0.8
     property real edgeScale: 0.3
     property real skewFactor: -0.2
@@ -52,8 +52,6 @@ PanelWindow {
         JsonAdapter {
             id: configs
 
-            property string wallpaper_path
-            property string cache_path
             property int number_of_pictures
             property string border_color
         }
@@ -62,9 +60,9 @@ PanelWindow {
     FolderListModel {
         id: folderModel
 
-        folder: "file://" + main.homeDir + "/" + configs.wallpaper_path
+        folder: "file://" + (Quickshell.env("MINIMAL_WALLPAPERS") || (Quickshell.shellDir + "/../../wallpapers"))
         showDirs: false
-        nameFilters: ["*.png", "*.jpg"]
+        nameFilters: ["*.png", "*.jpg", "*.jpeg", "*.webp"]
         sortField: FolderListModel.Name
     }
 
@@ -84,7 +82,7 @@ PanelWindow {
         boundsBehavior: Flickable.StopAtBounds
 
         property int selectedIndex: main.startPosition
-        property real tileWidth: width / configs.number_of_pictures - 10
+        property real tileWidth: width / Math.max(1, configs.number_of_pictures || 7) - 10
         property real viewportCenterX: width / 2
         property bool ready: false
 
@@ -110,6 +108,7 @@ PanelWindow {
         }
 
         function activateCurrent() {
+            if (folderModel.count === 0) return
             Quickshell.execDetached([
                 "bash",
                 Quickshell.shellPath("commands.sh"),
@@ -228,8 +227,7 @@ PanelWindow {
                     smooth: true
 
                     source: "file://" +
-                            main.homeDir + "/" +
-                            configs.cache_path +
+                            (Quickshell.env("MINIMAL_THUMBNAILS") || (main.homeDir + "/.cache/minimal/thumbs/")) +
                             fileName
 
                     // Decode once at max zoomed size.

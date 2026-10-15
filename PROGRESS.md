@@ -80,3 +80,8 @@
   - Added threshold wheel accumulator and rate-limiting cooldown to prevent trackpad flicks and sensitive wheels from jumping uncontrollably.
   - Removed hover index switching loop so moving the mouse never disrupts scrolling momentum.
 
+
+* **2026-10-15 — Everyday gaps & refined Waybar aesthetics:**
+  - Implemented 8 everyday gaps: Fuzzel power menu (`Super + Escape`), background low/critical battery protection with auto-suspend (`battery-monitor.sh`), D-Bus portal reset & environment export, GNOME Keyring auto-unlocking in `session-start.sh`, USB drive automount (`udiskie`) and eject menu (`usb-menu.sh`), laptop lid switch auto-lock, dedicated fullscreen (`Super + M` / `F11`), and Mako DND / notification controls (`notifications.sh`).
+  - Waybar visual overhaul: 93% dark charcoal background (`rgba(20, 20, 26, 0.93)`), 9px softer rounded corners, 7px top margin breathing room, 12px crisp typography with 13-14px icons, single pale lavender accent (`#bcb8ef`) on active workspace, uncluttered icon-only Wi-Fi and mic with rich hover tooltips, compact `HH:MM` clock, and aligned power button pill.
+

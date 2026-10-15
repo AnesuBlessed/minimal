@@ -1,70 +1,59 @@
 #!/usr/bin/env bash
-# =============================================================================
-#  MINIMAL RICE — SAFE DEPLOYMENT SCRIPT
-# =============================================================================
-#  Adheres strictly to Rule 6 (Non-Destructive Deployment):
-#  - Automatically creates a timestamped backup before touching ~/.config
-#  - Creates clean atomic symlinks to ~/Projects/minimal/
-#  - Completely reversible via ./restore.sh
-# =============================================================================
+# Back up every affected entry before changing any; preserve original symlinks.
+set -Eeuo pipefail
+umask 077
+SOURCE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$SOURCE_DIR/scripts/deployment-common.sh"
+parse_options "$@"
+[[ -z $SELECTED_BACKUP ]] || fail '--backup belongs to restore.sh'
 
-set -e
-
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="$HOME/.config"
-BACKUP_DIR="$CONFIG_DIR/backups/backup_pre_minimal_$(date +%Y%m%d_%H%M%S)"
-
-echo "=== Minimal Rice Deployment ==="
-echo "Source: $SOURCE_DIR"
-echo "Target: $CONFIG_DIR"
-echo ""
-
-# 1. Dependency Check
-echo "[1/4] Checking required packages..."
-MISSING_PKGS=()
-for pkg in fuzzel foot mako awww quickshell brightnessctl; do
-    if ! command -v "$pkg" >/dev/null 2>&1; then
-        MISSING_PKGS+=("$pkg")
-    fi
+missing=()
+for binary in Hyprland hyprctl waybar fuzzel foot footclient mako makoctl hyprpaper hypridle hyprlock wpctl brightnessctl notify-send quickshell jq magick python3 wl-paste wl-copy cliphist flock loginctl; do
+    command -v "$binary" >/dev/null 2>&1 || missing+=("$binary")
 done
-
-if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
-    echo "  > Warning: Missing packages: ${MISSING_PKGS[*]}"
-    echo "  > Run: sudo pacman -S --needed ${MISSING_PKGS[*]}"
-else
-    echo "  > All core binaries are installed."
+if ((${#missing[@]})); then fail "Install required commands before deployment: ${missing[*]}"; fi
+python3 -c 'from PIL import Image' || fail 'Install python-pillow'
+for comp in "${COMPONENTS[@]}"; do [[ -d $(source_for "$comp") ]] || fail "Missing source: $comp"; done
+Hyprland --verify-config -c "$SOURCE_DIR/hypr/hyprland.lua" >/dev/null || fail 'Hyprland configuration validation failed'
+fuzzel --check-config --config "$SOURCE_DIR/fuzzel/fuzzel.ini" || fail 'Fuzzel configuration validation failed'
+foot --check-config -c "$SOURCE_DIR/foot/foot.ini" || fail 'Foot configuration validation failed'
+if $CHECK_ONLY; then
+    printf 'Preflight passed. Would install %s into %s\n' "${COMPONENTS[*]}" "$CONFIG_DIR"
+    exit 0
 fi
-echo ""
-
-# 2. Safe Timestamped Backup
-echo "[2/4] Backing up existing configurations to $BACKUP_DIR..."
-mkdir -p "$BACKUP_DIR"
-
-COMPONENTS=("hypr" "waybar" "fuzzel" "foot" "mako" "dunst" "fastfetch")
-
+lock_deployment
+all_linked=true
 for comp in "${COMPONENTS[@]}"; do
-    if [ -e "$CONFIG_DIR/$comp" ] || [ -L "$CONFIG_DIR/$comp" ]; then
-        echo "  > Backing up $comp..."
-        cp -rL "$CONFIG_DIR/$comp" "$BACKUP_DIR/$comp" 2>/dev/null || mv "$CONFIG_DIR/$comp" "$BACKUP_DIR/$comp"
-        rm -rf "$CONFIG_DIR/$comp"
+    [[ -L $CONFIG_DIR/$comp && $(readlink -- "$CONFIG_DIR/$comp") == "$(source_for "$comp")" ]] || all_linked=false
+done
+if $all_linked; then printf 'Already deployed; existing backups retained.\n'; exit 0; fi
+mkdir -p -- "$BACKUP_BASE"
+TXN=$(mktemp -d "$BACKUP_BASE/minimal-$(date +%Y%m%d_%H%M%S_%N)-XXXXXXXX")
+mkdir -- "$TXN/original" "$TXN/displaced" "$TXN/interrupted" "$TXN/created"
+printf '%s\n' "$CONFIG_DIR" > "$TXN/config-dir"
+printf 'preparing\n' > "$TXN/status"
+# A copy failure ends here, before any live entry is moved or removed.
+for comp in "${COMPONENTS[@]}"; do
+    src=$(source_for "$comp")
+    if exists "$CONFIG_DIR/$comp"; then
+        cp -a -- "$CONFIG_DIR/$comp" "$TXN/original/$comp"
+        printf '%s\tpresent\t%s\n' "$comp" "$src" >> "$TXN/manifest.tsv"
+    else
+        printf '%s\tabsent\t%s\n' "$comp" "$src" >> "$TXN/manifest.tsv"
     fi
 done
-echo "  > Backup complete."
-echo ""
-
-# 3. Create Clean Symlinks
-echo "[3/4] Linking minimal configurations..."
+CHANGED=(); COMMITTED=false
+trap transaction_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+printf 'installing\n' > "$TXN/status"
 for comp in "${COMPONENTS[@]}"; do
-    if [ -d "$SOURCE_DIR/$comp" ]; then
-        ln -sfn "$SOURCE_DIR/$comp" "$CONFIG_DIR/$comp"
-        echo "  > Linked $comp -> $CONFIG_DIR/$comp"
-    fi
+    CHANGED+=("$comp")
+    if exists "$CONFIG_DIR/$comp"; then mv -T -- "$CONFIG_DIR/$comp" "$TXN/displaced/$comp"; fi
+    # Journal before creating: a signal between these steps remains recoverable.
+    touch "$TXN/created/$comp"
+    ln -s -- "$(source_for "$comp")" "$CONFIG_DIR/$comp"
 done
-echo ""
-
-# 4. Finalizing
-echo "[4/4] Deployment complete!"
-echo "  > To test Hyprland: hyprctl reload"
-echo "  > To test Waybar: killall waybar && waybar &"
-echo "  > To roll back at any time: ./restore.sh"
-echo "==============================="
+printf 'installed\n' > "$TXN/status"
+COMMITTED=true
+printf 'Installed. Backup: %s\nLog out and choose Hyprland to start Minimal. Roll back with ./restore.sh\n' "$TXN"

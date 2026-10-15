@@ -29,7 +29,35 @@ default-timeout=2500
 border-color=#b8c47088
 default-timeout=4000
 
-[urgency=high]
+[urgency=critical]
 border-color=#e06c75ee
 text-color=#ffffff
 default-timeout=0
+
+# Replacement-tagged OSDs stay separate from normal notification history.
+[app-name=minimal-osd]
+anchor=bottom-center
+margin=0,0,64,0
+width=300
+height=52
+padding=14
+border-size=1
+border-radius=10
+background-color=#181822f5
+text-color=#f4f4f5
+border-color=#b8c47088
+progress-color=over #b8c47033
+format=%s
+icons=0
+history=0
+group-by=none
+default-timeout=1200
+ignore-timeout=1
+
+# Do Not Disturb Mode
+[mode=dnd]
+invisible=1
+
+[mode=dnd urgency=critical]
+invisible=0
+

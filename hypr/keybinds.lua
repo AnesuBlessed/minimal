@@ -4,12 +4,15 @@
 -- Rules 1 & 4: Native C/Rust Utilities & Clean Layout
 
 local mainMod = "SUPER"
+local paths = require("paths")
 
 -- =====================================================
 -- Window Management
 -- =====================================================
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.float({ action = "toggle" }))
+hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen())
+hl.bind(mainMod .. " + F11", hl.dsp.window.fullscreen())
 
 -- Move Focus Between Windows (Super + Arrows)
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
@@ -50,17 +53,30 @@ hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 -- =====================================================
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("footclient || foot"))
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("firefox"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("firefox"))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("dolphin"))
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("fuzzel"))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(paths.script("launcher.sh")))
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/minimal/scripts/wallchange.sh"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallchange.sh")))
+hl.bind(mainMod .. " + U", hl.dsp.exec_cmd(paths.script("usb-menu.sh")))
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("nm-connection-editor"))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("pavucontrol"))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload"))
 
--- Session Lock
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
-hl.bind("XF86PowerOff", hl.dsp.exec_cmd("hyprlock"))
+-- Power & Session Management
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(paths.script("lock.sh")))
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
+
+-- Laptop Lid Behavior (Safe lock on close, wake on open)
+hl.bind("switch:on:Lid Switch", hl.dsp.exec_cmd(paths.script("lock.sh")), { locked = true })
+hl.bind("switch:off:Lid Switch", function() hl.dispatch("hl.dsp.dpms({action = 'on'})") end, { locked = true })
+
+-- Notification Controls (Mako / Dunst)
+hl.bind(mainMod .. " + SHIFT + N",       hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dismiss"))
+hl.bind(mainMod .. " + SHIFT + ALT + N", hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dismiss-all"))
+hl.bind(mainMod .. " + ALT + N",         hl.dsp.exec_cmd(paths.script("notifications.sh") .. " restore"))
+hl.bind(mainMod .. " + SHIFT + D",       hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dnd"))
 
 -- =====================================================
 -- Media & System Controls
@@ -71,14 +87,14 @@ hl.bind("SHIFT + Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | satty --filenam
 hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("grim - | wl-copy"))
 
 -- Audio Controls (WirePlumber)
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume up"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume down"),      { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd(paths.script("media.sh") .. " volume mute"),     { locked = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd(paths.script("media.sh") .. " mic mute"),   { locked = true })
 
 -- Screen Brightness (brightnessctl)
-hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl set 5%+"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd(paths.script("media.sh") .. " brightness up"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(paths.script("media.sh") .. " brightness down"), { locked = true, repeating = true })
 
 -- Music Play / Pause (Super + Space & Media Key)
 hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("playerctl play-pause"))

@@ -14,7 +14,7 @@ This document establishes the non-negotiable engineering principles for this ric
 * **Event Sockets & Signals**: Use native event listeners (Hyprland IPC socket2, PipeWire/WirePlumber events) or set poll intervals to $\ge 15\text{–}30\text{s}$ for slow-moving metrics (battery, disk, memory).
 
 ### Rule 3: GPU & Compositor Rendering Discipline
-* **Variable Frame Rate (VFR) is Mandatory**: `misc:vfr = true` must remain enabled at all times so frames are rendered only when on-screen content changes.
+* **Variable Frame Rate (VFR) is Mandatory**: VFR must remain enabled (the default `debug:vfr = true` on Hyprland 0.55+) so frames are rendered only when on-screen content changes.
 * **Zero Cost Decoration**:
   * Multi-pass blur and heavy drop-shadows are strictly disabled to prevent thermal throttling on integrated GPUs (Intel HD / AMD Vega) and reduce battery drain.
   * Rounded corners capped at modest radii ($\le 8\text{–}10\text{px}$) with zero antialiasing blur penalties.
@@ -38,3 +38,5 @@ This document establishes the non-negotiable engineering principles for this ric
 ### Rule 6: Non-Destructive Deployment
 * **Safe Installation**: Any installation or symlinking script must automatically create a timestamped backup of existing `~/.config` directories before making any changes.
 * **Reversibility**: The entire setup must be cleanly uninstallable with a single command or script.
+
+Lockscreen frost is prepared once as a cached image when the wallpaper changes; compositor and lockscreen GPU blur remain disabled.

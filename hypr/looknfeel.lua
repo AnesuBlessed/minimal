@@ -23,17 +23,17 @@ hl.config({
     },
 
     decoration = {
-        rounding = 8,
+        rounding = 10,
         active_opacity   = 1.0,
         inactive_opacity = 0.96,
 
-        -- Absolute Rule 3: Zero GPU blur/shadow overhead
+        -- Lightweight blur for Waybar frosted glass
         shadow = {
             enabled = false,
         },
         blur = {
             enabled = true,
-            size = 5,
+            size = 4,
             passes = 2,
             new_optimizations = true,
             xray = false,

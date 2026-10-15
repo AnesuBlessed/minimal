@@ -1,11 +1,13 @@
 {
     // =========================================================================
-    //  MINIMAL WAYBAR — REFINED DISCRETE ISLAND PILLS
+    //  MINIMAL WAYBAR — REFINED DISCRETE ISLAND PILLS (HYDE COMPATIBLE)
     // =========================================================================
-    //  - Exact HyDE-style layout and Nerd Font iconography
-    //  - Nerd Font caffeine glyph (󰛊 / 󰅶) instead of emoji
-    //  - Distinct pill groups with clean breathing room
-    //  - Event-driven WirePlumber audio & mic
+    //  - Exact HyDE pill layout matching reference screenshots
+    //  - Center island: Workspaces + Active Window Title
+    //  - Expanding clock with date toggle on click
+    //  - Proper battery icon with charging bolt indication
+    //  - Native WirePlumber audio, mic, and backlight controls
+    //  - Power button launches HyDE wlogout
     // =========================================================================
 
     "layer": "top",
@@ -22,7 +24,7 @@
     ],
 
     "modules-center": [
-        "hyprland/workspaces"
+        "group/center"
     ],
 
     "modules-right": [
@@ -40,6 +42,11 @@
     "group/time-caffeine": {
         "orientation": "horizontal",
         "modules": ["idle_inhibitor", "clock"]
+    },
+
+    "group/center": {
+        "orientation": "horizontal",
+        "modules": ["hyprland/workspaces", "hyprland/window"]
     },
 
     "group/controls": {
@@ -66,7 +73,7 @@
         "tooltip-format": "RAM: {used:0.2f}GiB / {total:0.2f}GiB ({percentage}%)"
     },
 
-    // --- Left Pill 2: Caffeine Mode & Clock ---
+    // --- Left Pill 2: Caffeine Mode & Expanding Clock ---
     "idle_inhibitor": {
         "format": "{icon}",
         "format-icons": {
@@ -82,23 +89,24 @@
         "interval": 1,
         "format": "{:%H:%M:%S}",
         "format-alt": "󰃭 {:%a, %d %b %Y}",
-        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "tooltip": true,
+        "tooltip-format": "<big><b>{:%A, %d %B %Y}</b></big>\n\n<tt><small>{calendar}</small></tt>",
         "calendar": {
             "mode": "month",
             "mode-mon-col": 3,
             "weeks-pos": "right",
             "on-scroll": 1,
             "format": {
-                "months": "<span color='#b8c470'><b>{}</b></span>",
-                "days": "<span color='#e4e4e7'><b>{}</b></span>",
-                "weeks": "<span color='#71717a'><b>W{}</b></span>",
-                "weekdays": "<span color='#b8c470'><b>{}</b></span>",
-                "today": "<span color='#121214' background='#b8c470'><b>{}</b></span>"
+                "months": "<span color='#bcb8ef'><b>{}</b></span>",
+                "days": "<span color='#f4f4f5'><b>{}</b></span>",
+                "weeks": "<span color='#828292'><b>W{}</b></span>",
+                "weekdays": "<span color='#bcb8ef'><b>{}</b></span>",
+                "today": "<span color='#181726' background='#bcb8ef'><b>{}</b></span>"
             }
         }
     },
 
-    // --- Center Pill: Workspaces ---
+    // --- Center Pill: Workspaces + Window Title ---
     "hyprland/workspaces": {
         "all-outputs": true,
         "disable-scroll": false,
@@ -109,13 +117,25 @@
         }
     },
 
+    "hyprland/window": {
+        "format": "<b>{title}</b>",
+        "max-length": 25,
+        "separate-outputs": true,
+        "rewrite": {
+            "(.*) — Mozilla Firefox": "$1 󰈹",
+            "(.*) - Dolphin": "$1 󰉋",
+            "(.*) - Visual Studio Code": "$1 󰨞",
+            "(.*) - Foot": "$1 󰞷",
+            "^$": ""
+        }
+    },
+
     // --- Right Pill 1: Media & Controls ---
     "backlight": {
-        "device": "intel_backlight",
         "format": "{icon} {percent}%",
         "format-icons": ["󰃞", "󰃟", "󰃠"],
-        "on-scroll-up": "brightnessctl set 5%+",
-        "on-scroll-down": "brightnessctl set 5%-",
+        "on-scroll-up": "\"${XDG_CONFIG_HOME:-$HOME/.config}/minimal/scripts/media.sh\" brightness up",
+        "on-scroll-down": "\"${XDG_CONFIG_HOME:-$HOME/.config}/minimal/scripts/media.sh\" brightness down",
         "tooltip": false
     },
 
@@ -126,27 +146,32 @@
         "on-click": "pavucontrol",
         "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 2%+",
         "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
-        "tooltip": false
+        "tooltip": true,
+        "tooltip-format": "Volume: {volume}%"
     },
 
     "wireplumber#source": {
         "node-type": "Audio/Source",
-        "format": "󰍬 {volume}%",
+        "format": "󰍬",
         "format-muted": "󰍭",
+        "tooltip": true,
+        "tooltip-format": "Microphone: {volume}%",
         "on-click": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
         "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 2%+",
-        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 2%-",
-        "tooltip": false
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 2%-"
     },
 
-    // --- Right Pill 2: Connectivity & Power ---
+    // --- Right Pill 2: Connectivity & Battery ---
     "network": {
         "interval": 15,
-        "format-wifi": "󰤨 {signalStrength}%",
-        "format-ethernet": "󰈀 Wired",
-        "format-linked": "󰈀 Link",
-        "format-disconnected": "󰤭 Disconnected",
-        "tooltip-format-wifi": "SSID: {essid} ({signalStrength}%)\nIP: {ipaddr}",
+        "format-wifi": "󰤨",
+        "format-ethernet": "󰈀",
+        "format-linked": "󰈀",
+        "format-disconnected": "󰤭",
+        "tooltip": true,
+        "tooltip-format-wifi": "󰤨  {essid} ({signalStrength}%)\nIP: {ipaddr}",
+        "tooltip-format-ethernet": "󰈀  Wired ({ifname})\nIP: {ipaddr}",
+        "tooltip-format-disconnected": "󰤭  Disconnected",
         "on-click": "nm-connection-editor"
     },
 
@@ -159,17 +184,15 @@
     },
 
     "battery": {
-        "bat": "BAT0",
-        "adapter": "AC",
-        "interval": 30,
+        "interval": 15,
         "states": {
             "warning": 25,
             "critical": 15
         },
         "format": "{icon} {capacity}%",
-        "format-charging": "󱐋 {capacity}%",
-        "format-plugged": "󰚥 {capacity}%",
-        "format-full": "󱐋 {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰂄 {capacity}%",
+        "format-full": "󰁹 󱐋 {capacity}%",
         "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
         "tooltip": true,
         "tooltip-format": "{time}\nPower draw: {power}W\nHealth: {health}%"
@@ -178,7 +201,8 @@
     // --- Right Pill 3: Power ---
     "custom/power": {
         "format": "",
-        "tooltip": false,
-        "on-click": "hyprlock"
+        "tooltip": true,
+        "tooltip-format": "Power Menu (HyDE / wlogout)",
+        "on-click": "\"${XDG_CONFIG_HOME:-$HOME/.config}/minimal/scripts/powermenu.sh\""
     }
 }

@@ -1,68 +1,66 @@
 #!/usr/bin/env python3
+"""One-shot wallpaper palette; no HyDE dependency and no Python daemon."""
+import colorsys
+import fcntl
 import os
+from pathlib import Path
 import re
+import sys
+import tempfile
+from PIL import Image
 
-shell_colors = os.path.expanduser("~/.cache/hyde/wallbash/shell-colors")
-fuzzel_conf = os.path.expanduser("~/Projects/minimal/fuzzel/fuzzel.ini")
+ROOT = Path(__file__).resolve().parent.parent
 
-if not os.path.exists(shell_colors) or not os.path.exists(fuzzel_conf):
-    exit(0)
 
-colors = {}
-with open(shell_colors) as f:
-    for line in f:
-        m = re.match(r"^(\w+)=['\"]?#?([0-9a-fA-F]{6})['\"]?", line.strip())
-        if m:
-            colors[m.group(1)] = m.group(2)
+def atomic_write(path, text):
+    fd, name = tempfile.mkstemp(prefix=".minimal-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as stream:
+            stream.write(text)
+        os.chmod(name, path.stat().st_mode & 0o777)
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
 
-bg = colors.get("wallbash_pry1", "181822")
-accent = colors.get("wallbash_1xa7", "b8c470")
-pill = colors.get("wallbash_1xa4", "383848")
-match = colors.get("wallbash_1xa9", "ffffff")
 
-with open(fuzzel_conf) as f:
-    lines = f.readlines()
+def main():
+    if len(sys.argv) != 2:
+        raise SystemExit("Usage: update_fuzzel_colors.py WALLPAPER")
+    with Image.open(sys.argv[1]) as source:
+        source = source.convert("RGB")
+        source.thumbnail((96, 96))
+        dominant = source.quantize(colors=8).convert("RGB")
+        rgb = max(dominant.getcolors(96 * 96), key=lambda item: item[0])[1]
+    hue, _, saturation = colorsys.rgb_to_hls(*(value / 255 for value in rgb))
+    saturation = min(0.45, max(0.18, saturation))
 
-in_colors = False
-new_lines = []
-for line in lines:
-    if line.strip().startswith("[colors]"):
-        in_colors = True
-        new_lines.append(line)
-        continue
-    elif line.strip().startswith("[") and in_colors:
-        in_colors = False
+    def color(lightness):
+        return "".join(f"{round(v * 255):02x}" for v in colorsys.hls_to_rgb(hue, lightness, saturation))
 
-    if in_colors:
-        if line.startswith("background="):
-            new_lines.append(f"background={bg}f0\n")
-        elif line.startswith("prompt="):
-            new_lines.append(f"prompt={accent}ff\n")
-        elif line.startswith("match="):
-            new_lines.append(f"match={accent}ff\n")
-        elif line.startswith("selection="):
-            new_lines.append(f"selection={pill}ee\n")
-        elif line.startswith("selection-match="):
-            new_lines.append(f"selection-match={match}ff\n")
-        elif line.startswith("border="):
-            new_lines.append(f"border={accent}55\n")
-        elif line.startswith("text="):
-            new_lines.append("text=ffffffff\n")
-        elif line.startswith("selection-text="):
-            new_lines.append("selection-text=ffffffff\n")
-        else:
-            new_lines.append(line)
-    elif line.startswith("prompt="):
-        # Keep the search icon in [main]
-        new_lines.append('prompt="   "\n')
-    else:
-        new_lines.append(line)
+    bg, pill, accent = color(0.10), color(0.25), color(0.78)
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "minimal"
+    cache.mkdir(parents=True, exist_ok=True)
+    with (cache / "palette.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        path = ROOT / "fuzzel/fuzzel.ini"
+        text = path.read_text()
+        before, rest = text.split("[colors]", 1)
+        section, after = rest.split("[border]", 1)
+        values = {"background": bg + "f0", "text": "ffffffff", "prompt": accent + "ff",
+                  "match": accent + "ff", "selection": pill + "ff", "selection-text": "ffffffff",
+                  "selection-match": accent + "ff", "border": accent + "55"}
+        for key, value in values.items():
+            section = re.sub(rf"^{re.escape(key)}=.*$", f"{key}={value}", section, flags=re.M)
+        atomic_write(path, before + "[colors]" + section + "[border]" + after)
+        palette = ROOT / "colors.css"
+        css = palette.read_text()
+        values = {"bg-glass": f"alpha(#{bg}, 0.88)", "bg-glass-hover": f"alpha(#{pill}, 0.95)",
+                  "border-glass": f"alpha(#{accent}, 0.30)", "accent": f"#{accent}", "accent-dark": f"#{bg}"}
+        for key, value in values.items():
+            css = re.sub(rf"@define-color {key} [^;]+;", f"@define-color {key} {value};", css)
+        atomic_write(palette, css)
 
-with open(fuzzel_conf, "w") as f:
-    f.writelines(new_lines)
 
-# Sync to ~/.config/fuzzel/fuzzel.ini if different
-user_fuzzel = os.path.expanduser("~/.config/fuzzel/fuzzel.ini")
-if not os.path.samefile(fuzzel_conf, user_fuzzel):
-    with open(user_fuzzel, "w") as f:
-        f.writelines(new_lines)
+if __name__ == "__main__":
+    main()

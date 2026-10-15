@@ -1,25 +1,11 @@
-/* =============================================================================
- *  MINIMAL — CENTRAL PALETTE SYSTEM (CSS)
- * =============================================================================
- *  Dynamically connected to Wallbash wallpaper color extraction.
- *  High-contrast legibility guarantees: crisp white foregrounds that never
- *  wash out on any wallpaper hue.
- * ============================================================================= */
-
-@import "/home/anesu/.cache/hyde/wallbash/gtk.css";
-
-/* Dynamic Translucent Frosted Glass Tinted with Wallpaper Palette */
-@define-color bg-glass alpha(@wallbash_pry1, 0.58);
-@define-color bg-glass-hover alpha(@wallbash_1xa4, 0.75);
-@define-color border-glass alpha(@wallbash_1xa8, 0.15);
-
-/* High-Contrast Foreground Text & Icons */
-@define-color text-main #ffffff;
-@define-color text-muted #e4e4e7;
-@define-color text-dim #a1a1aa;
-
-/* Dynamic Wallpaper Accents */
-@define-color accent @wallbash_1xa1;
-@define-color accent-dark @wallbash_pry1;
+/* Bundled palette: Translucent frosted glass with pale lavender accent */
+@define-color bg-glass rgba(22, 22, 30, 0.82);
+@define-color bg-glass-hover rgba(38, 38, 50, 0.92);
+@define-color border-glass rgba(188, 184, 239, 0.20);
+@define-color text-main #f4f4f5;
+@define-color text-muted #c9c9d2;
+@define-color text-dim #828292;
+@define-color accent #bcb8ef;
+@define-color accent-dark #181726;
 @define-color warning #e5c07b;
 @define-color critical #e06c75;

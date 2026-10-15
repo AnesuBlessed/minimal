@@ -38,15 +38,15 @@ hl.layer_rule({
     match = {
         namespace = "waybar",
     },
+    blur         = true,
     ignore_alpha = 0.5,
 })
 
 -- Notification Layer Rule
 hl.layer_rule({
-    name  = "notifications_blur",
+    name  = "notifications",
     match = {
         namespace = "^(notifications|dunst)$",
     },
-    blur         = true,
     ignore_alpha = 0.5,
 })
