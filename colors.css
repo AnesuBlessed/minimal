@@ -1,11 +1,11 @@
 /* Bundled palette: Translucent frosted glass with pale lavender accent */
-@define-color bg-glass alpha(#201320, 0.88);
-@define-color bg-glass-hover alpha(#4f304f, 0.95);
-@define-color border-glass alpha(#d5b9d5, 0.30);
+@define-color bg-glass alpha(#0e1125, 0.88);
+@define-color bg-glass-hover alpha(#232a5c, 0.95);
+@define-color border-glass alpha(#aeb4e0, 0.30);
 @define-color text-main #f4f4f5;
 @define-color text-muted #c9c9d2;
 @define-color text-dim #828292;
-@define-color accent #d5b9d5;
-@define-color accent-dark #201320;
+@define-color accent #aeb4e0;
+@define-color accent-dark #0e1125;
 @define-color warning #e5c07b;
 @define-color critical #e06c75;

@@ -52,7 +52,6 @@
     "group/pill#right1": {
         "modules": [
             "backlight",
-            "network",
             "pulseaudio",
             "pulseaudio#microphone",
             "custom/updates",
@@ -70,9 +69,6 @@
     },
     "group/pill#right3": {
         "modules": [
-            "custom/wallchange",
-            "custom/theme",
-            "custom/wbar",
             "custom/cliphist",
             "custom/hyde-menu",
             "custom/power"
