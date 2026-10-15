@@ -18,6 +18,12 @@ if [ "$1" == "--random" ]; then
         fi
         mkdir -p "$HOME/.config/minimal"
         echo "$CHOSEN" > "$HOME/.config/minimal/current_wallpaper"
+        (
+            if command -v hyde-shell >/dev/null 2>&1; then
+                hyde-shell wallpaper --set "$CHOSEN" --backend awww --global >/dev/null 2>&1
+            fi
+            killall -SIGUSR2 waybar 2>/dev/null || true
+        ) &
         notify-send -a "minimal" -h string:x-canonical-private-synchronous:wallchange "Wallpaper Switched" "$(basename "$CHOSEN")" -t 2000 >/dev/null 2>&1 || true
     fi
     exit 0

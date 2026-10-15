@@ -33,11 +33,11 @@ window#waybar {
 #connectivity,
 #workspaces,
 #custom-power {
-    background-color: rgba(20, 20, 26, 0.65);
+    background-color: @bg-glass;
     border: none;
-    border-radius: 3px;
-    padding: 3px 8px;
-    margin: 3px 4px;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 1px 4px;
     box-shadow: none;
     transition: background-color 0.2s ease;
 }
@@ -46,7 +46,8 @@ window#waybar {
 #time-caffeine:hover,
 #controls:hover,
 #connectivity:hover,
-#workspaces:hover {
+#workspaces:hover,
+#custom-power:hover {
     background-color: @bg-glass-hover;
 }
 
@@ -55,13 +56,13 @@ window#waybar {
  * ----------------------------------------------------------------------------- */
 #workspaces {
     padding: 2px 4px;
-    border-radius: 3px;
+    border-radius: 4px;
 }
 
 #workspaces button {
     padding: 1px 8px;
     margin: 1px 2px;
-    border-radius: 2px;
+    border-radius: 3px;
     color: @text-muted;
     background-color: transparent;
     transition: all 0.15s ease;
@@ -72,13 +73,13 @@ window#waybar {
     color: #ffffff;
 }
 
-/* Active Workspace Pill (Crisp high-contrast pill matching HyDE) */
+/* Active Workspace Pill (Dynamic Wallpaper Accent Pill) */
 #workspaces button.active {
-    background-color: #d9d9d9;
-    color: #1a1a20;
+    background-color: @accent;
+    color: @accent-dark;
     font-weight: 700;
     padding: 1px 12px;
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 #workspaces button.urgent {

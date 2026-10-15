@@ -1,19 +1,21 @@
 /* =============================================================================
  *  MINIMAL — CENTRAL PALETTE SYSTEM (CSS)
  * =============================================================================
- *  Single source of truth for Waybar, Fuzzel, Mako, and GTK.
- *  Dynamic wallpaper theming in Phase 5 will update these variables directly.
+ *  Dynamically connected to Wallbash wallpaper color extraction.
  * ============================================================================= */
 
-@define-color bg-glass rgba(18, 18, 22, 0.50);
-@define-color bg-glass-hover rgba(35, 35, 42, 0.70);
-@define-color border-glass rgba(255, 255, 255, 0.12);
+@import "/home/anesu/.cache/hyde/wallbash/gtk.css";
 
-@define-color text-main #e4e4e7;
-@define-color text-muted #a1a1aa;
-@define-color text-dim #71717a;
+/* Dynamic Translucent Frosted Glass Tinted with Wallpaper Palette */
+@define-color bg-glass alpha(@wallbash_pry1, 0.55);
+@define-color bg-glass-hover alpha(@wallbash_1xa4, 0.70);
+@define-color border-glass alpha(@wallbash_1xa8, 0.15);
 
-@define-color accent #b8c470;           /* Soft sage-lime */
-@define-color accent-dark #121214;      /* High-contrast dark on accent */
+@define-color text-main @wallbash_txt1;
+@define-color text-muted alpha(@wallbash_txt1, 0.75);
+@define-color text-dim alpha(@wallbash_txt1, 0.50);
+
+@define-color accent @wallbash_1xa1;
+@define-color accent-dark @wallbash_pry1;
 @define-color warning #e5c07b;
 @define-color critical #e06c75;
