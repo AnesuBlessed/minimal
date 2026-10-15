@@ -124,24 +124,33 @@ fi
 # --- 2. Isolation & Hook Neutralization ---
 log_step "2/5" "${C_BOLD}System Isolation & Hook Neutralization${C_RESET}"
 
-# Neutralize leftover fish hooks that override HYPRLAND_CONFIG
-if [[ -f $CONFIG_DIR/fish/conf.d/hyde.fish ]]; then
-    mv -f "$CONFIG_DIR/fish/conf.d/hyde.fish" "$CONFIG_DIR/fish/conf.d/hyde.fish.disabled" 2>/dev/null || true
-    log_ok "Disabled conflicting Fish HyDE hook ($CONFIG_DIR/fish/conf.d/hyde.fish)"
-else
-    log_info "No conflicting Fish HyDE hooks found"
+# Register standalone Wayland session for SDDM / GDM / greetd / Ly
+sessions_dir="${XDG_DATA_HOME:-$HOME/.local/share}/wayland-sessions"
+mkdir -p -- "$sessions_dir"
+if [[ -f $SOURCE_DIR/assets/minimal.desktop ]]; then
+    cp -f "$SOURCE_DIR/assets/minimal.desktop" "$sessions_dir/minimal.desktop" 2>/dev/null || true
+    log_ok "Registered standalone Wayland session ($sessions_dir/minimal.desktop)"
 fi
 
-# Stop and mask any lingering systemd transient bar/notification units
+# Neutralize any shell hooks that force foreign compositor configs
+for hook in "$CONFIG_DIR"/fish/conf.d/*.fish "$CONFIG_DIR"/environment.d/*.conf; do
+    if [[ -f $hook ]] && grep -q "HYPRLAND_CONFIG" "$hook" 2>/dev/null; then
+        mv -f "$hook" "${hook}.disabled" 2>/dev/null || true
+        log_ok "Disabled conflicting compositor hook ($(basename "$hook"))"
+    fi
+done
+
+# Stop any competing systemd transient bar or notification services
 if command -v systemctl >/dev/null 2>&1; then
-    systemctl --user stop hyde-Hyprland-bar.service 2>/dev/null || true
-    systemctl --user mask hyde-Hyprland-bar.service 2>/dev/null || true
-    log_ok "Masked conflicting HyDE background bar services"
+    for svc in $(systemctl --user list-units --type=service --state=running --no-legend 2>/dev/null | awk '{print $1}' | grep -E 'bar|notification|waybar|dunst|swaync' || true); do
+        systemctl --user stop "$svc" 2>/dev/null || true
+    done
+    log_ok "Cleaned up competing user systemd services"
 fi
 
-# Clear hijacked session environment variable
-unset HYPRLAND_CONFIG || true
-log_ok "Ensured clean Hyprland session entry point"
+# Clear hijacked session environment variables
+unset HYPRLAND_CONFIG SWAYSOCK || true
+log_ok "Ensured clean, rice-agnostic Hyprland session entry point"
 
 # --- 3. Atomic Backup Creation ---
 log_step "3/5" "${C_BOLD}Creating Atomic Rollback Snapshot${C_RESET}"
@@ -202,6 +211,12 @@ initial_wall="$SOURCE_DIR/wallpapers/japan_lake.jpg"
 if [[ -f $initial_wall ]]; then
     "$SOURCE_DIR/scripts/prepare-lock.sh" "$initial_wall" 2>/dev/null || true
     log_ok "Pre-generated lock screen backdrop cache"
+fi
+
+# Auto-detect GPU hardware & populate hardware.env
+if [[ -x $SOURCE_DIR/scripts/hardware-detect.sh ]]; then
+    "$SOURCE_DIR/scripts/hardware-detect.sh" 2>/dev/null || true
+    log_ok "Detected GPU hardware and generated hardware.env"
 fi
 
 # --- Installation Summary ---

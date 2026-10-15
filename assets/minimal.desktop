@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Minimal (Hyprland)
+Comment=Pure, zero-bloat dynamic tiling environment for Hyprland
+Exec=/home/anesu/.config/minimal/scripts/session-entry.sh
+Type=Application
+DesktopNames=Hyprland
+Keywords=tiling;wayland;compositor;minimal;

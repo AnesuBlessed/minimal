@@ -16,9 +16,18 @@ if [[ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]]; then
 elif [[ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]]; then
     /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >>"$MINIMAL_CACHE/session.log" 2>&1 &
 fi
+# Hardware auto-detection & environment configuration
+"$MINIMAL_ROOT/scripts/hardware-detect.sh" >>"$MINIMAL_CACHE/session.log" 2>&1 || true
+if [[ -f "$MINIMAL_CACHE/hardware.env" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$MINIMAL_CACHE/hardware.env"
+    set +a
+fi
+
 # D-Bus & Systemd Desktop Portal Integration (Screen sharing & file pickers)
-dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=Hyprland >>"$MINIMAL_CACHE/session.log" 2>&1 || true
-systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP >>"$MINIMAL_CACHE/session.log" 2>&1 || true
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=Hyprland LIBVA_DRIVER_NAME VDPAU_DRIVER AMD_VULKAN_ICD __GLX_VENDOR_LIBRARY_NAME NVD_BACKEND ELECTRON_OZONE_PLATFORM_HINT >>"$MINIMAL_CACHE/session.log" 2>&1 || true
+systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP LIBVA_DRIVER_NAME VDPAU_DRIVER AMD_VULKAN_ICD __GLX_VENDOR_LIBRARY_NAME NVD_BACKEND ELECTRON_OZONE_PLATFORM_HINT >>"$MINIMAL_CACHE/session.log" 2>&1 || true
 systemctl --user restart xdg-desktop-portal-hyprland xdg-desktop-portal >>"$MINIMAL_CACHE/session.log" 2>&1 || true
 
 # GNOME Keyring Integration (Auto-unlock secrets, passwords, SSH keys)

@@ -27,17 +27,21 @@ hl.config({
         active_opacity   = 1.0,
         inactive_opacity = 0.96,
 
-        -- Lightweight blur for Waybar frosted glass
+        -- Zero compositor blur on iGPUs to prevent thermal throttling (Rule 3)
         shadow = {
             enabled = false,
         },
         blur = {
-            enabled = true,
+            enabled = (os.getenv("HYPR_BLUR") == "true"),
             size = 4,
             passes = 2,
             new_optimizations = true,
             xray = false,
         },
+    },
+
+    debug = {
+        vfr = (os.getenv("HYPR_VFR") ~= "false"),
     },
 
     dwindle = {

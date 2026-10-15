@@ -259,7 +259,106 @@ class MinimalTests(unittest.TestCase):
         self.assertIn(['makoctl', 'restore'], events)
         self.assertTrue(any(e[0] == 'makoctl' and 'mode' in e for e in events))
 
+    def test_hardware_detect_live_intel_haswell(self):
+        # Test --print flag
+        print_res = self.run_script('scripts/hardware-detect.sh', '--print')
+        self.assertIn('MINIMAL HARDWARE & GPU AUTO-DETECTION SUMMARY', print_res.stdout)
+        self.assertIn('LIBVA_DRIVER_NAME="i965"', print_res.stdout)
+        self.assertIn('HYPR_VFR="true"', print_res.stdout)
+        self.assertIn('HYPR_BLUR="false"', print_res.stdout)
+
+        # Verify cache file written
+        cached_env = self.base / 'cache/minimal/hardware.env'
+        self.assertTrue(cached_env.is_file())
+        env_content = cached_env.read_text()
+        self.assertIn('export LIBVA_DRIVER_NAME="i965"', env_content)
+        self.assertIn('export GPU_VENDOR="intel"', env_content)
+        self.assertIn('export GPU_FAMILY="haswell"', env_content)
+
+        # Test --export flag
+        export_res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export LIBVA_DRIVER_NAME="i965"', export_res.stdout)
+        self.assertIn('export HYPR_VFR="true"', export_res.stdout)
+        self.assertIn('export HYPR_BLUR="false"', export_res.stdout)
+
+    def test_hardware_detect_modern_intel(self):
+        mock_lspci = (
+            "00:02.0 VGA compatible controller [0300]: Intel Corporation TigerLake-LP GT2 [Iris Xe Graphics] [8086:9a49] (rev 01)\n"
+            "\tSubsystem: Dell Device [1028:098e]\n"
+            "\tKernel driver in use: i915\n"
+        )
+        self.env['MINIMAL_MOCK_LSPCI'] = mock_lspci
+        self.env['MINIMAL_SYSFS_DRM_DIR'] = str(self.base / 'nonexistent_drm')
+        res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export LIBVA_DRIVER_NAME="iHD"', res.stdout)
+        self.assertIn('export GPU_FAMILY="broadwell-plus"', res.stdout)
+        self.assertIn('export HYPR_VFR="true"', res.stdout)
+
+    def test_hardware_detect_amd(self):
+        mock_lspci = (
+            "05:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Cezanne [Radeon Vega Series] [1002:1638] (rev c5)\n"
+            "\tSubsystem: Lenovo Device [17aa:3805]\n"
+            "\tKernel driver in use: amdgpu\n"
+        )
+        self.env['MINIMAL_MOCK_LSPCI'] = mock_lspci
+        self.env['MINIMAL_SYSFS_DRM_DIR'] = str(self.base / 'nonexistent_drm')
+        res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export LIBVA_DRIVER_NAME="radeonsi"', res.stdout)
+        self.assertIn('export VDPAU_DRIVER="radeonsi"', res.stdout)
+        self.assertIn('export AMD_VULKAN_ICD="RADV"', res.stdout)
+        self.assertIn('export GPU_VENDOR="amd"', res.stdout)
+
+    def test_hardware_detect_nvidia_proprietary(self):
+        mock_lspci = (
+            "01:00.0 3D controller [0302]: NVIDIA Corporation GA106M [GeForce RTX 3060 Mobile] [10de:2520] (rev a1)\n"
+            "\tSubsystem: Lenovo Device [17aa:3a57]\n"
+            "\tKernel driver in use: nvidia\n"
+        )
+        self.env['MINIMAL_MOCK_LSPCI'] = mock_lspci
+        self.env['MINIMAL_SYSFS_DRM_DIR'] = str(self.base / 'nonexistent_drm')
+        res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export LIBVA_DRIVER_NAME="nvidia"', res.stdout)
+        self.assertIn('export __GLX_VENDOR_LIBRARY_NAME="nvidia"', res.stdout)
+        self.assertIn('export NVD_BACKEND="direct"', res.stdout)
+        self.assertIn('export ELECTRON_OZONE_PLATFORM_HINT="auto"', res.stdout)
+        self.assertIn('export GBM_BACKEND="nvidia-drm"', res.stdout)
+        self.assertIn('export GPU_FAMILY="nvidia-proprietary"', res.stdout)
+
+    def test_hardware_detect_nvidia_nouveau(self):
+        mock_lspci = (
+            "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK107 [GeForce GT 640] [10de:0fc1] (rev a1)\n"
+            "\tSubsystem: ASUS Device [1043:8414]\n"
+            "\tKernel driver in use: nouveau\n"
+        )
+        self.env['MINIMAL_MOCK_LSPCI'] = mock_lspci
+        self.env['MINIMAL_SYSFS_DRM_DIR'] = str(self.base / 'nonexistent_drm')
+        res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export LIBVA_DRIVER_NAME="nouveau"', res.stdout)
+        self.assertIn('export VDPAU_DRIVER="nouveau"', res.stdout)
+        self.assertIn('export GPU_FAMILY="nvidia-nouveau"', res.stdout)
+
+    def test_hardware_detect_virtual_machine(self):
+        mock_lspci = (
+            "00:02.0 VGA compatible controller [0300]: Red Hat, Inc. Virtio GPU [1af4:1050] (rev 01)\n"
+            "\tKernel driver in use: virtio-pci\n"
+        )
+        self.env['MINIMAL_MOCK_LSPCI'] = mock_lspci
+        self.env['MINIMAL_SYSFS_DRM_DIR'] = str(self.base / 'nonexistent_drm')
+        self.env['MINIMAL_MOCK_PLATFORM'] = 'kvm'
+        res = self.run_script('scripts/hardware-detect.sh', '--export')
+        self.assertIn('export WLR_NO_HARDWARE_CURSORS="1"', res.stdout)
+        self.assertIn('export WLR_RENDERER_ALLOW_SOFTWARE="1"', res.stdout)
+        self.assertIn('export GPU_VENDOR="virtual"', res.stdout)
+
+    def test_hyprland_lua_hardware_verification(self):
+        # Verify Hyprland Lua syntax parses cleanly
+        hypr_lua = self.repo / 'hypr/hyprland.lua'
+        proc = subprocess.run(["Hyprland", "--verify-config", "-c", str(hypr_lua)], capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("config ok", proc.stdout)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
 
