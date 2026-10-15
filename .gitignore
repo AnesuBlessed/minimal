@@ -1,0 +1,7 @@
+# Screenshots and temp test captures
+*.png
+!fastfetch/assets/*.png
+
+# Thumbnails and caches
+.cache/
+quickshell/**/.cache/

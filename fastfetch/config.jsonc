@@ -1,0 +1,125 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "/home/anesu/Projects/minimal/fastfetch/assets/current.png",
+    "type": "auto",
+    "height": 18,
+    "padding": {
+      "top": 1,
+      "left": 2,
+      "right": 4
+    }
+  },
+  "display": {
+    "separator": " : "
+  },
+  "modules": [
+    {
+      "type": "custom",
+      "format": "  󰁘 : Minimal Rice — Performance Core Active"
+    },
+    {
+      "type": "custom",
+      "format": "┌──────────────────────────────────────────┐"
+    },
+    {
+      "type": "chassis",
+      "key": "  󰇺 Chassis",
+      "format": "{1} {2} {3}",
+      "keyColor": "blue"
+    },
+    {
+      "type": "os",
+      "key": "  󰣇 OS",
+      "format": "{2}",
+      "keyColor": "blue"
+    },
+    {
+      "type": "kernel",
+      "key": "   Kernel",
+      "format": "{2}",
+      "keyColor": "green"
+    },
+    {
+      "type": "packages",
+      "key": "  󰏗 Packages",
+      "keyColor": "green"
+    },
+    {
+      "type": "display",
+      "key": "  󰍹 Display",
+      "format": "{1}x{2} @ {3}Hz [{7}]",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "terminal",
+      "key": "   Terminal",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "wm",
+      "key": "  󱗃 WM",
+      "format": "{2}",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────────────┘"
+    },
+    "break",
+    {
+      "type": "title",
+      "key": "   User",
+      "format": "{6} @ {8}",
+      "keyColor": "blue"
+    },
+    {
+      "type": "custom",
+      "format": "┌──────────────────────────────────────────┐"
+    },
+    {
+      "type": "cpu",
+      "format": "{1} @ {7}",
+      "key": "   CPU",
+      "keyColor": "blue"
+    },
+    {
+      "type": "gpu",
+      "format": "{1} {2}",
+      "key": "  󰊴 GPU",
+      "keyColor": "blue"
+    },
+    {
+      "type": "gpu",
+      "format": "{3}",
+      "key": "   GPU Driver",
+      "keyColor": "green"
+    },
+    {
+      "type": "memory",
+      "key": "  󰍛 Memory",
+      "keyColor": "green"
+    },
+    {
+      "type": "disk",
+      "key": "  󱦟 OS Age",
+      "folders": "/",
+      "format": "{days} days",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "uptime",
+      "key": "  󱫐 Uptime",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────────────┘"
+    },
+    {
+      "type": "colors",
+      "paddingLeft": 2,
+      "symbol": "circle"
+    }
+  ]
+}

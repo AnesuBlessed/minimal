@@ -1,0 +1,35 @@
+# =============================================================================
+#  MINIMAL MAKO — LIGHTWEIGHT WAYLAND NOTIFICATIONS
+# =============================================================================
+#  - Ultra-lean C-native notification daemon
+#  - Minimalist floating dark glass styling with sage-olive accent
+# =============================================================================
+
+font=JetBrainsMono Nerd Font 10
+background-color=#16161af0
+text-color=#e4e4e7
+width=320
+height=110
+margin=12
+padding=10
+border-size=1
+border-color=#b8c47088
+border-radius=10
+default-timeout=4000
+group-by=summary
+icons=1
+max-icon-size=48
+layer=overlay
+
+[urgency=low]
+border-color=#252528cc
+default-timeout=2500
+
+[urgency=normal]
+border-color=#b8c47088
+default-timeout=4000
+
+[urgency=high]
+border-color=#e06c75ee
+text-color=#ffffff
+default-timeout=0

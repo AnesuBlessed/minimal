@@ -1,0 +1,189 @@
+/* =============================================================================
+ *  MINIMAL WAYBAR — FLOATING GLASS CAPSULES (STYLE)
+ * =============================================================================
+ *  - Faithful spacing and proportions matching HyDE
+ *  - Nerd Font iconography (no colored emojis)
+ *  - Native Glass Transparency (rgba(22, 22, 28, 0.60))
+ *  - Dynamic Color Tokens imported from colors.css
+ * ============================================================================= */
+
+@import "../colors.css";
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "JetBrainsMono Nerd Font", "CaskaydiaCove Nerd Font", monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    min-height: 0;
+}
+
+/* Base Bar Container (Transparent to allow island floating effect) */
+window#waybar {
+    background-color: transparent;
+    color: @text-main;
+}
+
+/* -----------------------------------------------------------------------------
+ * Floating Glass Island Capsule Containers
+ * ----------------------------------------------------------------------------- */
+#hardware,
+#time-caffeine,
+#controls,
+#connectivity,
+#workspaces,
+#custom-power {
+    background-color: rgba(20, 20, 26, 0.65);
+    border: none;
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin: 3px 4px;
+    box-shadow: none;
+    transition: background-color 0.2s ease;
+}
+
+#hardware:hover,
+#time-caffeine:hover,
+#controls:hover,
+#connectivity:hover,
+#workspaces:hover {
+    background-color: @bg-glass-hover;
+}
+
+/* -----------------------------------------------------------------------------
+ * Workspaces (Pure Numbered Pills)
+ * ----------------------------------------------------------------------------- */
+#workspaces {
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+#workspaces button {
+    padding: 1px 8px;
+    margin: 1px 2px;
+    border-radius: 2px;
+    color: @text-muted;
+    background-color: transparent;
+    transition: all 0.15s ease;
+}
+
+#workspaces button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+/* Active Workspace Pill (Crisp high-contrast pill matching HyDE) */
+#workspaces button.active {
+    background-color: #d9d9d9;
+    color: #1a1a20;
+    font-weight: 700;
+    padding: 1px 12px;
+    border-radius: 2px;
+}
+
+#workspaces button.urgent {
+    background-color: @critical;
+    color: @accent-dark;
+}
+
+/* -----------------------------------------------------------------------------
+ * Module Spacing inside Capsule Groups
+ * ----------------------------------------------------------------------------- */
+#cpu,
+#memory,
+#network,
+#bluetooth,
+#battery,
+#backlight,
+#wireplumber,
+#idle_inhibitor,
+#clock {
+    padding: 0 6px;
+    color: @text-main;
+}
+
+/* Subtle Highlights */
+#cpu {
+    color: @accent;
+}
+
+#battery.charging,
+#battery.plugged {
+    color: @accent;
+}
+
+#battery.warning {
+    color: @warning;
+}
+
+#battery.critical:not(.charging) {
+    color: @critical;
+}
+
+#wireplumber.muted {
+    color: @text-dim;
+}
+
+/* Microphone Muted */
+#wireplumber.source.muted {
+    color: @critical;
+}
+
+/* -----------------------------------------------------------------------------
+ * Caffeine Mode (Nerd Font Coffee Icon 󰛊 / 󰅶)
+ * ----------------------------------------------------------------------------- */
+#idle_inhibitor {
+    padding-right: 2px;
+    font-size: 13px;
+}
+
+#idle_inhibitor.activated {
+    color: @accent;
+}
+
+#idle_inhibitor.deactivated {
+    color: @text-muted;
+}
+
+/* -----------------------------------------------------------------------------
+ * Clock & Power Button
+ * ----------------------------------------------------------------------------- */
+#clock {
+    color: @text-main;
+    font-weight: 700;
+    padding-left: 4px;
+}
+
+#custom-power {
+    color: @accent;
+    min-width: 18px;
+    padding: 2px 7px;
+    margin: 4px 6px;
+    font-size: 12px;
+    transition: all 0.15s ease;
+}
+
+#custom-power label {
+    margin: 0;
+    padding: 0;
+}
+
+#custom-power:hover {
+    background-color: @accent;
+    color: @accent-dark;
+}
+
+/* -----------------------------------------------------------------------------
+ * Tooltips
+ * ----------------------------------------------------------------------------- */
+tooltip {
+    background: rgba(18, 18, 22, 0.95);
+    border: 1px solid @border-glass;
+    border-radius: 8px;
+    color: @text-main;
+}
+
+tooltip label {
+    padding: 6px;
+    color: @text-main;
+}

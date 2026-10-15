@@ -1,0 +1,184 @@
+{
+    // =========================================================================
+    //  MINIMAL WAYBAR — REFINED DISCRETE ISLAND PILLS
+    // =========================================================================
+    //  - Exact HyDE-style layout and Nerd Font iconography
+    //  - Nerd Font caffeine glyph (󰛊 / 󰅶) instead of emoji
+    //  - Distinct pill groups with clean breathing room
+    //  - Event-driven WirePlumber audio & mic
+    // =========================================================================
+
+    "layer": "top",
+    "position": "top",
+    "height": 34,
+    "spacing": 0,
+    "margin-top": 6,
+    "margin-left": 10,
+    "margin-right": 10,
+
+    "modules-left": [
+        "group/hardware",
+        "group/time-caffeine"
+    ],
+
+    "modules-center": [
+        "hyprland/workspaces"
+    ],
+
+    "modules-right": [
+        "group/controls",
+        "group/connectivity",
+        "custom/power"
+    ],
+
+    // --- Pill Groups ---
+    "group/hardware": {
+        "orientation": "horizontal",
+        "modules": ["cpu", "memory"]
+    },
+
+    "group/time-caffeine": {
+        "orientation": "horizontal",
+        "modules": ["idle_inhibitor", "clock"]
+    },
+
+    "group/controls": {
+        "orientation": "horizontal",
+        "modules": ["backlight", "wireplumber#sink", "wireplumber#source"]
+    },
+
+    "group/connectivity": {
+        "orientation": "horizontal",
+        "modules": ["network", "bluetooth", "battery"]
+    },
+
+    // --- Left Pill 1: Hardware Stats ---
+    "cpu": {
+        "interval": 15,
+        "format": "󰍛 {usage}%",
+        "tooltip": true
+    },
+
+    "memory": {
+        "interval": 30,
+        "format": "󰾆 {used:0.1f}G",
+        "tooltip": true,
+        "tooltip-format": "RAM: {used:0.2f}GiB / {total:0.2f}GiB ({percentage}%)"
+    },
+
+    // --- Left Pill 2: Caffeine Mode & Clock ---
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "󰅶",
+            "deactivated": "󰛊"
+        },
+        "tooltip": true,
+        "tooltip-format-activated": "Caffeine Active (Screen will not sleep)",
+        "tooltip-format-deactivated": "Caffeine Inactive"
+    },
+
+    "clock": {
+        "interval": 1,
+        "format": "{:%H:%M:%S}",
+        "format-alt": "󰃭 {:%a, %d %b %Y}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3,
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "format": {
+                "months": "<span color='#b8c470'><b>{}</b></span>",
+                "days": "<span color='#e4e4e7'><b>{}</b></span>",
+                "weeks": "<span color='#71717a'><b>W{}</b></span>",
+                "weekdays": "<span color='#b8c470'><b>{}</b></span>",
+                "today": "<span color='#121214' background='#b8c470'><b>{}</b></span>"
+            }
+        }
+    },
+
+    // --- Center Pill: Workspaces ---
+    "hyprland/workspaces": {
+        "all-outputs": true,
+        "disable-scroll": false,
+        "active-only": false,
+        "format": "{name}",
+        "persistent-workspaces": {
+            "*": 4
+        }
+    },
+
+    // --- Right Pill 1: Media & Controls ---
+    "backlight": {
+        "device": "intel_backlight",
+        "format": "{icon} {percent}%",
+        "format-icons": ["󰃞", "󰃟", "󰃠"],
+        "on-scroll-up": "brightnessctl set 5%+",
+        "on-scroll-down": "brightnessctl set 5%-",
+        "tooltip": false
+    },
+
+    "wireplumber#sink": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 Muted",
+        "format-icons": ["󰕿", "󰖀", "󰕾"],
+        "on-click": "pavucontrol",
+        "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 2%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
+        "tooltip": false
+    },
+
+    "wireplumber#source": {
+        "node-type": "Audio/Source",
+        "format": "󰍬 {volume}%",
+        "format-muted": "󰍭",
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+        "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 2%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 2%-",
+        "tooltip": false
+    },
+
+    // --- Right Pill 2: Connectivity & Power ---
+    "network": {
+        "interval": 15,
+        "format-wifi": "󰤨 {signalStrength}%",
+        "format-ethernet": "󰈀 Wired",
+        "format-linked": "󰈀 Link",
+        "format-disconnected": "󰤭 Disconnected",
+        "tooltip-format-wifi": "SSID: {essid} ({signalStrength}%)\nIP: {ipaddr}",
+        "on-click": "nm-connection-editor"
+    },
+
+    "bluetooth": {
+        "format": "󰂯",
+        "format-disabled": "󰂲",
+        "format-connected": "󰂱 {num_connections}",
+        "tooltip-format": "Bluetooth: {status}",
+        "on-click": "footclient -e bluetuith || foot -e bluetuith || blueman-manager"
+    },
+
+    "battery": {
+        "bat": "BAT0",
+        "adapter": "AC",
+        "interval": 30,
+        "states": {
+            "warning": 25,
+            "critical": 15
+        },
+        "format": "{icon} {capacity}%",
+        "format-charging": "󱐋 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+        "format-full": "󱐋 {capacity}%",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "tooltip": true,
+        "tooltip-format": "{time}\nPower draw: {power}W\nHealth: {health}%"
+    },
+
+    // --- Right Pill 3: Power ---
+    "custom/power": {
+        "format": "",
+        "tooltip": false,
+        "on-click": "hyprlock"
+    }
+}

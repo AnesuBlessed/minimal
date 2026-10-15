@@ -1,0 +1,19 @@
+/* =============================================================================
+ *  MINIMAL — CENTRAL PALETTE SYSTEM (CSS)
+ * =============================================================================
+ *  Single source of truth for Waybar, Fuzzel, Mako, and GTK.
+ *  Dynamic wallpaper theming in Phase 5 will update these variables directly.
+ * ============================================================================= */
+
+@define-color bg-glass rgba(18, 18, 22, 0.50);
+@define-color bg-glass-hover rgba(35, 35, 42, 0.70);
+@define-color border-glass rgba(255, 255, 255, 0.12);
+
+@define-color text-main #e4e4e7;
+@define-color text-muted #a1a1aa;
+@define-color text-dim #71717a;
+
+@define-color accent #b8c470;           /* Soft sage-lime */
+@define-color accent-dark #121214;      /* High-contrast dark on accent */
+@define-color warning #e5c07b;
+@define-color critical #e06c75;
