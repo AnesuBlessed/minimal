@@ -8,8 +8,7 @@ PanelWindow {
     id: main
 
     // ---- Settings ----
-    property int speed: 5000
-    property int animDuration: 250
+    property int animDuration: 180
     property real zoomScale: 0.8
     property real edgeScale: 0.3
     property real skewFactor: -0.2
@@ -34,12 +33,7 @@ PanelWindow {
         z: -1
         onClicked: Qt.quit()
         onWheel: function(wheel) {
-            if (wheel.angleDelta.y < 0 || wheel.angleDelta.x > 0) {
-                list.moveSelection(1, 1)
-            } else if (wheel.angleDelta.y > 0 || wheel.angleDelta.x < 0) {
-                list.moveSelection(-1, 1)
-            }
-            wheel.accepted = true
+            list.handleWheel(wheel)
         }
     }
 
@@ -107,6 +101,10 @@ PanelWindow {
             }
         }
 
+        property real wheelAccumulator: 0
+        property real lastWheelTime: 0
+        property real lastStepTime: 0
+
         function clampIndex(i) {
             return Math.max(0, Math.min(i, count - 1))
         }
@@ -129,19 +127,46 @@ PanelWindow {
             contentX = itemStart + tileWidth / 2 - viewportCenterX
         }
 
-        function moveSelection(delta, speedMultiplier) {
-            anim.v = main.speed * speedMultiplier
+        function moveSelection(delta) {
             selectedIndex = clampIndex(selectedIndex + delta)
             ensureVisibleAnimated(selectedIndex)
+        }
+
+        function handleWheel(wheel) {
+            const now = Date.now()
+            if (now - lastWheelTime > 250) {
+                wheelAccumulator = 0
+            }
+            lastWheelTime = now
+
+            // Prevent runaway event flooding on sensitive touchpads/free-spinning wheels
+            if (now - lastStepTime < 75) {
+                wheel.accepted = true
+                return
+            }
+
+            const raw = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : -wheel.angleDelta.x
+            wheelAccumulator += raw
+
+            const threshold = 60
+            if (wheelAccumulator <= -threshold) {
+                moveSelection(1)
+                wheelAccumulator = 0
+                lastStepTime = now
+            } else if (wheelAccumulator >= threshold) {
+                moveSelection(-1)
+                wheelAccumulator = 0
+                lastStepTime = now
+            }
+            wheel.accepted = true
         }
 
         Behavior on contentX {
             enabled: list.ready
 
-            SmoothedAnimation {
-                id: anim
-                property int v: main.speed
+            NumberAnimation {
                 duration: main.animDuration
+                easing.type: Easing.OutCubic
             }
         }
 
@@ -168,15 +193,16 @@ PanelWindow {
                        (main.zoomScale - main.edgeScale) * t
             }
 
-            width: baseWidth * scaleFactor
+            width: baseWidth
+            z: delegateItem.active ? 100 : Math.round(delegateItem.scaleFactor * 100)
 
             Item {
                 id: content
 
                 anchors.centerIn: parent
-                width: parent.width
-                height: delegateItem.height *
-                        Math.min(1, delegateItem.scaleFactor)
+                width: delegateItem.baseWidth
+                height: delegateItem.height
+                scale: delegateItem.scaleFactor
 
                 Text {
                     id: alt
@@ -254,23 +280,18 @@ PanelWindow {
 
             MouseArea {
                 anchors.fill: parent
-                hoverEnabled: true
-
-                onEntered:
-                    list.selectedIndex = index
 
                 onClicked: {
-                    list.selectedIndex = index
-                    list.activateCurrent()
+                    if (list.selectedIndex === index) {
+                        list.activateCurrent()
+                    } else {
+                        list.selectedIndex = index
+                        list.ensureVisibleAnimated(index)
+                    }
                 }
 
                 onWheel: function(wheel) {
-                    if (wheel.angleDelta.y < 0 || wheel.angleDelta.x > 0) {
-                        list.moveSelection(1, 1)
-                    } else if (wheel.angleDelta.y > 0 || wheel.angleDelta.x < 0) {
-                        list.moveSelection(-1, 1)
-                    }
-                    wheel.accepted = true
+                    list.handleWheel(wheel)
                 }
             }
         }
@@ -284,19 +305,19 @@ PanelWindow {
                 break
             case Qt.Key_Left:
             case Qt.Key_H:
-                moveSelection(-1, 1)
+                moveSelection(-1)
                 break
             case Qt.Key_Right:
             case Qt.Key_L:
-                moveSelection(1, 1)
+                moveSelection(1)
                 break
             case Qt.Key_Up:
             case Qt.Key_PageUp:
-                moveSelection(-3, 1.5)
+                moveSelection(-5)
                 break
             case Qt.Key_Down:
             case Qt.Key_PageDown:
-                moveSelection(3, 1.5)
+                moveSelection(5)
                 break
             case Qt.Key_Escape:
             case Qt.Key_Q:

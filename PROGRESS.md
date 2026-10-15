@@ -69,3 +69,14 @@
 * **2026-10-15**: **Fastfetch Anime Character Library**:
   - Extracted transparent anime character cutouts into [assets](file:///home/anesu/Projects/minimal/fastfetch/assets/) (Death Note Ryuzaki, Chainsaw Man Pochita, Akame ga Kill, Toradora Taiga, Code Geass, Anime Girl).
   - Built [set_fastfetch_char.sh](file:///home/anesu/Projects/minimal/scripts/set_fastfetch_char.sh) for instant switching or randomizing characters on terminal spawn.
+* **2026-10-15**: **Dynamic Wallpaper Adaptation & High-Contrast Waybar Indicators**:
+  - Unlocked dynamic wallbash extraction across the system by bypassing hardcoded theme overrides.
+  - Linked [colors.css](file:///home/anesu/Projects/minimal/colors.css) to live Wallbash cache, allowing Waybar glass to tint dynamically to current wallpaper colors.
+  - Ensured workspace dots, battery, WiFi, audio, and hardware metrics remain high-contrast pure white (`#ffffff` and `rgba(255,255,255,0.75)`) so status text never gets washed out by background hues.
+  - Built [update_fuzzel_colors.py](file:///home/anesu/Projects/minimal/scripts/update_fuzzel_colors.py) to dynamically theme Fuzzel's launcher palette on wallpaper change while preserving PNG icons via `hicolor`.
+* **2026-10-15**: **Wallpaper Carousel Scroll Calibration & Binding Loop Elimination**:
+  - Eliminated QML binding loop (`scaleFactor` fighting `delegateItem.width`) by locking slot widths to `baseWidth` and scaling visual content with GPU transforms.
+  - Replaced runaway `SmoothedAnimation { anim.v = 5000 }` with smooth cubic-eased `NumberAnimation` (180ms).
+  - Added threshold wheel accumulator and rate-limiting cooldown to prevent trackpad flicks and sensitive wheels from jumping uncontrollably.
+  - Removed hover index switching loop so moving the mouse never disrupts scrolling momentum.
+
