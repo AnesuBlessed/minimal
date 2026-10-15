@@ -114,10 +114,11 @@ flowchart TD
         W4["Port HyDE's refined pill stylesheet into minimal/waybar/style.css"]
     end
 
-    subgraph P4 ["Phase 4: Launcher Alignment (Fuzzel vs Rofi)"]
-        L1{"Launcher Decision"}
-        L1 -->|"Keep Fuzzel"| L2["Maintain zero-latency C-native list"]
-        L1 -->|"Port Rofi"| L3["Build floating dark glass grid with category tabs"]
+    subgraph P4 ["Phase 4: Fuzzel Launcher Polish (Hydra Aesthetic)"]
+        F1["Retain Fuzzel (Zero-latency C-native Wayland launcher)"]
+        F2["Match Hydra's floating dark glass window & centered geometry"]
+        F3["Style pill selection highlights & crisp typography"]
+        F4["Ensure high-contrast icons & instant search response"]
     end
 
     subgraph P5 ["Phase 5: Daily-Driver Live System Testing"]
@@ -134,8 +135,8 @@ flowchart TD
 
 ## 4. Current Priority Actions
 
-1. **Phase 1: Make `deploy.sh` and session startup truly universal and hardware-agnostic** (remove hardcoded `hyde.fish`, add `minimal.desktop` session entry, add GPU detection).
+1. **Phase 1: Make `deploy.sh` and session startup truly universal and hardware-agnostic** (remove hardcoded `hyde.fish`, add `minimal.desktop` session entry, add GPU auto-detection).
 2. **Phase 2: Port the real Hydra wallpaper selector** with full color-sorting, category filters, and live search.
 3. **Phase 3: Port HyDE's complete modular Waybar library** without theme-switching daemons.
-4. **Phase 4: Align the App Launcher** according to your preference.
+4. **Phase 4: Polish Fuzzel to match Hydra's app launcher aesthetic** (sticking firmly with Fuzzel as agreed).
 5. **Phase 5: Live daily-driver verification**.
