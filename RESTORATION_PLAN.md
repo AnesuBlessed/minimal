@@ -29,80 +29,113 @@ Because you are daily-driving this machine, you need complete transparency on wh
 
 ---
 
-### Issue 3: Standalone Power Menu (`wlogout`) Was Non-Existent Until Today
+### Issue 3: Hardcoded HyDE-Specific Isolation in `deploy.sh` (Violating Universality)
+* **What was done:** STEP 2 of `deploy.sh` hardcoded checks specifically for `~/.config/fish/conf.d/hyde.fish` and `hyde-Hyprland-bar.service`.
+* **Why this is flawed:** It assumes the previous rice was HyDE, and that the shell is fish. If installed on a completely fresh machine (e.g. fresh Arch/CachyOS install) or on top of any other rice (End-4, Omori, Catppuccin, Aylur's AGC, custom dots), it fails to provide generalized session isolation, and it doesn't dynamically configure for different hardware.
+* **Risk to Daily Driving & Fresh Installs:**
+  - If installed on fresh hardware or another rice, conflicting shell hooks or missing assets could break the session.
+  - It lacks dynamic GPU hardware configuration (Intel, AMD, NVIDIA).
+
+---
+
+### Issue 4: Standalone Power Menu (`wlogout`) Was Non-Existent Until Today
 * **What you asked for:** A clean, standalone power menu shipped with Minimal.
-* **What I actually did:** Minimal shipped **no** `wlogout` configuration in its repository at all. `powermenu.sh` was literally calling:
-  ```bash
-  exec hyde-shell logoutlaunch 1
-  ```
-  It relied 100% on leftover HyDE scripts in `~/.local/lib/hyde` and leftover configs in `~/.config/wlogout`!
+* **What I actually did:** Minimal shipped **no** `wlogout` configuration in its repository at all. `powermenu.sh` was literally calling `exec hyde-shell logoutlaunch 1`, relying 100% on leftover HyDE scripts in `~/.local/lib/hyde` and leftover configs in `~/.config/wlogout`.
 * **Status:** We copied the layouts, CSS, and icons into `Projects/minimal/wlogout/` today, but we must verify that every button action behaves properly on your daily-driver setup without any lingering HyDE references.
 
 ---
 
-### Issue 4: Lockscreen (`hyprlock`) Was Originally a Crude Dark Box
+### Issue 5: Lockscreen (`hyprlock`) Was Originally a Crude Dark Box
 * **What you asked for:** Adapting the Silent SDDM / HyDE lockscreen that you already had.
 * **What I actually did:** Originally wrote a basic 360x270 dark box with a tiny text input in `hyprlock.conf`.
 * **Status:** We updated `hyprlock.conf` with the Silent SDDM layout (large centered clock, date, circular avatar, centered password field, battery and layout badges), but we must test it live to ensure it unlocks reliably and renders seamlessly on wake from sleep.
 
 ---
 
-### Issue 5: App Launcher (Fuzzel vs Rofi-Wayland)
+### Issue 6: App Launcher (Fuzzel vs Rofi-Wayland)
 * **What was in `minimal_rice_plan.md`:** A floating dark glass Rofi-Wayland launcher matching inspiration captures 1 & 6 (with search bar, categories, and grid view).
 * **What was actually used:** Fuzzel. While Fuzzel is lightweight and fast, it is a vertical text list rather than the floating grid with category tags shown in the inspiration designs.
 * **Risk to Daily Driving:** You are using a completely different launcher UI than what was originally designed and approved in the plan.
 
 ---
 
-### Issue 6: Installer Decoupling Flaw (`deploy.sh`)
-* **What happened:** `deploy.sh` simply symlinked configs without neutralizing host environment hooks. It left `~/.config/fish/conf.d/hyde.fish` actively forcing `HYPRLAND_CONFIG=/home/anesu/.local/share/hypr/hyde.lua` on login, which broke your desktop today and spawned duplicate bars.
-* **Status:** Fixed today by neutralizing `hyde.fish` and adding isolation checks to `deploy.sh`.
+## 2. Universal, Hardware-Agnostic, Any-Rice Architecture
+
+To ensure Minimal installs cleanly **on a fresh install** or **on top of ANY pre-existing rice**, we establish three architectural pillars:
+
+### Pillar A: Standalone Session Entry (Rice-Agnostic Compositor Isolation)
+* Instead of hunting specific shell config filenames, Minimal will deploy a dedicated Wayland session desktop entry:
+  `~/.local/share/wayland-sessions/minimal.desktop`
+* This entry points to `~/.config/minimal/scripts/session-entry.sh`:
+  - Strips any compositor hijacking variables (`HYPRLAND_CONFIG`, `SWAYSOCK`, `XDG_CONFIG_DIRS` overrides).
+  - Dynamically cleans up competing status bar or notification processes by binary signature (`pkill -x waybar`, `pkill -x polybar`, `pkill -x dunst`, etc.).
+  - Launches `Hyprland -c "$CONFIG_DIR/hypr/hyprland.lua"`.
+* When logging in via SDDM, GDM, greetd, or Ly, choosing **"Minimal (Hyprland)"** launches a pristine, 100% isolated session regardless of what shell or other rice is installed on the host.
+
+### Pillar B: Universal Hardware Detection & Dynamic Configuration
+* During deployment, Minimal will inspect the active GPU (`lspci` / `/sys/class/drm`):
+  - **Intel HD/UHD/Iris Graphics**: Configures VA-API (`LIBVA_DRIVER_NAME=i965` or `iHD`), enables VFR, keeps compositor blur disabled for maximum battery and 0% idle load.
+  - **AMD Radeon Graphics**: Configures Mesa RADV Vulkan and VA-API (`LIBVA_DRIVER_NAME=radeonsi`).
+  - **NVIDIA Graphics**: Configures `LIBVA_DRIVER_NAME=nvidia`, `__GLX_VENDOR_LIBRARY_NAME=nvidia`, `NVD_BACKEND=direct`, and Wayland explicit sync flags.
+* Writes hardware configuration cleanly to `hardware.lua` so the same repository deploys seamlessly on laptops, desktops, iGPUs, and dGPUs.
+
+### Pillar C: 100% Self-Contained Fresh-Install Assets
+* Minimal must ship with all default assets in the repository:
+  - Default wallpaper (`wallpapers/japan_lake.jpg`)
+  - Default user avatar (`wallpapers/default-avatar.png`)
+  - Complete power menu icons (`wlogout/icons/`)
+  - Complete Waybar module definitions (`waybar/modules/`)
+* On a completely fresh install with an empty home directory, running `deploy.sh` creates all necessary cache, runtime, and config directories with zero missing asset warnings.
 
 ---
 
-## 2. Action Plan: Fixing the Core Gaps Properly
+## 3. Phased Execution Roadmap
 
-### Phase 1: Port the Genuine Hydra Wallpaper Picker
-1. **Source Assets:**
-   - Extract `Projects/hydra-linux/.config/hypr/scripts/quickshell/wallpaper/WallpaperPicker.qml`.
-   - Extract helper scripts: `cache.sh`, `commands.sh`, `get_ddg_links.py`, `ddg_search.sh`.
-2. **Decouple from Hydra Paths:**
-   - In `WallpaperPicker.qml`, replace Hydra-specific paths (`~/.config/hypr/...`) with `$MINIMAL_ROOT` and `$MINIMAL_CACHE`.
-   - Strip out Matugen live reloading and hook it into Minimal's native wallpaper engine (`awww` / `hyprpaper`).
-   - Retain full color sorting:
-     - `colorMap` generation and bucket assignment (`getHexBucket`).
-     - Category filter pills: `All`, `Search`, `Monochrome`, `Red`, `Green`, `Blue`, `Yellow`, `Purple`, `Cyan`, etc.
-     - Live DuckDuckGo search tab.
-     - Thumbnail batch generation via `convert -thumbnail x500`.
-3. **Integration:**
-   - Place in `Projects/minimal/quickshell/wallpaper-picker/`.
-   - Wire `wallchange.sh` to launch this full-featured picker on `Super + W`.
-   - Test on live screen.
+```mermaid
+flowchart TD
+    subgraph P1 ["Phase 1: Universal Installer & Hardware Adaptation"]
+        U1["Generic Session Isolation: minimal.desktop + session-entry.sh"]
+        U2["Hardware GPU Auto-detection: Intel, AMD, NVIDIA flags"]
+        U3["Rice-agnostic process cleanup & fresh-install asset guarantees"]
+    end
+
+    subgraph P2 ["Phase 2: True Hydra Wallpaper Picker"]
+        H1["Extract WallpaperPicker.qml from hydra-linux"]
+        H2["Port Color Clustering & Hex Buckets (colorMap)"]
+        H3["Port Filter Pills: All, Search, Monochrome, Colors"]
+        H4["Port DDG Live Wallpaper Search & Thumbnail Caching"]
+        H5["Decouple paths: 100% standalone in minimal/quickshell/"]
+    end
+
+    subgraph P3 ["Phase 3: HyDE Modular Waybar"]
+        W1["Import HyDE's modules/*.jsonc library into minimal"]
+        W2["Purge hyde-shell & wallbash references from module configs"]
+        W3["Build modular config.jsonc using includes"]
+        W4["Port HyDE's refined pill stylesheet into minimal/waybar/style.css"]
+    end
+
+    subgraph P4 ["Phase 4: Launcher Alignment (Fuzzel vs Rofi)"]
+        L1{"Launcher Decision"}
+        L1 -->|"Keep Fuzzel"| L2["Maintain zero-latency C-native list"]
+        L1 -->|"Port Rofi"| L3["Build floating dark glass grid with category tabs"]
+    end
+
+    subgraph P5 ["Phase 5: Daily-Driver Live System Testing"]
+        V1["Live test Super+W (color sorting & search)"]
+        V2["Live test Waybar modules (rich tooltips & controls)"]
+        V3["Live test Super+L (Silent lock) & Super+Escape (Power menu)"]
+        V4["Execute full Python test suite"]
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5
+```
 
 ---
 
-### Phase 2: Port HyDE's Modular Waybar (Stripped of Theme Bloat)
-1. **Source Modules:**
-   - Bring over HyDE's modular definitions from `HyDE/Configs/.local/share/waybar/modules/` into `Projects/minimal/waybar/modules/`.
-   - Clean each module file to remove references to `hyde-shell` or `wallbash`, replacing them with native Minimal scripts (`media.sh`, `powermenu.sh`, `lock.sh`, `battery-status.sh`).
-2. **Modular Waybar Config:**
-   - Structure `Projects/minimal/waybar/config.jsonc` to natively use `"include": ["$XDG_CONFIG_HOME/waybar/modules/*.jsonc"]`.
-   - This gives you HyDE's exact, battle-tested layout and full module capabilities (rich tooltips, click menus, proper icons, hardware stats) without requiring `waybar.py` or systemd transient services.
-3. **Styling:**
-   - Port HyDE's clean CSS pill styling into `Projects/minimal/waybar/style.css`, referencing static Minimal palette variables.
+## 4. Current Priority Actions
 
----
-
-### Phase 3: Launcher Alignment (Fuzzel or Rofi)
-1. Present the choice clearly:
-   - **Option A:** Keep Fuzzel (fast, light C-native vertical launcher, 0ms latency).
-   - **Option B:** Port Rofi-Wayland from the inspiration captures (floating dark glass window with category tags, icon grid, and search bar matching Images 1 & 6).
-2. Implement whichever you prefer with 100% fidelity.
-
----
-
-### Phase 4: Daily-Driver Live System Testing
-1. Test wallpaper picker live: color sorting, category switching, search, and wallpaper change.
-2. Test Waybar modules live: volume scroll, brightness scroll, battery tooltip, workspace switching.
-3. Test lockscreen and powermenu live: verify lock on lid close, unlock authentication, and clean exit.
-4. Run full unit test suite to guarantee zero deployment regression.
+1. **Phase 1: Make `deploy.sh` and session startup truly universal and hardware-agnostic** (remove hardcoded `hyde.fish`, add `minimal.desktop` session entry, add GPU detection).
+2. **Phase 2: Port the real Hydra wallpaper selector** with full color-sorting, category filters, and live search.
+3. **Phase 3: Port HyDE's complete modular Waybar library** without theme-switching daemons.
+4. **Phase 4: Align the App Launcher** according to your preference.
+5. **Phase 5: Live daily-driver verification**.
