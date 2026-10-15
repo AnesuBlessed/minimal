@@ -1,0 +1,155 @@
+/* Waybar cannot adapt labels to wallpaper luminance, so use a neutral regular material. */
+@define-color macos-bar-surface rgba(28, 28, 30, 0.88);
+@define-color macos-elevated-surface rgba(44, 44, 46, 0.98);
+@define-color macos-label #F5F5F7;
+@define-color macos-secondary-label #AEAEB2;
+@define-color macos-separator rgba(255, 255, 255, 0.18);
+@define-color macos-accent #0066CC;
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "SF Pro Text", "Noto Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    min-height: 0;
+}
+
+window#waybar {
+    border-bottom: 1px solid @macos-separator;
+    background-color: @macos-bar-surface;
+    color: @macos-label;
+}
+
+.modules-left,
+.modules-center,
+.modules-right {
+    padding: 0 7px;
+}
+
+.module {
+    margin: 0;
+    padding: 0 5px;
+    color: @macos-label;
+}
+
+#custom-launcher {
+    padding: 0 8px 0 3px;
+    font-size: 16px;
+}
+
+#window {
+    padding: 0 8px 0 4px;
+    font-weight: 600;
+}
+
+#custom-text,
+#custom-help {
+    padding: 0 6px;
+}
+
+#clock {
+    padding-right: 3px;
+    font-weight: 500;
+}
+
+#tray {
+    padding: 0 4px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+#network.disconnected,
+#pulseaudio.muted {
+    color: @macos-secondary-label;
+}
+
+#workspaces,
+#taskbar,
+#leaf,
+#leaf-inverse,
+#leaf-up,
+#leaf-down,
+#leaf-right,
+#leaf-left,
+#pill,
+#pill-right,
+#pill-left,
+#pill-down,
+#pill-up,
+#pill-in,
+#pill-out {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+button {
+    margin: 3px 1px;
+    padding: 0 6px;
+    background: transparent;
+    box-shadow: none;
+    color: @macos-label;
+    text-shadow: none;
+    transition: background-color 120ms ease-out;
+}
+
+button:hover,
+.module:hover {
+    border-radius: 5px;
+    background-color: alpha(@macos-label, 0.14);
+}
+
+button:focus,
+menu menuitem:focus {
+    box-shadow: inset 0 0 0 1px @macos-accent;
+}
+
+#workspaces button.active,
+#taskbar button.active {
+    border-radius: 5px;
+    background-color: @macos-accent;
+    color: @macos-label;
+}
+
+tooltip,
+menu {
+    border: 1px solid @macos-separator;
+    border-radius: 10px;
+    background-color: @macos-elevated-surface;
+    color: @macos-label;
+}
+
+tooltip * {
+    background: transparent;
+}
+
+menu menuitem {
+    min-height: 20px;
+    padding: 4px 12px;
+    color: @macos-label;
+    transition: background-color 100ms ease-out;
+}
+
+menu menuitem:hover {
+    border-radius: 5px;
+    background-color: @macos-accent;
+    color: @macos-label;
+}
+
+#tray menu separator {
+    min-height: 1px;
+    background-color: @macos-separator;
+}
+
+#tray menu menuitem check,
+#tray menu menuitem radio {
+    min-width: 14px;
+    min-height: 14px;
+}

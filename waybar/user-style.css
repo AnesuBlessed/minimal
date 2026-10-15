@@ -1,0 +1,64 @@
+/* =============================================================================
+ *  MINIMAL / HYDE WAYBAR — TRANSLUCENT FROSTED GLASS OVERRIDES
+ * =============================================================================
+ *  - Sharp/micro-radius geometric layout matching HyDE
+ *  - Translucent dark glass background with Hyprland layer blur
+ *  - ZERO white border / ZERO box-shadow halo (No fuzzy white outline)
+ * ============================================================================= */
+
+window#waybar {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+/* Translucent Frosted Glass Pill Containers */
+#leaf,
+#leaf-inverse,
+#leaf-up,
+#leaf-down,
+#leaf-right,
+#leaf-left,
+#pill,
+#pill-right,
+#pill-left,
+#pill-down,
+#pill-up,
+#pill-in,
+#pill-out {
+    background-color: rgba(20, 20, 26, 0.65);
+    border: none;
+    box-shadow: none;
+    transition: background-color 0.2s ease;
+}
+
+#leaf:hover,
+#leaf-inverse:hover,
+#pill:hover,
+#pill-right:hover,
+#pill-left:hover {
+    background-color: rgba(35, 35, 45, 0.75);
+}
+
+/* Workspaces */
+#workspaces button {
+    box-shadow: none;
+    text-shadow: none;
+    border: none;
+    border-radius: 2px;
+}
+
+#workspaces button.active {
+    box-shadow: none;
+    text-shadow: none;
+    border: none;
+    border-radius: 2px;
+}
+
+/* Tooltips */
+tooltip {
+    background: rgba(18, 18, 24, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    box-shadow: none;
+}

@@ -1,44 +1,82 @@
 {
-    // =========================================================================
-    //  MINIMAL WAYBAR — MODULAR FLOATING ISLAND ARCHITECTURE
-    // =========================================================================
-    //  - Ported from HyDE's modular Waybar library
-    //  - Pure event-driven, zero-bloat standalone implementation
-    //  - 100% independent of hyde-shell, wallbash, or python theme switchers
-    // =========================================================================
-
     "layer": "top",
-    "position": "top",
-    "height": 32,
-    "spacing": 0,
-    "margin-top": 2,
-    "margin-left": 8,
-    "margin-right": 8,
-
-    // Modular include library
+    "output": [
+        "*"
+    ],
+    "height": 10,
+    "exclusive": true,
+    "passthrough": false,
+    "reload_style_on_change": true,
     "include": [
+        "$XDG_CONFIG_HOME/waybar/modules/*json*",
+        "$XDG_CONFIG_HOME/waybar/includes/includes.json",
         "$HOME/.config/waybar/modules/*.jsonc",
-        "modules/*.jsonc"
+        "$HOME/.config/waybar/modules/*.json",
+        "modules/*.jsonc",
+        "modules/*.json",
+        "includes/includes.json"
     ],
-
-    // Clean, balanced 3-island layout
     "modules-left": [
-        "hyprland/workspaces",
-        "hyprland/window"
+        "group/pill#left1",
+        "group/pill#left2"
     ],
-
+    "group/pill#left1": {
+        "orientation": "inherit",
+        "modules": [
+            "cpu",
+            "memory"
+        ]
+    },
+    "group/pill#left2": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/caffeine",
+            "clock"
+        ]
+    },
     "modules-center": [
-        "clock"
+        "group/pill#center"
     ],
-
+    "group/pill#center": {
+        "modules": [
+            "hyprland/workspaces",
+            "hyprland/window"
+        ],
+        "orientation": "inherit"
+    },
     "modules-right": [
-        "pulseaudio",
-        "backlight",
-        "battery",
-        "cpu",
-        "memory",
-        "network",
-        "tray",
-        "custom/powermenu"
-    ]
+        "group/pill#right1",
+        "group/pill#right2",
+        "group/pill#right3"
+    ],
+    "group/pill#right1": {
+        "modules": [
+            "backlight",
+            "network",
+            "pulseaudio",
+            "pulseaudio#microphone",
+            "custom/updates",
+            "custom/keybindhint"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#right2": {
+        "modules": [
+            "privacy",
+            "tray",
+            "battery"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#right3": {
+        "modules": [
+            "custom/wallchange",
+            "custom/theme",
+            "custom/wbar",
+            "custom/cliphist",
+            "custom/hyde-menu",
+            "custom/power"
+        ],
+        "orientation": "inherit"
+    }
 }

@@ -6,7 +6,7 @@
     "justify": "center",
     "exec": "bash -c 'pidof hypridle >/dev/null && echo \"{\\\"text\\\":\\\"󰛊\\\",\\\"class\\\":\\\"deactivated\\\",\\\"tooltip\\\":\\\"Caffeine Inactive (hypridle active)\\\"}\" || echo \"{\\\"text\\\":\\\"󰅶\\\",\\\"class\\\":\\\"activated\\\",\\\"tooltip\\\":\\\"Caffeine Active (Screen will not sleep)\\\"}\"'",
     "on-click": "bash -c 'pidof hypridle >/dev/null && pkill hypridle || (hypridle --config \"${MINIMAL_ROOT:-$HOME/.config/minimal}/hypr/hypridle.conf\" >/dev/null 2>&1 &)'",
-    "interval": 2,
+    "interval": 10,
     "tooltip": true
   }
 }
