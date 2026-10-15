@@ -36,7 +36,8 @@ if ! command -v quickshell >/dev/null 2>&1; then
 fi
 
 # Quickshell toggle: if already running the wallpaper picker, close it.
-if quickshell kill -p "$CONFIG_PATH" >/dev/null 2>&1 || quickshell kill -p "$CONFIG_DIR" >/dev/null 2>&1; then
+if pgrep -f "quickshell.*wallpaper-picker" >/dev/null 2>&1; then
+    quickshell kill -p "$CONFIG_PATH" >/dev/null 2>&1 || pkill -f "quickshell.*wallpaper-picker" || true
     exit 0
 fi
 
