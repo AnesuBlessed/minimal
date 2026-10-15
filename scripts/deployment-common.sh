@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-shot deployment helpers; callers use strict mode and hold the same lock.
-COMPONENTS=(hypr waybar fuzzel foot mako fastfetch minimal)
+COMPONENTS=(hypr waybar wlogout fuzzel foot mako fastfetch minimal)
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 exists() { [[ -e "$1" || -L "$1" ]]; }
 source_for() {

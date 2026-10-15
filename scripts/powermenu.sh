@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  MINIMAL — POWER MENU (HYDE WLOGOUT LAUNCHER)
+#  MINIMAL — POWER MENU (STANDALONE WLOGOUT LAUNCHER)
 # =============================================================================
 set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
@@ -9,15 +9,14 @@ if pkill -x wlogout; then
     exit 0
 fi
 
-if command -v hyde-shell >/dev/null 2>&1; then
-    exec hyde-shell logoutlaunch 1
-elif command -v wlogout >/dev/null 2>&1; then
+if command -v wlogout >/dev/null 2>&1; then
     confDir="${XDG_CONFIG_HOME:-$HOME/.config}/wlogout"
-    if [[ -f "$confDir/layout_1" && -f "$confDir/style_1.css" ]]; then
-        exec wlogout -b 6 -c 0 -r 0 -m 0 --layout "$confDir/layout_1" --css "$confDir/style_1.css" --protocol layer-shell
-    else
-        exec wlogout -b 6 --protocol layer-shell
-    fi
+    layout="$confDir/layout"
+    style="$confDir/style.css"
+    [[ -f $layout ]] || layout="$MINIMAL_ROOT/wlogout/layout"
+    [[ -f $style ]] || style="$MINIMAL_ROOT/wlogout/style.css"
+
+    exec wlogout -b 6 -c 0 -r 0 -m 0 --layout "$layout" --css "$style" --protocol layer-shell
 else
     # Fuzzel dmenu fallback if wlogout is unavailable
     entries="󰌾  Lock\n󰤄  Suspend\n󰍃  Logout\n󰜉  Reboot\n󰐥  Shutdown"

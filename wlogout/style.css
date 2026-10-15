@@ -1,0 +1,92 @@
+* {
+    background-image: none;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+window {
+    background-color: rgba(12, 12, 18, 0.75);
+}
+
+button {
+    color: #f4f4f5;
+    background-color: rgba(26, 26, 36, 0.85);
+    outline-style: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 26%;
+    border-radius: 0px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    text-shadow: none;
+    margin: 260px 0px 260px 0px;
+    transition: all 0.25s cubic-bezier(0.55, 0.0, 0.28, 1.68);
+}
+
+button:focus, button:active {
+    background-color: rgba(188, 184, 239, 0.35);
+    border-color: rgba(188, 184, 239, 0.6);
+    background-size: 32%;
+}
+
+button:hover {
+    background-color: rgba(188, 184, 239, 0.25);
+    border-color: rgba(188, 184, 239, 0.6);
+    background-size: 34%;
+    margin: 235px 0px 235px 0px;
+}
+
+#lock {
+    background-image: image(url("icons/lock_white.png"), url("/usr/share/wlogout/icons/lock.png"));
+    border-radius: 18px 0px 0px 18px;
+    margin-left: 100px;
+}
+
+button:hover#lock {
+    border-radius: 18px;
+    margin-left: 100px;
+}
+
+#logout {
+    background-image: image(url("icons/logout_white.png"), url("/usr/share/wlogout/icons/logout.png"));
+}
+
+button:hover#logout {
+    border-radius: 18px;
+}
+
+#suspend {
+    background-image: image(url("icons/suspend_white.png"), url("/usr/share/wlogout/icons/suspend.png"));
+}
+
+button:hover#suspend {
+    border-radius: 18px;
+}
+
+#shutdown {
+    background-image: image(url("icons/shutdown_white.png"), url("/usr/share/wlogout/icons/shutdown.png"));
+}
+
+button:hover#shutdown {
+    border-radius: 18px;
+}
+
+#hibernate {
+    background-image: image(url("icons/hibernate_white.png"), url("/usr/share/wlogout/icons/hibernate.png"));
+}
+
+button:hover#hibernate {
+    border-radius: 18px;
+}
+
+#reboot {
+    background-image: image(url("icons/reboot_white.png"), url("/usr/share/wlogout/icons/reboot.png"));
+    border-radius: 0px 18px 18px 0px;
+    margin-right: 100px;
+}
+
+button:hover#reboot {
+    border-radius: 18px;
+    margin-right: 100px;
+}

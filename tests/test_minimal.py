@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENTS = ('hypr', 'waybar', 'fuzzel', 'foot', 'mako', 'fastfetch', 'minimal')
+COMPONENTS = ('hypr', 'waybar', 'wlogout', 'fuzzel', 'foot', 'mako', 'fastfetch', 'minimal')
 
 
 class MinimalTests(unittest.TestCase):
@@ -17,7 +17,7 @@ class MinimalTests(unittest.TestCase):
         self.base = Path(self.temp.name)
         self.repo = self.base / 'source rice'
         self.repo.mkdir()
-        for directory in ('hypr', 'waybar', 'fuzzel', 'foot', 'mako', 'fastfetch', 'scripts', 'quickshell'):
+        for directory in ('hypr', 'waybar', 'wlogout', 'fuzzel', 'foot', 'mako', 'fastfetch', 'scripts', 'quickshell'):
             shutil.copytree(ROOT / directory, self.repo / directory, symlinks=True)
         for filename in ('deploy.sh', 'restore.sh', 'colors.css'):
             shutil.copy2(ROOT / filename, self.repo / filename)
