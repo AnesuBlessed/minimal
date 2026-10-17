@@ -3,7 +3,7 @@
     "format": "󰒓",
     "rotate": 0,
     "tooltip": true,
-    "tooltip-format": "Settings & System Hub (Left-click) | Quick Controls (Right-click)",
+    "tooltip-format": "Settings &amp; System Hub (Left-click) | Quick Controls (Right-click)",
     "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/settings.sh\" toggle",
     "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center.sh\" --popup",
     "interval": 86400

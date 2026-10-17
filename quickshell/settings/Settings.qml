@@ -320,7 +320,7 @@ FloatingWindow {
                                     text: "SYSTEM HUB"
                                     color: Theme.textFaint
                                     font.family: Theme.monoFont
-                                    font.pixelSize: 8.5
+                                    font.pixelSize: 9
                                     font.letterSpacing: 1.1
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
