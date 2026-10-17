@@ -93,8 +93,6 @@ def describe_action(action_expr: str, comment: str = ""):
         return ("Apps", "󰸉", comment or "Wallpaper Picker", "Open wallpaper carousel & web search", [str(ROOT / "scripts/wallchange.sh")])
     if 'paths.script("usb-menu.sh")' in a:
         return ("Apps", "󱊞", comment or "USB Drive Menu", "Browse or safely unmount removable drives", [str(ROOT / "scripts/usb-menu.sh")])
-    if 'paths.script("notch.sh")' in a:
-        return ("Media", "󰝚", comment or "Dynamic Notch", "Open media player & 3-day weather forecast popup", [str(ROOT / "scripts/notch.sh")])
     if 'paths.script("monitors.sh")' in a:
         return ("System", "󰍹", comment or "Display & Monitor Switcher", "Configure multi-monitor layout, refresh rate, and scale", [str(ROOT / "scripts/monitors.sh")])
     if 'paths.script("control-center.sh")' in a:

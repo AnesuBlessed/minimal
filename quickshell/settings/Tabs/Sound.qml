@@ -85,7 +85,7 @@ Item {
             Text {
                 text: "SOUND"
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.monoFont
                 font.pixelSize: 19
                 font.letterSpacing: 3
             }

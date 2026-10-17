@@ -56,7 +56,6 @@ ShellRoot {
         { category: "System", icon: "󰂚", title: "Dismiss / Recall Notification", subtitle: "Dismiss latest, dismiss all, or recall history", keys: ["Super", "Shift / Alt", "N"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/notifications.sh\" dismiss"] },
 
         // Media & Screenshots
-        { category: "Media", icon: "󰝚", title: "Dynamic Notch", subtitle: "Open media player & 3-day weather forecast popup", keys: ["Super", "I"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/notch.sh\""] },
         { category: "Media", icon: "󰹑", title: "Region Screenshot", subtitle: "Capture selected screen region to clipboard", keys: ["Print"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/screenshot.sh\" region"] },
         { category: "Media", icon: "󰏫", title: "Annotate Screenshot", subtitle: "Capture region and open in Satty editor", keys: ["Shift", "Print"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/screenshot.sh\" edit"] },
         { category: "Media", icon: "󰍹", title: "Full Screen Screenshot", subtitle: "Capture entire display to clipboard", keys: ["Super", "Print"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/screenshot.sh\" full"] },

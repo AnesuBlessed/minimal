@@ -1334,50 +1334,30 @@ ShellRoot {
         self.assertEqual(result.returncode, 0, output)
         self.assertIn('KEYBINDS_PASS', output)
 
-    def test_reactive_notch_status_recording_media_and_weather_popup(self):
-        cache_dir = self.base / 'cache/minimal'
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        (cache_dir / 'weather.json').write_text(json.dumps({
-            'updatedAt': int(time.time()),
-            'location': 'Harare',
-            'tempC': '24',
-            'feelsLikeC': '25',
-            'condition': 'Sunny',
-            'icon': '󰖙',
-            'humidity': '40',
-            'windKmph': '12',
-            'forecast': [{'date': '2026-10-17', 'maxC': '27', 'minC': '14', 'condition': 'Sunny', 'icon': '󰖙'}]
-        }))
-        self.mock('playerctl', 'sys.exit(1)')
-        wb_wea = json.loads(self.run_script('scripts/notch-status.py', '--waybar').stdout)
-        self.assertEqual(wb_wea['class'], 'weather')
-        self.assertIn('24°C', wb_wea['text'])
+    def test_quickshell_settings_and_clean_waybar(self):
+        settings_script = self.repo / 'scripts/settings.sh'
+        self.assertTrue(settings_script.is_file(), "scripts/settings.sh must exist")
+        self.assertTrue(os.access(settings_script, os.X_OK), "scripts/settings.sh must be executable")
 
-        self.mock('playerctl', 'if sys.argv[1]=="status": print("Playing")\nelse: print("spotify\\x1fNightcall\\x1fKavinsky\\x1fOutRun\\x1f\\x1f60000000\\x1f240000000")')
-        wb_med = json.loads(self.run_script('scripts/notch-status.py', '--waybar').stdout)
-        self.assertEqual(wb_med['class'], 'playing')
-        self.assertIn('Kavinsky — Nightcall', wb_med['text'])
+        help_res = self.run_script('scripts/settings.sh', '--help')
+        self.assertIn('Usage: settings.sh', help_res.stdout + help_res.stderr)
 
-        pop_json = self.run_script('scripts/notch-status.py', '--popup-json').stdout
-        source = (self.repo / 'quickshell/notch/shell.qml').read_text()
-        harness = self.repo / 'quickshell/notch/regression.qml'
-        logic = source[:source.index('    PanelWindow {')]
-        harness.write_text(logic + """
-    Timer {
-        interval: 100; running: true
-        onTriggered: {
-            if (root.stateData.media.title === "Nightcall" && root.stateData.weather.tempC === "24")
-                console.log("NOTCH_PASS");
-            else console.log("NOTCH_FAIL", JSON.stringify(root.stateData));
-            Qt.quit();
-        }
-    }
-}""")
-        res = subprocess.run(['quickshell', '-n', '-p', str(harness)],
-                             env=dict(self.env, QT_QPA_PLATFORM='offscreen', MINIMAL_NOTCH_JSON=pop_json),
-                             capture_output=True, text=True, timeout=15)
-        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
-        self.assertIn('NOTCH_PASS', res.stdout + res.stderr)
+        # Verify Waybar center pill has clean workspaces and window without notch
+        cfg = json.loads((self.repo / 'waybar/config.jsonc').read_text())
+        center_modules = cfg['group/pill#center']['modules']
+        self.assertNotIn('custom/notch', center_modules)
+        self.assertIn('hyprland/workspaces', center_modules)
+
+        # Verify Theme.qml in settings exists and references Minimal tokens
+        theme_qml = (self.repo / 'quickshell/settings/Theme.qml').read_text()
+        self.assertIn('pragma Singleton', theme_qml)
+        self.assertIn('theme.json', theme_qml)
+
+        # Verify Network, Bluetooth, and Sound tabs exist
+        for tab in ['Network.qml', 'Bluetooth.qml', 'Sound.qml']:
+            tab_file = self.repo / f'quickshell/settings/Tabs/{tab}'
+            self.assertTrue(tab_file.is_file(), f'Tabs/{tab} must exist')
+
 
     def test_control_center_wifi_bluetooth_audio_and_qml(self):
         self.mock('nmcli', r'''

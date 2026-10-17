@@ -52,15 +52,4 @@ menu menuitem:hover { background: @bg-glass-hover; color: @text-main; }
 #battery.critical, #memory.critical { color: @critical; }
 #custom-keybindhint { color: @text-muted; transition-property: color; transition-timing-function: ease; }
 #custom-keybindhint:hover { color: @accent; }
-#custom-notch {
-    padding: 0 8px;
-    margin: 3px 2px;
-    border-radius: 6px;
-    transition-property: background-color, color;
-    transition-timing-function: ease;
-}
-#custom-notch.weather { color: @text-main; }
-#custom-notch.playing { background-color: @bg-glass-hover; color: @accent; }
-#custom-notch.paused { color: @text-muted; }
-#custom-notch.recording { background-color: @critical; color: @accent-dark; }
-#custom-notch:hover { background-color: @bg-glass-hover; color: @accent; }
+

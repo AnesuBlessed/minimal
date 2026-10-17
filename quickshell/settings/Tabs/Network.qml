@@ -13,7 +13,7 @@ Item {
         "state": "disconnected",
         "connection": ""
     })
-    property string monoFont: "Noto Sans"
+    property string monoFont: Theme.monoFont
     property real downSpeed: 0
     property real upSpeed: 0
     property real lastRx: -1

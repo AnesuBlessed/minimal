@@ -34,7 +34,6 @@
     "group/pill#center": {
         "modules": [
             "hyprland/workspaces",
-            "custom/notch",
             "hyprland/window"
         ],
         "orientation": "inherit"
