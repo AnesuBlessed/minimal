@@ -4,6 +4,11 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
 wall=${1:?Wallpaper path required}
 [[ -f $wall ]] || exit 1
 mkdir -p -- "$MINIMAL_CACHE"
+avatar="$MINIMAL_ROOT/wallpapers/default-avatar.png"
+for candidate in "/var/lib/AccountsService/icons/${USER:-$(id -un)}" "$HOME/.face" "$HOME/.face.icon"; do
+    [[ ! -f $candidate ]] || avatar="$candidate"
+done
+ln -sf -- "$avatar" "$MINIMAL_CACHE/avatar"
 exec 9>"$MINIMAL_CACHE/lock-image.lock"
 flock 9
 fingerprint=$(stat -Lc '%n:%s:%Y' -- "$wall")

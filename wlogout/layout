@@ -1,36 +1,36 @@
 {
     "label": "lock",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" lock",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh lock &",
     "text": "Lock",
     "keybind": "l"
 }
 {
     "label": "logout",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" logout",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh logout &",
     "text": "Logout",
     "keybind": "e"
 }
 {
     "label": "suspend",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" suspend",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh suspend &",
     "text": "Suspend",
     "keybind": "u"
 }
 {
     "label": "shutdown",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" poweroff",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh poweroff &",
     "text": "Shutdown",
     "keybind": "s"
 }
 {
     "label": "hibernate",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" hibernate",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh hibernate &",
     "text": "Hibernate",
     "keybind": "h"
 }
 {
     "label": "reboot",
-    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" reboot",
+    "action": "IFS=; ${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh reboot &",
     "text": "Reboot",
     "keybind": "r"
 }

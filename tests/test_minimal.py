@@ -1154,6 +1154,7 @@ ShellRoot {
         self.assertNotIn('Unable to assign', output)
 
     def test_power_menu_uses_logical_geometry_and_stable_cards(self):
+        import re
         self.mock('hyprctl', 'print(json.dumps([{"focused":True,"width":1366,"height":768,"scale":2,"transform":0}]))')
         self.mock('wlogout', '')
         self.run_script('scripts/powermenu.sh')
@@ -1163,6 +1164,12 @@ ShellRoot {
         css = (self.repo / 'wlogout/style.css').read_text()
         self.assertNotIn('transition: all', css)
         self.assertNotIn('margin: 185px', css)
+        raw_actions = re.findall(r'"action"\s*:\s*"([^"]*)"', (self.repo / 'wlogout/layout').read_text())
+        self.assertEqual(len(raw_actions), 6)
+        for act in raw_actions:
+            self.assertNotIn('\\', act)
+        subprocess.run(['sh', '-c', raw_actions[1].rstrip('&')], env=self.env, check=True, timeout=5)
+        self.assertIn(['hyprctl', 'dispatch', 'hl.dsp.exit()'], self.events())
 
     def test_failed_wallpaper_rolls_back_generated_theme(self):
         from PIL import Image

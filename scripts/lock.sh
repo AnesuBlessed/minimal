@@ -10,8 +10,9 @@ flock -n 9 || exit 0
 
 # Resolve the avatar into our cache without creating files in the home root.
 avatar="$MINIMAL_ROOT/wallpapers/default-avatar.png"
-[[ ! -f $HOME/.face ]] || avatar="$HOME/.face"
-[[ ! -f $HOME/.face.icon ]] || avatar="$HOME/.face.icon"
+for candidate in "/var/lib/AccountsService/icons/${USER:-$(id -un)}" "$HOME/.face" "$HOME/.face.icon"; do
+    [[ ! -f $candidate ]] || avatar="$candidate"
+done
 ln -sf -- "$avatar" "$MINIMAL_CACHE/avatar"
 
 exec hyprlock --grace 0 --config "$MINIMAL_ROOT/hypr/hyprlock.conf" "$@"
