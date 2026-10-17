@@ -233,33 +233,41 @@ Item {
                         border.width: 1
                         border.color: active ? Theme.accent : Theme.border
 
-                        Row {
+                        Item {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            spacing: 10
 
-                            Text {
-                                width: 18
+                            Row {
+                                anchors.left: parent.left
+                                anchors.right: outActiveText.left
+                                anchors.rightMargin: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: active ? "󰓃" : "󰓄"
-                                color: active ? Theme.accent : Theme.textFaint
-                                font.family: Theme.iconFont
-                                font.pixelSize: 14
+                                spacing: 10
+
+                                Text {
+                                    width: 18
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: active ? "󰓃" : "󰓄"
+                                    color: active ? Theme.accent : Theme.textFaint
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    width: parent.width - 28
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: page.displayName(output, "Audio Output").toUpperCase()
+                                    color: active ? Theme.accent : Theme.text
+                                    font.family: Theme.monoFont
+                                    font.pixelSize: 11
+                                    font.bold: active
+                                    elide: Text.ElideRight
+                                }
                             }
 
                             Text {
-                                width: parent.width - 80
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: page.displayName(output, "Audio Output").toUpperCase()
-                                color: active ? Theme.accent : Theme.text
-                                font.family: Theme.monoFont
-                                font.pixelSize: 11
-                                font.bold: active
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
+                                id: outActiveText
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: active ? "ACTIVE" : ""
@@ -406,33 +414,41 @@ Item {
                         border.width: 1
                         border.color: active ? Theme.accent : Theme.border
 
-                        Row {
+                        Item {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            spacing: 10
 
-                            Text {
-                                width: 18
+                            Row {
+                                anchors.left: parent.left
+                                anchors.right: inActiveText.left
+                                anchors.rightMargin: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: active ? "󰍬" : "󰍭"
-                                color: active ? Theme.accent : Theme.textFaint
-                                font.family: Theme.iconFont
-                                font.pixelSize: 14
+                                spacing: 10
+
+                                Text {
+                                    width: 18
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: active ? "󰍬" : "󰍭"
+                                    color: active ? Theme.accent : Theme.textFaint
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    width: parent.width - 28
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: page.displayName(input, "Audio Input").toUpperCase()
+                                    color: active ? Theme.accent : Theme.text
+                                    font.family: Theme.monoFont
+                                    font.pixelSize: 11
+                                    font.bold: active
+                                    elide: Text.ElideRight
+                                }
                             }
 
                             Text {
-                                width: parent.width - 80
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: page.displayName(input, "Audio Input").toUpperCase()
-                                color: active ? Theme.accent : Theme.text
-                                font.family: Theme.monoFont
-                                font.pixelSize: 11
-                                font.bold: active
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
+                                id: inActiveText
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: active ? "ACTIVE" : ""
