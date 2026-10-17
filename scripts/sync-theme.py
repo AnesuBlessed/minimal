@@ -105,6 +105,25 @@ tooltip, menu {{ border-radius: {r['panel']}px; }}
 * {{ font-family: "{f['family']}"; font-size: {f['title']}px; }}
 button {{ border-radius: {r['panel']}px; transition-duration: {seconds:g}s; }}
 ''')
+    atomic_write(ROOT/'assets/gtk-accent.css', f'''/* Generated from theme.json by scripts/sync-theme.py for GTK-3 / GTK-4 / libadwaita. */
+@define-color accent_color #{accent};
+@define-color accent_bg_color #{accent};
+@define-color accent_fg_color #{bg};
+@define-color theme_selected_bg_color #{accent};
+@define-color theme_selected_fg_color #{bg};
+@define-color window_bg_color #{bg};
+@define-color window_fg_color #{c['text']};
+@define-color view_bg_color #{bg};
+@define-color view_fg_color #{c['text']};
+@define-color headerbar_bg_color #{surface};
+@define-color headerbar_fg_color #{c['text']};
+@define-color card_bg_color #{surface};
+@define-color card_fg_color #{c['text']};
+@define-color popover_bg_color #{bg};
+@define-color popover_fg_color #{c['text']};
+@define-color warning_color #{c['warning']};
+@define-color error_color #{c['critical']};
+''')
 
 if __name__ == '__main__':
     sync()

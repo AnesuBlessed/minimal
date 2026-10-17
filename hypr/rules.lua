@@ -61,3 +61,15 @@ hl.layer_rule({
     blur         = false,
     ignore_alpha = 0.5,
 })
+
+-- Quickshell Settings Window
+hl.window_rule({
+    name  = "quickshell_settings",
+    match = {
+        title = "^(Settings)$",
+    },
+    float  = true,
+    center = true,
+    size   = "1020 660",
+})
+

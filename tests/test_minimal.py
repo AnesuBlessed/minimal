@@ -20,7 +20,7 @@ class MinimalTests(unittest.TestCase):
         self.repo.mkdir()
         for directory in ('hypr', 'waybar', 'wlogout', 'fuzzel', 'foot', 'mako', 'fastfetch', 'scripts', 'quickshell', 'assets'):
             shutil.copytree(ROOT / directory, self.repo / directory, symlinks=True)
-        for filename in ('deploy.sh', 'restore.sh', 'colors.css', 'theme.json'):
+        for filename in ('deploy.sh', 'restore.sh', 'bootstrap.sh', 'colors.css', 'theme.json'):
             shutil.copy2(ROOT / filename, self.repo / filename)
         self.config = self.base / 'config'
         self.config.mkdir()
@@ -1112,13 +1112,13 @@ else: print('hidden needle' if sys.argv[2]=='1' else 'unrelated')
             self.assertEqual(theme['colors']['surface'], original['colors']['surface'])
             accent = theme['colors']['accent']
             for filename in ('colors.css', 'fuzzel/fuzzel.ini', 'hypr/colors.lua',
-                             'hypr/hyprlock.conf', 'mako/config', 'foot/foot.ini'):
+                             'hypr/hyprlock.conf', 'mako/config', 'foot/foot.ini', 'assets/gtk-accent.css'):
                 self.assertIn(accent, (self.repo / filename).read_text(), filename)
             self.assertIn('background=171c1ecc', (self.repo / 'fuzzel/fuzzel.ini').read_text())
             main = (self.repo / 'fuzzel/fuzzel.ini').read_text().split('[colors]')[0]
             self.assertIn('prompt=""', main)
             self.assertIn('message="                          ━━━━"', main)
-        paths = [self.repo / p for p in ('colors.css', 'foot/foot.ini', 'fuzzel/fuzzel.ini', 'mako/config')]
+        paths = [self.repo / p for p in ('colors.css', 'foot/foot.ini', 'fuzzel/fuzzel.ini', 'mako/config', 'assets/gtk-accent.css')]
         timestamps = [p.stat().st_mtime_ns for p in paths]
         self.run_script('scripts/sync-theme.py')
         self.assertEqual(timestamps, [p.stat().st_mtime_ns for p in paths])
@@ -1177,7 +1177,7 @@ ShellRoot {
         Image.new('RGB', (16, 16), 'red').save(wall)
         generated = ('theme.json', 'fuzzel/fuzzel.ini', 'colors.css', 'foot/foot.ini',
                      'waybar/theme.css', 'waybar/design.css', 'wlogout/design.css',
-                     'hypr/colors.lua', 'hypr/hyprlock.conf', 'mako/config')
+                     'hypr/colors.lua', 'hypr/hyprlock.conf', 'mako/config', 'assets/gtk-accent.css')
         before = {name: (self.repo / name).read_bytes() for name in generated}
         self.mock('hyprctl', 'sys.exit(1)')
         self.mock('notify-send', '')
@@ -1333,6 +1333,133 @@ ShellRoot {
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
         self.assertIn('KEYBINDS_PASS', output)
+
+    def test_reactive_notch_status_recording_media_and_weather_popup(self):
+        cache_dir = self.base / 'cache/minimal'
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        (cache_dir / 'weather.json').write_text(json.dumps({
+            'updatedAt': int(time.time()),
+            'location': 'Harare',
+            'tempC': '24',
+            'feelsLikeC': '25',
+            'condition': 'Sunny',
+            'icon': '󰖙',
+            'humidity': '40',
+            'windKmph': '12',
+            'forecast': [{'date': '2026-10-17', 'maxC': '27', 'minC': '14', 'condition': 'Sunny', 'icon': '󰖙'}]
+        }))
+        self.mock('playerctl', 'sys.exit(1)')
+        wb_wea = json.loads(self.run_script('scripts/notch-status.py', '--waybar').stdout)
+        self.assertEqual(wb_wea['class'], 'weather')
+        self.assertIn('24°C', wb_wea['text'])
+
+        self.mock('playerctl', 'if sys.argv[1]=="status": print("Playing")\nelse: print("spotify\\x1fNightcall\\x1fKavinsky\\x1fOutRun\\x1f\\x1f60000000\\x1f240000000")')
+        wb_med = json.loads(self.run_script('scripts/notch-status.py', '--waybar').stdout)
+        self.assertEqual(wb_med['class'], 'playing')
+        self.assertIn('Kavinsky — Nightcall', wb_med['text'])
+
+        pop_json = self.run_script('scripts/notch-status.py', '--popup-json').stdout
+        source = (self.repo / 'quickshell/notch/shell.qml').read_text()
+        harness = self.repo / 'quickshell/notch/regression.qml'
+        logic = source[:source.index('    PanelWindow {')]
+        harness.write_text(logic + """
+    Timer {
+        interval: 100; running: true
+        onTriggered: {
+            if (root.stateData.media.title === "Nightcall" && root.stateData.weather.tempC === "24")
+                console.log("NOTCH_PASS");
+            else console.log("NOTCH_FAIL", JSON.stringify(root.stateData));
+            Qt.quit();
+        }
+    }
+}""")
+        res = subprocess.run(['quickshell', '-n', '-p', str(harness)],
+                             env=dict(self.env, QT_QPA_PLATFORM='offscreen', MINIMAL_NOTCH_JSON=pop_json),
+                             capture_output=True, text=True, timeout=15)
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn('NOTCH_PASS', res.stdout + res.stderr)
+
+    def test_control_center_wifi_bluetooth_audio_and_qml(self):
+        self.mock('nmcli', r'''
+args = sys.argv[1:]
+if "radio" in args and "WIFI" in args: print("enabled")
+elif "connection" in args and "--active" in args: print("HomeNet:802-11-wireless:wlan0")
+elif "connection" in args and "show" in args: print("HomeNet:802-11-wireless")
+elif "IP4.ADDRESS" in args: print("IP4.ADDRESS[1]:192.168.1.42/24")
+elif "wifi" in args and "list" in args: print("*:HomeNet:92:WPA2\n :Cafe\\:5G:64:WPA2")
+''')
+        self.mock('bluetoothctl', '''
+args = sys.argv[1:]
+if args == ["show"]: print("Controller AA:BB:CC:DD:EE:FF\\n\\tAlias: MinimalBT\\n\\tPowered: yes\\n\\tDiscoverable: no")
+elif args == ["devices", "Paired"]: print("Device 11:22:33:44:55:66 Sony WH-1000XM5")
+elif args == ["devices", "Connected"]: print("Device 11:22:33:44:55:66 Sony WH-1000XM5")
+elif args == ["devices", "Trusted"]: print("Device 11:22:33:44:55:66 Sony WH-1000XM5")
+elif args == ["devices"]: print("Device 11:22:33:44:55:66 Sony WH-1000XM5")
+elif args[:1] == ["info"]: print("Battery Percentage: 0x55 (85)")
+''')
+        self.mock('wpctl', '''
+if sys.argv[1] == "get-volume": print("Volume: 0.65")
+elif sys.argv[1] == "status": print("Audio\\n ├─ Sinks:\\n │  * 42. Built-in Analog Stereo [vol: 0.65]\\n └─ Sources:\\n    * 43. Internal Mic [vol: 0.80]")
+''')
+        state_raw = self.run_script('scripts/control-center-backend.py', '--state').stdout
+        state = json.loads(state_raw)
+        self.assertTrue(state['wifi']['enabled'])
+        self.assertEqual(state['wifi']['connectedSsid'], 'HomeNet')
+        self.assertEqual(len(state['wifi']['networks']), 2)
+        self.assertEqual(state['wifi']['networks'][1]['ssid'], 'Cafe:5G')
+        self.assertEqual(state['bluetooth']['devices'][0]['battery'], '85%')
+        self.assertEqual(state['audio']['volume'], 65)
+
+        source = (self.repo / 'quickshell/control-center/shell.qml').read_text()
+        harness = self.repo / 'quickshell/control-center/regression.qml'
+        logic = source[:source.index('    PanelWindow {')]
+        harness.write_text(logic + """
+    Timer {
+        interval: 100; running: true
+        onTriggered: {
+            if (root.stateData.wifi.connectedSsid === "HomeNet" && root.stateData.bluetooth.devices.length === 1 && root.activeTab === "wifi")
+                console.log("CC_PASS");
+            else console.log("CC_FAIL", JSON.stringify(root.stateData));
+            Qt.quit();
+        }
+    }
+}""")
+        res = subprocess.run(['quickshell', '-n', '-p', str(harness)],
+                             env=dict(self.env, QT_QPA_PLATFORM='offscreen', MINIMAL_CC_TAB='wifi', MINIMAL_CC_JSON=state_raw),
+                             capture_output=True, text=True, timeout=15)
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn('CC_PASS', res.stdout + res.stderr)
+
+    def test_monitors_switcher_presets_persistence_and_qml(self):
+        self.mock('hyprctl', '''
+if "-j" in sys.argv:
+    print(json.dumps([
+        {"name":"eDP-1","description":"Laptop","width":1920,"height":1080,"refreshRate":60,"scale":1.0,"x":0,"y":0,"vrr":False,"disabled":False,"focused":True,"availableModes":["1920x1080@60.00Hz"]},
+        {"name":"HDMI-A-1","description":"External","width":2560,"height":1440,"refreshRate":144,"scale":1.25,"x":1920,"y":0,"vrr":True,"disabled":False,"focused":False,"availableModes":["2560x1440@144.00Hz","2560x1440@60.00Hz"]}
+    ]))
+''')
+        self.mock('notify-send', '')
+        out = self.run_script('scripts/monitors.py', '--preset', 'extend-right').stdout
+        parsed = json.loads(out)
+        self.assertEqual(len(parsed['monitors']), 2)
+        self.assertTrue((self.base / 'state/minimal/monitors.json').is_file())
+        self.assertTrue((self.base / 'state/minimal/monitors.lua').is_file())
+        self.assertTrue(any(e[:3] == ['hyprctl', 'keyword', 'monitor'] for e in self.events()))
+
+    def test_screen_recording_toggle_and_region_ocr(self):
+        self.mock('slurp', 'print("10,10 200x100")')
+        self.mock('grim', 'open(sys.argv[-1], "wb").write(b"PNG")')
+        self.mock('tesseract', 'print("Extracted Minimal Text")')
+        self.mock('wl-copy', 'open(os.path.join(os.environ["XDG_RUNTIME_DIR"], "ocr.txt"), "w").write(sys.stdin.read())')
+        self.mock('notify-send', '')
+        self.run_script('scripts/screenshot.sh', 'ocr')
+        self.assertEqual((self.base / 'runtime/ocr.txt').read_text(), 'Extracted Minimal Text')
+
+    def test_bootstrap_dry_run_check(self):
+        res = self.run_script('bootstrap.sh', '--check')
+        self.assertIn('Minimal Bootstrap Check', res.stdout)
+        self.assertEqual(list(self.config.iterdir()), [])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

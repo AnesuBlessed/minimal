@@ -93,6 +93,21 @@ def describe_action(action_expr: str, comment: str = ""):
         return ("Apps", "󰸉", comment or "Wallpaper Picker", "Open wallpaper carousel & web search", [str(ROOT / "scripts/wallchange.sh")])
     if 'paths.script("usb-menu.sh")' in a:
         return ("Apps", "󱊞", comment or "USB Drive Menu", "Browse or safely unmount removable drives", [str(ROOT / "scripts/usb-menu.sh")])
+    if 'paths.script("notch.sh")' in a:
+        return ("Media", "󰝚", comment or "Dynamic Notch", "Open media player & 3-day weather forecast popup", [str(ROOT / "scripts/notch.sh")])
+    if 'paths.script("monitors.sh")' in a:
+        return ("System", "󰍹", comment or "Display & Monitor Switcher", "Configure multi-monitor layout, refresh rate, and scale", [str(ROOT / "scripts/monitors.sh")])
+    if 'paths.script("control-center.sh")' in a:
+        m = re.search(r'control-center\.sh"\)\s*\.\.\s*"\s*([a-z]+)"', a)
+        tab = m.group(1) if m else "quick"
+        tab_map = {
+            "quick": ("System", "󰒓", "Control Center", "Open unified quick settings (Wi-Fi, BT, Audio, Display)"),
+            "wifi": ("System", "󰖩", "Wi-Fi Manager", "Scan, connect, hotspot, and manage saved networks"),
+            "bluetooth": ("System", "󰂯", "Bluetooth Manager", "Pair, connect, trust, and manage Bluetooth devices"),
+            "audio": ("System", "󰕾", "Audio Mixer", "Configure PipeWire output sinks and microphones"),
+        }
+        cat, icon, title, sub = tab_map.get(tab, ("System", "󰒓", "Control Center", "Open unified control center"))
+        return (cat, icon, comment or title, sub, [str(ROOT / "scripts/control-center.sh"), tab])
     if 'paths.script("keybinds.sh")' in a:
         return ("Apps", "󰌌", comment or "Keybind Cheat-Sheet", "Toggle this interactive shortcut reference", [])
     if "hyprctl reload" in a and "waybar.sh" in a:
@@ -120,6 +135,8 @@ def describe_action(action_expr: str, comment: str = ""):
             "region": ("󰹑", "Region Screenshot", "Capture selected screen region to clipboard"),
             "edit": ("󰏫", "Annotate Screenshot", "Capture region and open in Satty editor"),
             "full": ("󰍹", "Full Screen Screenshot", "Capture entire display to clipboard"),
+            "record": ("󰑊", "Screen Recording", "Start or stop region MP4 screen recording"),
+            "ocr": ("󰈙", "Instant Region OCR", "Extract text from screen region into clipboard"),
         }
         icon, title, sub = shot_map.get(mode, ("󰹑", f"Screenshot ({mode})", f"Capture screenshot ({mode})"))
         return ("Media", icon, comment or title, sub, [str(ROOT / "scripts/screenshot.sh"), mode])

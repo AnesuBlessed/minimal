@@ -9,6 +9,8 @@
     "tooltip-format-ethernet": "Ethernet: {ipaddr}\nInterface: {ifname}",
     "tooltip-format-disconnected": "Disconnected",
     "format-alt": "󰤨 {essid} ({signalStrength}%)",
-    "interval": 30
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center.sh\" wifi",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center-backend.py\" wifi-toggle",
+    "interval": 15
   }
 }

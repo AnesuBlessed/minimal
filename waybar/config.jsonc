@@ -34,6 +34,7 @@
     "group/pill#center": {
         "modules": [
             "hyprland/workspaces",
+            "custom/notch",
             "hyprland/window"
         ],
         "orientation": "inherit"
@@ -56,6 +57,7 @@
     "group/pill#right2": {
         "modules": [
             "privacy",
+            "network",
             "bluetooth",
             "tray",
             "battery"

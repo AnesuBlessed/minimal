@@ -1,0 +1,15 @@
+{
+  "custom/notch": {
+    "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/notch-status.py\" --waybar",
+    "return-type": "json",
+    "interval": 3,
+    "signal": 9,
+    "format": "{}",
+    "tooltip": true,
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/notch.sh\"",
+    "on-click-middle": "playerctl play-pause",
+    "on-click-right": "playerctl next",
+    "on-scroll-up": "playerctl previous",
+    "on-scroll-down": "playerctl next"
+  }
+}

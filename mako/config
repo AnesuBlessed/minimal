@@ -13,7 +13,7 @@ height=110
 margin=12
 padding=10
 border-size=1
-border-color=#cdc5c14c
+border-color=#bdbed04c
 border-radius=12
 default-timeout=4000
 group-by=summary
@@ -22,11 +22,11 @@ max-icon-size=48
 layer=overlay
 
 [urgency=low]
-border-color=#cdc5c14c
+border-color=#bdbed04c
 default-timeout=2500
 
 [urgency=normal]
-border-color=#cdc5c14c
+border-color=#bdbed04c
 default-timeout=4000
 
 [urgency=critical]
@@ -46,8 +46,8 @@ border-size=1
 border-radius=6
 background-color=#171c1ef0
 text-color=#eef0f0
-border-color=#cdc5c14c
-progress-color=over #cdc5c166
+border-color=#bdbed04c
+progress-color=over #bdbed066
 format=%s
 icons=0
 history=0

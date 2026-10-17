@@ -46,9 +46,21 @@ tooltip, menu, window.popup decoration {
 menu menuitem { padding: 4px 8px; transition-property: background-color; transition-timing-function: ease; }
 menu menuitem:hover { background: @bg-glass-hover; color: @text-main; }
 
-#bluetooth.off, #bluetooth.disabled, #bluetooth.no-controller { color: @text-muted; }
-#bluetooth.connected { color: @accent; }
+#bluetooth.off, #bluetooth.disabled, #bluetooth.no-controller, #network.disconnected { color: @text-muted; }
+#bluetooth.connected, #network.wifi, #network.ethernet { color: @accent; }
 #battery.warning, #memory.warning { color: @warning; }
 #battery.critical, #memory.critical { color: @critical; }
 #custom-keybindhint { color: @text-muted; transition-property: color; transition-timing-function: ease; }
 #custom-keybindhint:hover { color: @accent; }
+#custom-notch {
+    padding: 0 8px;
+    margin: 3px 2px;
+    border-radius: 6px;
+    transition-property: background-color, color;
+    transition-timing-function: ease;
+}
+#custom-notch.weather { color: @text-main; }
+#custom-notch.playing { background-color: @bg-glass-hover; color: @accent; }
+#custom-notch.paused { color: @text-muted; }
+#custom-notch.recording { background-color: @critical; color: @accent-dark; }
+#custom-notch:hover { background-color: @bg-glass-hover; color: @accent; }

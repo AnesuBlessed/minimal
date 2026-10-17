@@ -75,7 +75,4 @@ start_service hyprpaper hyprpaper --config "$MINIMAL_ROOT/hypr/hyprpaper.conf"
 "$MINIMAL_ROOT/scripts/restore-wallpapers.sh" >>"$MINIMAL_CACHE/session.log" 2>&1 &
 start_service clipboard-text wl-paste --type text --watch cliphist store
 start_service clipboard-image wl-paste --type image --watch cliphist store
-if command -v nm-applet >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -x nm-applet >/dev/null; then
-    start_service nm-applet nm-applet --indicator
-fi
 exit 0

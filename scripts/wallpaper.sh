@@ -17,7 +17,7 @@ files=("$MINIMAL_ROOT/theme.json" "$MINIMAL_ROOT/waybar/theme.css"
        "$MINIMAL_ROOT/waybar/design.css" "$MINIMAL_ROOT/wlogout/design.css"
        "$MINIMAL_ROOT/foot/foot.ini" "$MINIMAL_ROOT/fuzzel/fuzzel.ini" "$MINIMAL_ROOT/colors.css"
        "$MINIMAL_ROOT/hypr/colors.lua" "$MINIMAL_ROOT/mako/config"
-       "$MINIMAL_ROOT/hypr/hyprlock.conf" "$MINIMAL_CACHE/lock.png"
+       "$MINIMAL_ROOT/hypr/hyprlock.conf" "$MINIMAL_ROOT/assets/gtk-accent.css" "$MINIMAL_CACHE/lock.png"
        "$MINIMAL_CACHE/lock-source" "$MINIMAL_STATE/current_wallpaper"
        "$MINIMAL_STATE/wallpapers.json")
 for index in "${!files[@]}"; do

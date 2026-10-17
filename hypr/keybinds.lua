@@ -70,9 +70,12 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(paths.script("clipboard.sh")))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallchange.sh")))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(paths.script("wallchange.sh") .. " --random"))
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd(paths.script("usb-menu.sh")))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " network"))
-hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " bluetooth"))
-hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " audio"))
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd(paths.script("control-center.sh")))
+hl.bind(mainMod .. " + I", hl.dsp.exec_cmd(paths.script("notch.sh")))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd(paths.script("monitors.sh")))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " wifi"))
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " bluetooth"))
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " audio"))
 hl.bind(mainMod .. " + slash", hl.dsp.exec_cmd(paths.script("keybinds.sh")))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && " .. paths.script("waybar.sh") .. " --reload"))
 
@@ -94,10 +97,12 @@ hl.bind(mainMod .. " + SHIFT + D",       hl.dsp.exec_cmd(paths.script("notificat
 -- =====================================================
 -- Media & System Controls
 -- =====================================================
--- Screenshots
-hl.bind("Print",               hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " region"))
-hl.bind("SHIFT + Print",       hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " edit"))
-hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " full"))
+-- Screenshots, Recording & OCR
+hl.bind("Print",                     hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " region"))
+hl.bind("SHIFT + Print",             hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " edit"))
+hl.bind(mainMod .. " + Print",       hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " full"))
+hl.bind(mainMod .. " + SHIFT + R",   hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " record"))
+hl.bind(mainMod .. " + SHIFT + O",   hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " ocr"))
 
 -- Audio Controls (WirePlumber)
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume up"), { locked = true, repeating = true })
