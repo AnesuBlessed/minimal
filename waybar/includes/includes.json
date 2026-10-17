@@ -10,6 +10,7 @@
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-keybindhint.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-menu.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-power.jsonc",
+        "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-settings.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-updates.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/hyprland-window.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/hyprland-workspaces.jsonc",

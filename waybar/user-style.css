@@ -52,4 +52,9 @@ menu menuitem:hover { background: @bg-glass-hover; color: @text-main; }
 #battery.critical, #memory.critical { color: @critical; }
 #custom-keybindhint { color: @text-muted; transition-property: color; transition-timing-function: ease; }
 #custom-keybindhint:hover { color: @accent; }
+#custom-settings { color: @text-main; transition-property: color; transition-timing-function: ease; }
+#custom-settings:hover { color: @accent; }
+#custom-power { color: @text-muted; transition-property: color; transition-timing-function: ease; }
+#custom-power:hover { color: @critical; }
+
 

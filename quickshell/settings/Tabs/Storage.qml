@@ -127,7 +127,7 @@ Item {
 
             for (var i = 0; i < obj.blockdevices.length; ++i) {
                 var d = obj.blockdevices[i];
-                if (d.type === "disk")
+                if (d.type === "disk" && d.name.indexOf("loop") !== 0 && d.name.indexOf("zram") !== 0)
                     disks.push({
                     "name": d.name || "",
                     "model": d.model || "",
@@ -143,14 +143,21 @@ Item {
         return disks;
     }
 
-    function findSdaUsage() {
+    function findDriveUsage(driveName) {
+        if (!driveName)
+            return null;
+
         var used = 0;
         var found = false;
+        var seenDevices = {};
         for (var i = 0; i < filesystems.length; ++i) {
             var fs = filesystems[i];
-            if (fs.filesystem.indexOf("/dev/sda") === 0) {
-                used += fs.used;
-                found = true;
+            if (fs.filesystem && (fs.filesystem.indexOf("/dev/" + driveName) === 0)) {
+                if (!seenDevices[fs.filesystem]) {
+                    seenDevices[fs.filesystem] = true;
+                    used += fs.used;
+                    found = true;
+                }
             }
         }
         return found ? {
@@ -213,15 +220,26 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 var fs = [];
+                var seenFsys = {};
                 var lines = text.trim().split("\n");
                 for (var i = 1; i < lines.length; ++i) {
                     var item = page.parseDfLine(lines[i]);
-                    if (item)
-                        fs.push(item);
-
+                    if (item) {
+                        if (!seenFsys[item.filesystem] || item.mount === "/") {
+                            if (item.mount === "/") {
+                                for (var k = 0; k < fs.length; ++k) {
+                                    if (fs[k].filesystem === item.filesystem) {
+                                        fs.splice(k, 1);
+                                        break;
+                                    }
+                                }
+                            }
+                            seenFsys[item.filesystem] = true;
+                            fs.push(item);
+                        }
+                    }
                 }
                 page.filesystems = fs;
-                page.sdaUsageData = page.findSdaUsage();
             }
         }
 
@@ -326,7 +344,7 @@ Item {
             Text {
                 text: page.pendingTitle
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 17
                 font.bold: true
             }
@@ -335,7 +353,7 @@ Item {
                 width: parent.width
                 text: page.pendingMessage
                 color: Theme.textDim
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 13
                 wrapMode: Text.WordWrap
             }
@@ -382,7 +400,7 @@ Item {
         Text {
             text: "STORAGE"
             color: Theme.text
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 19
             font.letterSpacing: 3
         }
@@ -415,7 +433,7 @@ Item {
                     Text {
                         text: "DRIVES"
                         color: Theme.text
-                        font.family: "Noto Sans"
+                        font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
                         font.letterSpacing: 2
@@ -426,8 +444,9 @@ Item {
 
                         delegate: Item {
                             required property var modelData
-                            property bool hasUsage: modelData.name === "sda" && page.sdaUsageData !== null && modelData.size > 0
-                            property real usedPct: hasUsage ? page.sdaUsageData.used / modelData.size * 100 : 0
+                            property var usageData: page.findDriveUsage(modelData.name)
+                            property bool hasUsage: usageData !== null && modelData.size > 0
+                            property real usedPct: hasUsage ? (usageData.used / modelData.size * 100) : 0
 
                             width: list.width
                             height: 64
@@ -446,7 +465,7 @@ Item {
                                         color: Theme.text
                                         elide: Text.ElideRight
                                         verticalAlignment: Text.AlignVCenter
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 13
                                         font.bold: true
                                     }
@@ -457,7 +476,7 @@ Item {
                                         color: hasUsage ? page.usageColor(usedPct) : Theme.textDim
                                         horizontalAlignment: Text.AlignRight
                                         verticalAlignment: Text.AlignVCenter
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.monoFont
                                         font.pixelSize: 12
                                         font.bold: true
                                     }
@@ -493,23 +512,23 @@ Item {
                                     spacing: 14
 
                                     Text {
-                                        text: hasUsage ? page.formatBytes(page.sdaUsageData.used) + " USED" : "-- USED"
+                                        text: hasUsage ? page.formatBytes(usageData.used) + " USED" : "-- USED"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.monoFont
                                         font.pixelSize: 11
                                     }
 
                                     Text {
-                                        text: hasUsage ? page.formatBytes(Math.max(0, modelData.size - page.sdaUsageData.used)) + " FREE" : "-- FREE"
+                                        text: hasUsage ? page.formatBytes(Math.max(0, modelData.size - usageData.used)) + " FREE" : "-- FREE"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.monoFont
                                         font.pixelSize: 11
                                     }
 
                                     Text {
                                         text: page.formatBytes(modelData.size) + " TOTAL"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.monoFont
                                         font.pixelSize: 11
                                     }
 
@@ -525,7 +544,7 @@ Item {
                         text: "FILESYSTEM"
                         color: Theme.text
                         topPadding: 4
-                        font.family: "Noto Sans"
+                        font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
                         font.letterSpacing: 2
@@ -554,7 +573,7 @@ Item {
                                         color: Theme.text
                                         elide: Text.ElideRight
                                         verticalAlignment: Text.AlignVCenter
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 13
                                         font.bold: true
                                     }
@@ -565,7 +584,7 @@ Item {
                                         color: page.usageColor(modelData.percent)
                                         horizontalAlignment: Text.AlignRight
                                         verticalAlignment: Text.AlignVCenter
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 12
                                         font.bold: true
                                     }
@@ -603,21 +622,21 @@ Item {
                                     Text {
                                         text: page.formatBytes(modelData.used) + " USED"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 11
                                     }
 
                                     Text {
                                         text: page.formatBytes(modelData.available) + " FREE"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 11
                                     }
 
                                     Text {
                                         text: page.formatBytes(modelData.total) + " TOTAL"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 11
                                     }
 
@@ -630,10 +649,53 @@ Item {
                     }
 
                     Text {
+                        text: "SYSTEM RESCUE & QUICK TOOLS"
+                        color: Theme.text
+                        topPadding: 6
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 15
+                        font.bold: true
+                        font.letterSpacing: 2
+                    }
+
+                    Repeater {
+                        model: [{
+                            "icon": "󰅙",
+                            "label": "Kill Frozen Window",
+                            "desc": "Click any stuck or unresponsive window to immediately terminate it",
+                            "action": "ARM KILLER",
+                            "command": "hyprctl kill"
+                        }, {
+                            "icon": "⏏",
+                            "label": "Safely Eject USB Drives",
+                            "desc": "Unmount external flash drives or removable media safely",
+                            "action": "EJECT",
+                            "command": "bash -c 'if [ -x \"$MINIMAL_ROOT/scripts/usb-menu.sh\" ]; then \"$MINIMAL_ROOT/scripts/usb-menu.sh\"; elif command -v udiskie-umount >/dev/null; then udiskie-umount -a; notify-send \"USB\" \"Removable drives unmounted\"; else notify-send \"USB\" \"No eject tool available\"; fi'"
+                        }, {
+                            "icon": "󰓃",
+                            "label": "Restart Audio Stack",
+                            "desc": "Restart PipeWire & WirePlumber to fix crackling or desynced sound",
+                            "action": "RESTART",
+                            "command": "systemctl --user restart pipewire pipewire-pulse wireplumber"
+                        }]
+
+                        delegate: QuickToolButton {
+                            required property var modelData
+
+                            width: list.width
+                            icon: modelData.icon
+                            label: modelData.label
+                            desc: modelData.desc
+                            actionText: modelData.action
+                            onClicked: page.runCommand(modelData.command)
+                        }
+                    }
+
+                    Text {
                         text: "CLEANUP"
                         color: Theme.text
-                        topPadding: 4
-                        font.family: "Noto Sans"
+                        topPadding: 6
+                        font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
                         font.letterSpacing: 2
@@ -741,7 +803,7 @@ Item {
             anchors.centerIn: parent
             text: parent.label
             color: parent.accent ? Theme.accent : Theme.textDim
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 11
             font.bold: true
             font.letterSpacing: 0.5
@@ -785,7 +847,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: cleanupRoot.label
             color: Theme.textDim
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 13
             font.bold: true
             font.letterSpacing: 2
@@ -800,7 +862,7 @@ Item {
             Text {
                 text: cleanupRoot.value
                 color: Theme.textDim
-                font.family: "Noto Sans"
+                font.family: Theme.monoFont
                 font.pixelSize: 12
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -808,7 +870,7 @@ Item {
             Text {
                 text: cleanupRoot.actionText
                 color: Theme.textDim
-                font.family: "Noto Sans"
+                font.family: Theme.monoFont
                 font.pixelSize: 12
                 font.bold: true
                 font.letterSpacing: 1
@@ -831,6 +893,102 @@ Item {
             onClicked: cleanupRoot.clicked()
         }
 
+    }
+
+    component QuickToolButton: Rectangle {
+        id: toolRoot
+
+        required property string icon
+        required property string label
+        required property string desc
+        required property string actionText
+
+        signal clicked()
+
+        width: parent.width
+        height: 52
+        radius: Theme.radius
+        color: Theme.tint("#ffffff", 0.03)
+        border.width: 1
+        border.color: Theme.border
+
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.right: actionPill.left
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 12
+
+            Text {
+                text: toolRoot.icon
+                color: Theme.accent
+                font.family: Theme.iconFont
+                font.pixelSize: 18
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Text {
+                    text: toolRoot.label
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                }
+
+                Text {
+                    text: toolRoot.desc
+                    color: Theme.textFaint
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 11
+                }
+            }
+        }
+
+        Rectangle {
+            id: actionPill
+
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            width: actionTextLabel.implicitWidth + 20
+            height: 28
+            radius: Theme.radiusSm
+            color: Theme.tint(Theme.accent, 0.12)
+            border.width: 1
+            border.color: Theme.tint(Theme.accent, 0.3)
+
+            Text {
+                id: actionTextLabel
+
+                anchors.centerIn: parent
+                text: toolRoot.actionText
+                color: Theme.accent
+                font.family: Theme.monoFont
+                font.pixelSize: 10
+                font.weight: Font.Bold
+                font.letterSpacing: 0.8
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onEntered: {
+                parent.color = Theme.tint(Theme.accent, 0.08);
+                parent.border.color = Theme.accent;
+            }
+            onExited: {
+                parent.color = Theme.tint("#ffffff", 0.03);
+                parent.border.color = Theme.border;
+            }
+            onClicked: toolRoot.clicked()
+        }
     }
 
 }

@@ -631,7 +631,7 @@ Item {
             Text {
                 text: "DISPLAY"
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 19
                 font.letterSpacing: 3
             }
@@ -720,7 +720,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: monitorTile.modelData.name
                                 color: Theme.text
-                                font.family: "Noto Sans"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 11
                                 font.bold: true
                             }
@@ -737,7 +737,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: monitorTile.modelData.width + " × " + monitorTile.modelData.height
                                 color: Theme.textDim
-                                font.family: "Noto Sans"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 9
                             }
                         }
@@ -846,7 +846,7 @@ Item {
                                     Text {
                                         text: card.modelData.name
                                         color: card.off ? Theme.textDim : Theme.text
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 14
                                         font.bold: true
                                     }
@@ -855,7 +855,7 @@ Item {
                                         visible: !card.off
                                         text: card.modelData.width + "x" + card.modelData.height + " @ " + Math.round(card.modelData.refreshRate) + "Hz"
                                         color: Theme.textDim
-                                        font.family: "Noto Sans"
+                                        font.family: Theme.fontFamily
                                         font.pixelSize: 12
                                     }
                                 }
@@ -878,7 +878,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: card.main ? "MAIN" : "SET MAIN"
                                             color: card.main ? Theme.accent : Theme.text
-                                            font.family: "Noto Sans"
+                                            font.family: Theme.fontFamily
                                             font.pixelSize: 11
                                             font.bold: true
                                             font.letterSpacing: 1
@@ -907,7 +907,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: card.off ? "ENABLE" : "DISABLE"
                                             color: Theme.text
-                                            font.family: "Noto Sans"
+                                            font.family: Theme.fontFamily
                                             font.pixelSize: 11
                                             font.bold: true
                                             font.letterSpacing: 1
@@ -934,7 +934,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: "SCALE"
                                     color: Theme.textDim
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 11
                                 }
 
@@ -959,7 +959,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: "Only 1.00x available on this resolution"
                                     color: Theme.textFaint
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 10
                                     font.italic: true
                                     elide: Text.ElideRight
@@ -971,7 +971,7 @@ Item {
                                     horizontalAlignment: Text.AlignRight
                                     text: (card.modelData.scale || 1).toFixed(2) + "x"
                                     color: Theme.text
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 11
                                 }
                             }
@@ -987,7 +987,7 @@ Item {
                                     verticalAlignment: Text.AlignVCenter
                                     text: "RES"
                                     color: Theme.textDim
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 11
                                 }
 
@@ -1014,7 +1014,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 text: resButton.modelData
                                                 color: Theme.text
-                                                font.family: "Noto Sans"
+                                                font.family: Theme.fontFamily
                                                 font.pixelSize: 11
                                                 font.bold: true
                                             }
@@ -1046,7 +1046,7 @@ Item {
                                     verticalAlignment: Text.AlignVCenter
                                     text: "HZ"
                                     color: Theme.textDim
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 11
                                 }
 
@@ -1073,7 +1073,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 text: rateButton.modelData.toFixed(2)
                                                 color: Theme.text
-                                                font.family: "Noto Sans"
+                                                font.family: Theme.fontFamily
                                                 font.pixelSize: 11
                                                 font.bold: true
                                             }
@@ -1106,7 +1106,7 @@ Item {
                     anchors.centerIn: parent
                     text: "RESET TO CONFIG"
                     color: Theme.text
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 12
                     font.bold: true
                     font.letterSpacing: 1

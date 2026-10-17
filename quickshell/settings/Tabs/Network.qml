@@ -304,6 +304,9 @@ Item {
             onStreamFinished: pConnect.refresh()
         }
 
+    Process {
+        id: pPortalCheck
+        command: ["sh", "-c", "res=$(nmcli networking connectivity check 2>/dev/null || echo 'unknown'); if [ \"$res\" = 'portal' ]; then xdg-open 'http://connectivitycheck.gstatic.com/generate_204'; notify-send 'Network' 'Captive Portal detected - opening browser login'; elif [ \"$res\" = 'full' ]; then notify-send 'Network' 'Internet connection is fully active'; else xdg-open 'http://connectivitycheck.gstatic.com/generate_204'; notify-send 'Network' \"Connectivity check: $res\"; fi"]
     }
 
     Column {
@@ -334,31 +337,80 @@ Item {
             width: parent.width
             spacing: 9
 
-            Rectangle {
-                id: wifiToggle
-
+            Row {
                 width: parent.width
-                height: 36
-                radius: Theme.radius
-                color: page.wifiEnabled ? Theme.alpha(Theme.accent, 0.1) : Theme.alpha(Theme.textFaint, 0.15)
-                border.width: 1
-                border.color: page.wifiEnabled ? Theme.accent : Theme.textFaint
+                spacing: 9
 
-                Text {
-                    anchors.centerIn: parent
-                    text: page.wifiEnabled ? "WI-FI ON" : "WI-FI OFF"
-                    color: page.wifiEnabled ? Theme.accent : Theme.textFaint
-                    font.family: page.monoFont
-                    font.pixelSize: 10
-                    font.bold: true
-                    font.letterSpacing: 1
+                Rectangle {
+                    id: wifiToggle
+
+                    width: (parent.width - 9) / 2
+                    height: 36
+                    radius: Theme.radius
+                    color: page.wifiEnabled ? Theme.alpha(Theme.accent, 0.1) : Theme.alpha(Theme.textFaint, 0.15)
+                    border.width: 1
+                    border.color: page.wifiEnabled ? Theme.accent : Theme.textFaint
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: page.wifiEnabled ? "WI-FI ON" : "WI-FI OFF"
+                        color: page.wifiEnabled ? Theme.accent : Theme.textFaint
+                        font.family: page.monoFont
+                        font.pixelSize: 10
+                        font.bold: true
+                        font.letterSpacing: 1
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: page.setWifiEnabled(!page.wifiEnabled)
+                    }
+
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: page.setWifiEnabled(!page.wifiEnabled)
-                }
+                Rectangle {
+                    id: portalButton
 
+                    width: (parent.width - 9) / 2
+                    height: 36
+                    radius: Theme.radius
+                    color: Theme.tint(Theme.accent, 0.08)
+                    border.width: 1
+                    border.color: Theme.tint(Theme.accent, 0.25)
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 8
+
+                        Text {
+                            text: "󰖟"
+                            font.family: Theme.iconFont
+                            font.pixelSize: 13
+                            color: Theme.accent
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: "TEST INTERNET / PORTAL"
+                            color: Theme.accent
+                            font.family: page.monoFont
+                            font.pixelSize: 10
+                            font.bold: true
+                            font.letterSpacing: 1
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onEntered: parent.color = Theme.tint(Theme.accent, 0.15)
+                        onExited: parent.color = Theme.tint(Theme.accent, 0.08)
+                        onClicked: pPortalCheck.running = true
+                    }
+                }
             }
 
             Row {
@@ -639,7 +691,7 @@ Item {
                                 Text {
                                     text: "CONNECT"
                                     color: Theme.accent2
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 11
                                     anchors.verticalCenter: parent.verticalCenter
 

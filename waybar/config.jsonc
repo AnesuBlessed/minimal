@@ -41,7 +41,8 @@
     "modules-right": [
         "group/pill#right1",
         "group/pill#right2",
-        "group/pill#right3"
+        "group/pill#right3",
+        "group/pill#settings"
     ],
     "group/pill#right1": {
         "modules": [
@@ -66,7 +67,13 @@
     "group/pill#right3": {
         "modules": [
             "custom/cliphist",
-            "custom/menu",
+            "custom/menu"
+        ],
+        "orientation": "inherit"
+    },
+    "group/pill#settings": {
+        "modules": [
+            "custom/settings",
             "custom/power"
         ],
         "orientation": "inherit"

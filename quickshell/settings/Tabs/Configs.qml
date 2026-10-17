@@ -108,7 +108,7 @@ Item {
             Text {
                 text: "CONFIGS"
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 19
                 font.letterSpacing: 3
             }
@@ -122,7 +122,7 @@ Item {
             Text {
                 text: "HYPRLAND"
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 16
                 font.letterSpacing: 3
             }
@@ -172,7 +172,7 @@ Item {
             Text {
                 text: "WOFI"
                 color: Theme.text
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 16
                 font.letterSpacing: 3
             }
@@ -224,7 +224,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: label
             color: Theme.textDim
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 13
             font.bold: true
             font.letterSpacing: 2
@@ -247,7 +247,7 @@ Item {
             Text {
                 text: "EDIT " + path.split("/").pop().toUpperCase()
                 color: Theme.textDim
-                font.family: "Noto Sans"
+                font.family: Theme.fontFamily
                 font.pixelSize: 12
                 font.bold: true
                 font.letterSpacing: 1

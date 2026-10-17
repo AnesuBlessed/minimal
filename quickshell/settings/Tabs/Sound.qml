@@ -134,7 +134,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "OUTPUT"
                     color: Theme.text
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 15
                     font.letterSpacing: 2
                 }
@@ -195,7 +195,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: page.displayName(output, "Unknown output").toUpperCase()
                                 color: active ? Theme.accent : Theme.text
-                                font.family: "Noto Sans"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
                             }
@@ -214,7 +214,7 @@ Item {
                     text: "NO SOUND OUTPUTS"
                     color: Theme.textFaint
                     leftPadding: 4
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 10
                     font.letterSpacing: 1.5
                 }
@@ -258,7 +258,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "INPUT"
                     color: Theme.text
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 15
                     font.letterSpacing: 2
                 }
@@ -330,7 +330,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: page.displayName(input, "Unknown input").toUpperCase()
                                 color: active ? Theme.accent : Theme.text
-                                font.family: "Noto Sans"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
                             }
@@ -349,7 +349,7 @@ Item {
                     text: "NO SOUND INPUTS"
                     color: Theme.textFaint
                     leftPadding: 4
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 10
                     font.letterSpacing: 1.5
                 }
@@ -369,7 +369,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "PER-APP VOLUME"
                     color: Theme.text
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 14
                     font.letterSpacing: 2
                 }
@@ -378,7 +378,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: page.appStreams.length
                     color: Theme.textFaint
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 10
                 }
             }
@@ -445,7 +445,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: page.displayName(stream, "Unknown app").toUpperCase()
                                 color: streamMuted ? Theme.textDim : Theme.text
-                                font.family: "Noto Sans"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 11
                                 elide: Text.ElideRight
                             }
@@ -481,7 +481,7 @@ Item {
                     text: "NO ACTIVE SOUND STREAMS"
                     color: Theme.textDim
                     leftPadding: 4
-                    font.family: "Noto Sans"
+                    font.family: Theme.fontFamily
                     font.pixelSize: 10
                     font.letterSpacing: 1.5
                 }

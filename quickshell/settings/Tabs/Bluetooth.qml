@@ -118,6 +118,15 @@ Item {
         running: false
     }
 
+    Process {
+        id: pResetAdapter
+        command: ["sh", "-c", "rfkill unblock bluetooth 2>/dev/null; bluetoothctl power off 2>/dev/null; sleep 0.5; bluetoothctl power on 2>/dev/null; notify-send 'Bluetooth' 'Adapter reset successfully'"]
+        onExited: {
+            page.setStatus("Adapter reset complete");
+            page.tryAutoPower();
+        }
+    }
+
     function removeDevice(dev) {
         if (!dev)
             return
@@ -257,7 +266,7 @@ Item {
         Text {
             text: "BLUETOOTH"
             color: Theme.text
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 19
             font.letterSpacing: 3
         }
@@ -268,47 +277,96 @@ Item {
             color: Theme.border
         }
 
-        Rectangle {
+        Row {
             width: parent.width
-            height: 36
-            radius: Theme.radius
+            spacing: 9
 
-            color: page.powered
-                   ? Theme.alpha(Theme.accent, 0.1)
-                   : Theme.alpha(Theme.textFaint, 0.15)
-
-            border.width: 1
-            border.color: page.powered
-                          ? Theme.accent
-                          : Theme.textFaint
-
-            Text {
-                anchors.centerIn: parent
-
-                text: {
-                    if (!page.adapter)
-                        return "BLUETOOTH UNAVAILABLE"
-
-                    return page.powered
-                           ? "BLUETOOTH ON"
-                           : "BLUETOOTH OFF"
-                }
+            Rectangle {
+                width: (parent.width - 9) / 2
+                height: 36
+                radius: Theme.radius
 
                 color: page.powered
-                       ? Theme.accent
-                       : Theme.textFaint
+                       ? Theme.alpha(Theme.accent, 0.1)
+                       : Theme.alpha(Theme.textFaint, 0.15)
 
-                font.family: "Noto Sans"
-                font.pixelSize: 10
-                font.bold: true
-                font.letterSpacing: 1
+                border.width: 1
+                border.color: page.powered
+                              ? Theme.accent
+                              : Theme.textFaint
+
+                Text {
+                    anchors.centerIn: parent
+
+                    text: {
+                        if (!page.adapter)
+                            return "BLUETOOTH UNAVAILABLE"
+
+                        return page.powered
+                               ? "BLUETOOTH ON"
+                               : "BLUETOOTH OFF"
+                    }
+
+                    color: page.powered
+                           ? Theme.accent
+                           : Theme.textFaint
+
+                    font.family: Theme.monoFont
+                    font.pixelSize: 10
+                    font.bold: true
+                    font.letterSpacing: 1
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        page.togglePower()
+                    }
+                }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    page.togglePower()
+            Rectangle {
+                width: (parent.width - 9) / 2
+                height: 36
+                radius: Theme.radius
+                color: Theme.tint(Theme.accent, 0.08)
+                border.width: 1
+                border.color: Theme.tint(Theme.accent, 0.25)
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    Text {
+                        text: "󰑓"
+                        font.family: Theme.iconFont
+                        font.pixelSize: 13
+                        color: Theme.accent
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "RESET ADAPTER"
+                        color: Theme.accent
+                        font.family: Theme.monoFont
+                        font.pixelSize: 10
+                        font.bold: true
+                        font.letterSpacing: 1
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onEntered: parent.color = Theme.tint(Theme.accent, 0.15)
+                    onExited: parent.color = Theme.tint(Theme.accent, 0.08)
+                    onClicked: {
+                        page.setStatus("Resetting Bluetooth adapter...");
+                        pResetAdapter.running = true;
+                    }
                 }
             }
         }
@@ -318,7 +376,7 @@ Item {
             visible: page.statusText !== ""
             text: page.statusText
             color: Theme.accent
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 10
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
@@ -329,7 +387,7 @@ Item {
             visible: !page.adapter
             text: "Waiting for Bluetooth service and adapter..."
             color: Theme.textDim
-            font.family: "Noto Sans"
+            font.family: Theme.fontFamily
             font.pixelSize: 10
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
@@ -370,7 +428,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "BLUETOOTH IS OFF"
                             color: Theme.textDim
-                            font.family: "Noto Sans"
+                            font.family: Theme.fontFamily
                             font.pixelSize: 11
                             font.letterSpacing: 1
                         }
@@ -400,7 +458,7 @@ Item {
                                   ? "SCANNING FOR DEVICES..."
                                   : "NO DEVICES FOUND"
                             color: Theme.textDim
-                            font.family: "Noto Sans"
+                            font.family: Theme.fontFamily
                             font.pixelSize: 11
                             font.letterSpacing: 1
                         }
@@ -412,7 +470,7 @@ Item {
                                   ? "Make your device discoverable and keep this page open."
                                   : "Waiting for Bluetooth discovery..."
                             color: Theme.textFaint
-                            font.family: "Noto Sans"
+                            font.family: Theme.fontFamily
                             font.pixelSize: 9
                             wrapMode: Text.Wrap
                             horizontalAlignment: Text.AlignHCenter
@@ -542,7 +600,7 @@ Item {
                                     color: card.isConnected
                                            ? Theme.danger
                                            : Theme.accent
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 10
                                     verticalAlignment: Text.AlignVCenter
                                     elide: Text.ElideRight
@@ -598,7 +656,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: "Unpair"
                                             color: "white"
-                                            font.family: "Noto Sans"
+                                            font.family: Theme.fontFamily
                                             font.pixelSize: 10
                                         }
                                     }
@@ -645,7 +703,7 @@ Item {
                                           card.modelData.address
                                     elide: Text.ElideRight
                                     color: Theme.text
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 12
                                 }
 
@@ -675,7 +733,7 @@ Item {
                                     color: card.isConnected
                                            ? Theme.accent
                                            : Theme.textFaint
-                                    font.family: "Noto Sans"
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 9
                                     elide: Text.ElideRight
                                 }

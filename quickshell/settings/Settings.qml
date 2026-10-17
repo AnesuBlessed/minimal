@@ -9,6 +9,8 @@ FloatingWindow {
     property bool showing: false
     property bool cardVisible: false
     property int selectedIndex: 0
+    property string systemHost: "Linux"
+    property string systemUptime: ""
     property var sink: Pipewire.defaultAudioSink
     property var navEntries: [{
         "group": "DISPLAY & SOUND",
@@ -108,6 +110,24 @@ FloatingWindow {
             card.opacity = 0;
             card.scale = 0.96;
             openAnimation.start();
+            pSystemInfo.running = true;
+        }
+    }
+
+    Shortcut {
+        sequence: "Escape"
+        onActivated: root.hide()
+    }
+
+    Process {
+        id: pSystemInfo
+        command: ["sh", "-c", "printf '%s|%s' \"$(cat /etc/hostname 2>/dev/null || uname -n)\" \"$(uptime -p 2>/dev/null | sed 's/up //')\""]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var parts = text.trim().split("|");
+                if (parts[0]) root.systemHost = parts[0];
+                if (parts[1]) root.systemUptime = parts[1];
+            }
         }
     }
 
@@ -236,16 +256,17 @@ FloatingWindow {
             anchors.fill: parent
             anchors.margins: 22
 
-            Column {
+            Item {
                 id: sidebar
 
                 width: 180
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                spacing: 0
 
                 Item {
+                    id: sidebarHeader
+
                     width: parent.width
                     height: 56
 
@@ -256,39 +277,21 @@ FloatingWindow {
                         spacing: 12
 
                         Rectangle {
-                            width: 30
-                            height: 30
-                            radius: 9
-                            color: Theme.tint("#ffffff", 0.06)
+                            width: 32
+                            height: 32
+                            radius: 8
+                            color: Theme.tint(Theme.accent, 0.12)
                             border.width: 1
-                            border.color: Theme.borderStrong
+                            border.color: Theme.tint(Theme.accent, 0.3)
                             anchors.verticalCenter: parent.verticalCenter
 
-                            Rectangle {
+                            Text {
                                 anchors.centerIn: parent
-                                width: 12
-                                height: 12
-                                radius: 6
-                                color: Theme.tint("#ffffff", 0.1)
-                            }
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 6
-                                height: 6
-                                radius: 3
+                                text: "󰻂"
+                                font.family: Theme.iconFont
+                                font.pixelSize: 17
                                 color: Theme.accent
-
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 14
-                                    height: 14
-                                    radius: 7
-                                    color: Theme.tint("#ffffff", 0.15)
-                                }
-
                             }
-
                         }
 
                         Column {
@@ -296,32 +299,44 @@ FloatingWindow {
                             spacing: 3
 
                             Text {
-                                text: "Settings"
+                                text: "MINIMAL"
                                 color: Theme.text
                                 font.family: Theme.displayFont
-                                font.pixelSize: 15
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: -0.2
-                            }
-
-                            Text {
-                                text: "v1.0"
-                                color: Theme.textFaint
-                                font.family: Theme.monoFont
-                                font.pixelSize: 9
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
                                 font.letterSpacing: 1.2
                             }
 
+                            Row {
+                                spacing: 5
+                                Rectangle {
+                                    width: 5
+                                    height: 5
+                                    radius: 2.5
+                                    color: Theme.accent
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: "SYSTEM HUB"
+                                    color: Theme.textFaint
+                                    font.family: Theme.monoFont
+                                    font.pixelSize: 8.5
+                                    font.letterSpacing: 1.1
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
                         }
-
                     }
-
                 }
 
-                Item {
-                    width: 1
-                    height: 6
-                }
+                Column {
+                    id: sidebarNav
+
+                    anchors.top: sidebarHeader.bottom
+                    anchors.topMargin: 4
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    spacing: 0
 
                 Repeater {
                     model: root.navEntries
@@ -512,9 +527,83 @@ FloatingWindow {
 
                 }
 
-                Item {
-                    width: 1
-                    height: 4
+            }
+
+            Rectangle {
+                    id: sidebarFooter
+
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.right: parent.right
+                    anchors.rightMargin: 6
+                    height: 44
+                    radius: Theme.radiusSm
+                    color: Theme.tint("#ffffff", 0.03)
+                    border.width: 1
+                    border.color: Theme.border
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        Text {
+                            text: "󰣇"
+                            font.family: Theme.iconFont
+                            font.pixelSize: 15
+                            color: Theme.accent
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+
+                            Text {
+                                text: root.systemHost
+                                color: Theme.text
+                                font.family: Theme.displayFont
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                            }
+
+                            Text {
+                                text: root.systemUptime !== "" ? ("up " + root.systemUptime) : "active"
+                                color: Theme.textFaint
+                                font.family: Theme.monoFont
+                                font.pixelSize: 9
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 26
+                        height: 20
+                        radius: 4
+                        color: Theme.tint("#ffffff", 0.06)
+                        border.width: 1
+                        border.color: Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "ESC"
+                            font.family: Theme.monoFont
+                            font.pixelSize: 8
+                            font.weight: Font.Bold
+                            color: Theme.textFaint
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.hide()
+                        }
+                    }
                 }
 
             }
