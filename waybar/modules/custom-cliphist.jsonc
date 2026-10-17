@@ -1,10 +1,11 @@
 {
   "custom/cliphist": {
-    "format": "󰅌",
+    "format": "\udb80\udd4c",
+    "interval": "once",
     "rotate": 0,
     "tooltip-format": "Clipboard History (Click to browse, Right-click to wipe)",
-    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/clipboard.sh",
-    "on-click-right": "cliphist wipe && notify-send -i edit-clear 'Clipboard' 'Clipboard history cleared'",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/clipboard.sh\"",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/clipboard-action.sh\" wipe && notify-send Clipboard \"Clipboard history cleared\"",
     "tooltip": true
   }
 }

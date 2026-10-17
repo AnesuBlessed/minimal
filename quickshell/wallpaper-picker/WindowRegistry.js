@@ -1,16 +1,8 @@
 .pragma library
 
-// dpiScale is the compositor's output scale (Hyprland `scale`, 1.0-3.0).
-// The resolution factor below already grows with pixel count, so a raw
-// multiply would double-count on HiDPI. We apply it damped (sqrt) and
-// clamped, which is what makes the UI read the same physical size on a
-// 14" 2560x1600 laptop as on a 24" 1920x1080 monitor.
-function applyDpi(baseScale, dpiScale) {
-    var d = parseFloat(dpiScale);
-    if (!d || isNaN(d) || d <= 0) return baseScale;
-    d = Math.min(Math.max(d, 0.5), 3.0);
-    return baseScale * Math.sqrt(d);
-}
+// Qt sizes are logical pixels. Only userScale and available logical space
+// affect layout; applying compositor DPI again would double-scale the popup.
+function applyDpi(baseScale, dpiScale) { return baseScale; }
 
 function getScale(mw, mh, userScale, dpiScale) {
     if (arguments.length === 2) {
@@ -37,21 +29,4 @@ function getScale(mw, mh, userScale, dpiScale) {
 
 function s(val, scale) {
     return Math.round(val * scale);
-}
-
-function getLayout(name, mx, my, mw, mh, userScale, dpiScale) {
-    let scale = getScale(mw, mh, userScale, dpiScale);
-
-    let base = {
-        "wallpaper": { w: mw, h: s(650, scale), rx: 0, ry: Math.floor((mh/2)-(s(650, scale)/2)), comp: "WallpaperPicker.qml" },
-        "hidden":    { w: 1, h: 1, rx: -5000 - mx, ry: -5000 - my, comp: "" } 
-    };
-
-    if (!base[name]) return null;
-    
-    let t = base[name];
-    t.x = mx + t.rx;
-    t.y = my + t.ry;
-    
-    return t;
 }

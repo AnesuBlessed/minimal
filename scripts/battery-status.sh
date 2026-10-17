@@ -9,10 +9,11 @@ for supply in "$supply_root"/*; do
     [[ $type == Battery ]] || continue
     read -r capacity < "$supply/capacity"
     [[ $capacity =~ ^[0-9]+$ ]] || continue
+    if [[ -r $supply/scope ]] && [[ $(<"$supply/scope") == Device ]]; then continue; fi
     total=$((total + capacity)); count=$((count + 1))
     if [[ -r $supply/status ]]; then
         read -r status < "$supply/status"
-        [[ $status != Charging && $status != Full ]] || charging=true
+        [[ $status != Charging && $status != Full && $status != "Not charging" ]] || charging=true
     fi
 done
 if ((count == 0)); then printf 'Connected\n';

@@ -9,6 +9,6 @@
     "tooltip-format-ethernet": "Ethernet: {ipaddr}\nInterface: {ifname}",
     "tooltip-format-disconnected": "Disconnected",
     "format-alt": "󰤨 {essid} ({signalStrength}%)",
-    "interval": 2
+    "interval": 30
   }
 }

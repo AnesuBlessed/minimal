@@ -1,17 +1,3 @@
-# Screenshots and temp test captures
-/*.png
-!fastfetch/assets/*.png
-!wallpapers/*.png
-customisations i need/
-
-# Thumbnails and caches
-.cache/
-quickshell/**/.cache/
-
-# Local validation bytecode
 __pycache__/
-
-# Runtime external artifacts
-hypr/themes/
-waybar/layouts/
-
+*.py[cod]
+*$py.class

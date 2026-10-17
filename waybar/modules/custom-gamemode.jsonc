@@ -1,8 +1,8 @@
 {
   "custom/gamemode": {
-    "format": "󰊴",
+    "format": "\udb80\udeb4",
     "tooltip-format": "Toggle Game Mode (Animations & Effects)",
     "rotate": 0,
-    "on-click": "bash -c 'hyprctl getoption animations:enabled | grep -q \"int: 1\" && hyprctl --batch \"keyword animations:enabled 0; keyword decoration:drop_shadow 0; keyword decoration:blur:enabled 0\" || hyprctl --batch \"keyword animations:enabled 1; keyword decoration:drop_shadow 1; keyword decoration:blur:enabled 1\"'"
+    "on-click": "sh -c 'if [ \"$(hyprctl getoption animations:enabled -j | jq -r .int)\" = 1 ]; then hyprctl keyword animations:enabled 0; else hyprctl keyword animations:enabled 1; fi'"
   }
 }

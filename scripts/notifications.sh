@@ -32,15 +32,15 @@ case "$action" in
     dnd)
         if command -v makoctl >/dev/null 2>&1 && makoctl mode >/dev/null 2>&1; then
             current_modes=$(makoctl mode 2>/dev/null || echo "")
-            if [[ $current_modes == *"dnd"* ]]; then
+            if grep -qx "dnd" <<< "$current_modes"; then
                 makoctl mode -r dnd 2>/dev/null || true
                 notify-send -a minimal-notif -t 2500 \
                     -h string:x-canonical-private-synchronous:dnd \
-                    "󰂚  Notifications Active" "Do Not Disturb has been disabled."
+                    "󰂚  Notifications Active" "Do Not Disturb has been disabled." || true
             else
                 notify-send -a minimal-notif -t 2500 \
                     -h string:x-canonical-private-synchronous:dnd \
-                    "󰂛  Do Not Disturb" "Notifications are now silenced."
+                    "󰂛  Do Not Disturb" "Notifications are now silenced." || true
                 sleep 0.5
                 makoctl mode -a dnd 2>/dev/null || true
             fi
@@ -48,9 +48,9 @@ case "$action" in
             dunstctl set-paused toggle 2>/dev/null || true
             is_paused=$(dunstctl is-paused 2>/dev/null || echo "false")
             if [[ "$is_paused" == "true" ]]; then
-                notify-send -a minimal-notif -t 2500 "󰂛  Do Not Disturb" "Notifications are now silenced."
+                notify-send -a minimal-notif -t 2500 "󰂛  Do Not Disturb" "Notifications are now silenced." || true
             else
-                notify-send -a minimal-notif -t 2500 "󰂚  Notifications Active" "Do Not Disturb has been disabled."
+                notify-send -a minimal-notif -t 2500 "󰂚  Notifications Active" "Do Not Disturb has been disabled." || true
             fi
         fi
         ;;

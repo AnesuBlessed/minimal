@@ -19,19 +19,36 @@ RUN_DIR="${QS_RUN_WALLPAPER_PICKER:-$MINIMAL_RUNTIME/wallpaper-picker}"
 PREP_LOCK="$RUN_DIR/wallpaper_prep.lock"
 LOG_FILE="$RUN_DIR/logs/prep.log"
 
-mkdir -p "$THUMB_DIR" "$COLOR_DIR" "$RUN_DIR" "$RUN_DIR/logs"
+SEARCH_DIR="$CACHE_DIR/search_thumbs"
+mkdir -p "$THUMB_DIR" "$COLOR_DIR" "$SEARCH_DIR" "$RUN_DIR" "$RUN_DIR/logs"
 
-# Ensure single instance
-if [ -f "$PREP_LOCK" ]; then
-    pid=$(cat "$PREP_LOCK" 2>/dev/null || true)
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        exit 0
+# The descriptor remains owned until every worker has completed.
+exec 9>"$PREP_LOCK"
+flock -n 9 || exit 0
+# Propagate cancellation to workers and their decoders, then reap them.
+cancel_workers() {
+    trap - TERM INT
+    local child
+    for child in $(jobs -pr); do
+        pkill -TERM -P "$child" 2>/dev/null || true
+        kill -TERM "$child" 2>/dev/null || true
+    done
+    wait || true
+    exit 143
+}
+trap cancel_workers TERM INT
+export MAGICK_THREAD_LIMIT=1
+# Remove cache entries whose source disappeared.
+shopt -s nullglob
+for cached in "$THUMB_DIR"/*; do
+    [[ -f $cached ]] || continue
+    name=${cached##*/}
+    original=$name
+    [[ $name != 000_* ]] || original=${name#000_}
+    if [[ ! -f $SRC_DIR/$original ]]; then
+        rm -f -- "$cached" "$COLOR_DIR/${name}_HEX_"*
     fi
-fi
-echo "$BASHPID" > "$PREP_LOCK"
-trap 'rm -f "$PREP_LOCK"' EXIT
-
-echo "=== Wallpaper thumbnail & color marker generation started $(date) ===" > "$LOG_FILE"
+done
 
 # Determine commands
 MAGICK_CMD=""
@@ -47,33 +64,37 @@ if command -v ffmpeg &>/dev/null; then
 fi
 
 # Process wallpapers
-active_jobs=0
-max_jobs=4
+max_jobs=2
 
 # Process files
-find "$SRC_DIR" -maxdepth 1 -type f \( \
-    -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \
-    -o -iname "*.webp" -o -iname "*.gif" -o -iname "*.mp4" \
-    -o -iname "*.mkv" -o -iname "*.mov" -o -iname "*.webm" \) | while read -r img; do
+while IFS= read -r -d '' img; do
+    filename=${img##*/}
+    extension=${filename##*.}
+    ext_lower=${extension,,}
+
+    is_video=0
+    if [[ $ext_lower =~ ^(mp4|mkv|mov|webm)$ ]]; then
+        is_video=1
+    fi
+
+    target_name=$filename
+    if (( is_video )); then
+        target_name="000_$filename"
+    fi
+    thumb="$THUMB_DIR/$target_name"
+
+    # Fast-path: if thumbnail is up-to-date and color marker exists, do not fork a subshell!
+    if [[ -f $thumb && ! $img -nt $thumb ]]; then
+        markers=("$COLOR_DIR/${target_name}_HEX_"*)
+        if (( ${#markers[@]} > 0 )); then
+            continue
+        fi
+    fi
 
     (
-        filename=$(basename "$img")
-        extension="${filename##*.}"
-        ext_lower=$(echo "$extension" | tr '[:upper:]' '[:lower:]')
-
-        is_video=0
-        if [[ "$ext_lower" =~ ^(mp4|mkv|mov|webm)$ ]]; then
-            is_video=1
-        fi
-
-        target_name="$filename"
-        if [ $is_video -eq 1 ]; then
-            target_name="000_$filename"
-        fi
-        thumb="$THUMB_DIR/$target_name"
-
         # 1. Generate thumbnail if needed
         if [ ! -f "$thumb" ] || [ "$img" -nt "$thumb" ]; then
+            rm -f -- "$COLOR_DIR/${target_name}_HEX_"*
             if [ $is_video -eq 1 ]; then
                 if [ -n "$FFMPEG_CMD" ]; then
                     $FFMPEG_CMD -y -ss 00:00:05 -i "$img" -vframes 1 -threads 1 -f image2 -q:v 2 "$thumb.tmp.jpg" >/dev/null 2>&1 || \
@@ -114,12 +135,19 @@ find "$SRC_DIR" -maxdepth 1 -type f \( \
         fi
     ) &
 
-    active_jobs=$((active_jobs + 1))
-    if [ "$active_jobs" -ge "$max_jobs" ]; then
+    while :; do
+        mapfile -t running_jobs < <(jobs -pr)
+        (( ${#running_jobs[@]} >= max_jobs )) || break
         wait -n 2>/dev/null || true
-        active_jobs=$((active_jobs - 1))
-    fi
-done
+    done
+done < <(find "$SRC_DIR" -maxdepth 1 -type f ! -name default-avatar.png \( \
+    -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \
+    -o -iname "*.webp" -o -iname "*.gif" -o -iname "*.mp4" \
+    -o -iname "*.mkv" -o -iname "*.mov" -o -iname "*.webm" \) -print0)
 
+mapfile -t remaining_jobs < <(jobs -pr)
+if (( ${#remaining_jobs[@]} > 0 )); then
+    wait "${remaining_jobs[@]}" 2>/dev/null || true
+fi
 wait
 echo "=== Generation finished $(date) ===" >> "$LOG_FILE"

@@ -1,0 +1,40 @@
+{
+  "colors": {
+    "base": "171c1e",
+    "surface": "343b3e",
+    "text": "eef0f0",
+    "muted": "adb4b6",
+    "accent": "cdc5c1",
+    "warning": "e5c07b",
+    "critical": "e06c75"
+  },
+  "opacity": {
+    "panel": 0.8,
+    "reading": 0.94,
+    "control": 0.85,
+    "border": 0.3
+  },
+  "radius": {
+    "panel": 12,
+    "control": 6
+  },
+  "spacing": {
+    "small": 4,
+    "medium": 8,
+    "large": 12,
+    "section": 16
+  },
+  "font": {
+    "family": "JetBrainsMono Nerd Font",
+    "body": 12,
+    "secondary": 10,
+    "title": 14
+  },
+  "motion": {
+    "duration": 120
+  },
+  "icon": {
+    "app": 28,
+    "system": 16
+  }
+}

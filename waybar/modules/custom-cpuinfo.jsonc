@@ -1,10 +1,10 @@
 {
   "custom/cpuinfo": {
-    "exec": "python3 -c \"import psutil; u=psutil.cpu_percent(interval=0.5); print('{\\\"text\\\":\\\"󰍛 ' + str(round(u)) + '%\\\",\\\"tooltip\\\":\\\"CPU Usage: ' + str(u) + '%\\\"}')\"",
+    "exec": "python3 -c \"import json, os; u = min(100, round(os.getloadavg()[0] * 100 / max(1, os.cpu_count() or 1))); print(json.dumps({'text': f'󰍛 {u}%', 'tooltip': f'CPU Load: {u}%'}))\"",
     "return-type": "json",
     "format": "{}",
     "rotate": 0,
-    "interval": 5,
+    "interval": 30,
     "tooltip": true
   }
 }

@@ -2,52 +2,27 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "."
 
 ShellRoot {
-    id: root
-
     Connections {
         target: Quickshell
         function onReloadCompleted() { Quickshell.inhibitReloadPopup() }
-        function onReloadFailed(errorString) { Quickshell.inhibitReloadPopup() }
     }
-
     PanelWindow {
         id: clipWindow
+        screen: Quickshell.screens.find(s => s.name === Quickshell.env("MINIMAL_POPUP_OUTPUT")) || Quickshell.screens[0]
         color: "transparent"
-
+        anchors.bottom: true
+        implicitWidth: Math.min(720, screen.width - 24)
+        implicitHeight: Math.min(540, screen.height - 48)
         WlrLayershell.namespace: "qs-clipboard"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         exclusionMode: ExclusionMode.Ignore
         focusable: true
-
-        implicitWidth: Screen.width
-        implicitHeight: Screen.height
-
-        // Darkened backdrop overlay
-        Rectangle {
-            anchors.fill: parent
-            color: Qt.rgba(0.04, 0.04, 0.06, 0.70)
-        }
-
-        // Background click dismisses clipboard manager
-        MouseArea {
-            anchors.fill: parent
-            z: -1
-            onClicked: {
-                Quickshell.execDetached(["quickshell", "kill", "-p", Quickshell.shellDir])
-            }
-        }
-
-        // Centered Floating Clipboard Manager
-        ClipboardManager {
-            id: clipboard
-            anchors.centerIn: parent
-            width: clipboard.s(800)
-            height: clipboard.s(700)
-            focus: true
-        }
+        HyprlandFocusGrab { windows: [clipWindow]; active: true; onCleared: Qt.quit() }
+        ClipboardManager { anchors.fill: parent; focus: true }
     }
 }

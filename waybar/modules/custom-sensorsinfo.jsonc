@@ -1,9 +1,9 @@
 {
   "custom/sensorsinfo": {
-    "exec": "python3 -c \"import psutil; t=psutil.sensors_temperatures(); val=t.get('coretemp', t.get('acpitz', [None]))[0]; cur=val.current if val else 0; print('{\\\"text\\\":\\\"󰔏 ' + str(round(cur)) + '°C\\\",\\\"tooltip\\\":\\\"Temperature: ' + str(cur) + '°C\\\"}')\"",
+    "exec": "python3 -c \"import glob, json; vals=[int(open(p).read())/1000 for p in glob.glob('/sys/class/thermal/thermal_zone*/temp') if open(p).read().strip().isdigit()]; cur=round(max(vals)) if vals else 0; print(json.dumps({'text': f'󰔏 {cur}°C', 'tooltip': f'Temperature: {cur}°C'}))\"",
     "return-type": "json",
     "format": "{}",
     "tooltip": true,
-    "interval": 5
+    "interval": 30
   }
 }

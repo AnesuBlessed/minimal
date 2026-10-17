@@ -12,18 +12,17 @@ Item {
     readonly property string minimalRuntime: Quickshell.env("MINIMAL_RUNTIME") || (xdgRuntimeDir !== "" ? (xdgRuntimeDir + "/minimal") : (minimalCache + "/run"))
 
     // Persistent data on disk
-    readonly property string cacheDir: minimalCache + "/wallpaper-picker"
-    readonly property string stateDir: minimalState + "/wallpaper-picker"
+    readonly property string cacheDir: minimalCache + "/clipboard"
+    readonly property string stateDir: minimalState + "/clipboard"
 
     // Ephemeral data in RAM / runtime
-    readonly property string runDir: minimalRuntime + "/wallpaper-picker"
+    readonly property string runDir: minimalRuntime + "/clipboard"
     readonly property string logDir: runDir + "/logs"
 
     Process {
         id: dirSetup
         running: true
-        command: ["bash", "-c",
-            "mkdir -p '" + root.cacheDir + "' '" + root.stateDir + "' '" + root.runDir + "' '" + root.logDir + "' && chmod 700 '" + root.runDir + "' '" + root.logDir + "' 2>/dev/null || true"]
+        command: ["bash", "-c", 'umask 077; mkdir -p -- "$@"', "minimal-dirs", root.cacheDir, root.stateDir, root.runDir, root.logDir]
     }
 
     property var _ensured: ({})
@@ -31,7 +30,7 @@ Item {
     function _ensureOnce(path) {
         if (_ensured[path]) return;
         _ensured[path] = true;
-        Quickshell.execDetached(["mkdir", "-p", path]);
+        Quickshell.execDetached(["mkdir", "-m", "700", "-p", "--", path]);
     }
 
     function getCacheDir(widgetName) {

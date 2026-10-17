@@ -22,8 +22,7 @@ Item {
     Process {
         id: dirSetup
         running: true
-        command: ["bash", "-c",
-            "mkdir -p '" + root.cacheDir + "' '" + root.stateDir + "' '" + root.runDir + "' '" + root.logDir + "' && chmod 700 '" + root.runDir + "' '" + root.logDir + "' 2>/dev/null || true"]
+        command: ["bash", "-c", 'umask 077; mkdir -p -- "$@"', "minimal-dirs", root.cacheDir, root.stateDir, root.runDir, root.logDir]
     }
 
     property var _ensured: ({})

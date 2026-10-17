@@ -1,64 +1,54 @@
-/* =============================================================================
- *  MINIMAL / HYDE WAYBAR — TRANSLUCENT FROSTED GLASS OVERRIDES
- * =============================================================================
- *  - Sharp/micro-radius geometric layout matching HyDE
- *  - Translucent dark glass background with Hyprland layer blur
- *  - ZERO white border / ZERO box-shadow halo (No fuzzy white outline)
- * ============================================================================= */
-
-window#waybar {
-    background-color: transparent;
-    border: none;
+/* Smoky neutral surfaces; active controls share the wallpaper accent. */
+window#waybar { background: transparent; border: none; box-shadow: none; }
+#leaf, #leaf-inverse, #leaf-up, #leaf-down, #leaf-right, #leaf-left,
+#pill, #pill-right, #pill-left, #pill-down, #pill-up, #pill-in, #pill-out {
+    background-color: @bg-glass;
+    border: 1px solid @border-glass;
     box-shadow: none;
+    margin: 4px 3px;
+    padding: 0 8px;
 }
-
-/* Translucent Frosted Glass Pill Containers */
-#leaf,
-#leaf-inverse,
-#leaf-up,
-#leaf-down,
-#leaf-right,
-#leaf-left,
-#pill,
-#pill-right,
-#pill-left,
-#pill-down,
-#pill-up,
-#pill-in,
-#pill-out {
-    background-color: rgba(20, 20, 26, 0.65);
+#workspaces button, #taskbar button {
+    min-width: 18px;
+    padding: 0 6px;
+    margin: 3px 2px;
     border: none;
-    box-shadow: none;
-    transition: background-color 0.2s ease;
-}
-
-#leaf:hover,
-#leaf-inverse:hover,
-#pill:hover,
-#pill-right:hover,
-#pill-left:hover {
-    background-color: rgba(35, 35, 45, 0.75);
-}
-
-/* Workspaces */
-#workspaces button {
     box-shadow: none;
     text-shadow: none;
-    border: none;
-    border-radius: 2px;
+    animation: none;
+    transition-property: background-color, color;
+    transition-timing-function: ease;
 }
-
-#workspaces button.active {
+#workspaces button.active, #taskbar button.active {
+    padding: 0 6px;
+    margin: 3px 2px;
+    background: @accent;
+    color: @accent-dark;
+    animation: none;
+}
+#workspaces button:hover, #taskbar button:hover {
+    background: @bg-glass-hover;
+    color: @text-main;
+    animation: none;
+}
+window#waybar.top label.module, window#waybar.bottom label.module {
+    padding: 0 4px;
+    margin: 0;
+}
+tooltip, menu, window.popup decoration {
+    background: @bg-reading;
+    color: @text-main;
+    border: 1px solid @border-glass;
     box-shadow: none;
-    text-shadow: none;
-    border: none;
-    border-radius: 2px;
+    padding: 8px;
+    animation: none;
 }
+menu menuitem { padding: 4px 8px; transition-property: background-color; transition-timing-function: ease; }
+menu menuitem:hover { background: @bg-glass-hover; color: @text-main; }
 
-/* Tooltips */
-tooltip {
-    background: rgba(18, 18, 24, 0.90);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    box-shadow: none;
-}
+#bluetooth.off, #bluetooth.disabled, #bluetooth.no-controller { color: @text-muted; }
+#bluetooth.connected { color: @accent; }
+#battery.warning, #memory.warning { color: @warning; }
+#battery.critical, #memory.critical { color: @critical; }
+#custom-keybindhint { color: @text-muted; transition-property: color; transition-timing-function: ease; }
+#custom-keybindhint:hover { color: @accent; }

@@ -3,7 +3,7 @@
     "exec": "python3 -c 'import glob; p=glob.glob(\"/sys/class/drm/card*/gt_act_freq_mhz\"); print(\"󰢮 Intel GPU\") if p else print(\"\")'",
     "format": "{}",
     "rotate": 0,
-    "interval": 10,
+    "interval": 15,
     "tooltip": true
   }
 }

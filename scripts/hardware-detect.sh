@@ -86,6 +86,26 @@ PLATFORM=$(detect_platform)
 declare -a DETECTED_GPUS=()
 # GPU entry format: PCI_SLOT|VENDOR_HEX|DEVICE_HEX|DRIVER|MODEL_NAME
 
+# Normalize both lspci's short slots and sysfs's domain-qualified PCI slots.
+normalize_slot() {
+    local slot=${1,,}
+    [[ ! $slot =~ ^[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f]$ ]] || slot="0000:$slot"
+    printf '%s\n' "$slot"
+}
+card_slot() {
+    local card=$1 slot='' key value
+    if [[ -r $card/device/uevent ]]; then
+        while IFS='=' read -r key value; do
+            [[ $key != PCI_SLOT_NAME ]] || slot=$value
+        done < "$card/device/uevent"
+    fi
+    if [[ -z $slot ]]; then
+        slot=$(basename "$(readlink -f "$card/device")")
+        [[ $slot =~ ^([0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$ ]] || slot="drm:${card##*/}"
+    fi
+    normalize_slot "$slot"
+}
+
 get_lspci_output() {
     if [[ -n "${MINIMAL_MOCK_LSPCI:-}" ]]; then
         printf '%s\n' "$MINIMAL_MOCK_LSPCI"
@@ -100,7 +120,6 @@ parse_gpus_from_lspci() {
     [[ -n "$lspci_text" ]] || return 0
 
     local current_slot=""
-    local current_line=""
     local current_vendor=""
     local current_device=""
     local current_driver=""
@@ -108,13 +127,12 @@ parse_gpus_from_lspci() {
     local in_gpu_block=false
 
     while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ ! "$line" =~ ^[[:space:]] && "$line" =~ ^([0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]) ]]; then
+        if [[ ! "$line" =~ ^[[:space:]] && "$line" =~ ^(([0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]) ]]; then
             # New device block
             if $in_gpu_block && [[ -n "$current_vendor" ]]; then
                 DETECTED_GPUS+=("$current_slot|$current_vendor|$current_device|$current_driver|$current_model")
             fi
-            current_slot="${BASH_REMATCH[1]}"
-            current_line="$line"
+            current_slot=$(normalize_slot "${BASH_REMATCH[1]}")
             current_vendor=""
             current_device=""
             current_driver=""
@@ -152,7 +170,7 @@ parse_gpus_from_sysfs() {
         [[ -d "$card_dir" ]] || continue
         # Verify it's a primary card directory, not a connector like card1-eDP-1
         [[ "$card_dir" =~ /card[0-9]+$ ]] || continue
-        [[ -f "$card_dir/device/vendor" ]] || continue
+        [[ -r "$card_dir/device/vendor" && -r "$card_dir/device/device" ]] || continue
 
         local vendor
         vendor=$(<"$card_dir/device/vendor")
@@ -169,22 +187,21 @@ parse_gpus_from_sysfs() {
             driver=$(basename "$(readlink -f "$card_dir/device/driver" 2>/dev/null || echo "")")
         fi
 
-        local slot=""
-        if [[ -f "$card_dir/device/uevent" ]]; then
-            if grep -q "PCI_SLOT_NAME=" "$card_dir/device/uevent"; then
-                slot=$(grep "PCI_SLOT_NAME=" "$card_dir/device/uevent" | cut -d= -f2)
-            fi
-        fi
-
-        # Check if already added via lspci
-        local already_found=false
+        local slot
+        slot=$(card_slot "$card_dir")
+        local already_found=false matches=0
         for entry in "${DETECTED_GPUS[@]}"; do
             IFS='|' read -r e_slot e_vendor e_device e_driver e_model <<< "$entry"
-            if [[ "$e_vendor" == "$vendor" && "$e_device" == "$device" ]]; then
+            if [[ $e_slot == "$slot" ]]; then
                 already_found=true
                 break
             fi
+            if [[ $e_vendor == "$vendor" && $e_device == "$device" ]]; then
+                matches=$((matches + 1))
+            fi
         done
+        # Synthetic/non-PCI sysfs may lack a slot. Deduplicate only if unambiguous.
+        if [[ $slot == drm:* && $matches == 1 ]]; then already_found=true; fi
 
         if ! $already_found; then
             local model="DRM GPU ($vendor:$device)"
@@ -257,31 +274,65 @@ analyze_gpus() {
     else
         # Determine primary GPU.
         # Preference:
-        # 1. Connected output card in DRM sysfs if multiple cards
-        # 2. First non-virtual GPU, or primary discrete/integrated
+        # 1. Connected output card in DRM sysfs (matched by PCI slot, then boot_vga/driver/vendor+device)
+        # 2. Card marked boot_vga=1 in DRM sysfs when no connector reports connected yet
+        # 3. First non-virtual GPU, or primary discrete/integrated
         local chosen_gpu="${DETECTED_GPUS[0]}"
+        local selected=0
 
-        # Check if a card has connected connectors
-        for entry in "${DETECTED_GPUS[@]}"; do
-            IFS='|' read -r g_slot g_vendor g_device g_driver g_model <<< "$entry"
-            # Check connectors
-            for conn in "$DRM_DIR"/card*-*/status; do
-                if [[ -f "$conn" && $(<"$conn") == "connected" ]]; then
-                    local card_name
-                    card_name=$(basename "$(dirname "$conn")")
-                    card_name="${card_name%%-*}" # e.g. card1
-                    if [[ -d "$DRM_DIR/$card_name/device" ]]; then
-                        local c_vendor
-                        c_vendor=$(<"$DRM_DIR/$card_name/device/vendor" 2>/dev/null || echo "")
-                        c_vendor="${c_vendor#0x}"; c_vendor="${c_vendor,,}"
-                        if [[ "$c_vendor" == "$g_vendor" ]]; then
-                            chosen_gpu="$entry"
-                            break 2
-                        fi
+        # Match the connected card by identity, not vendor (two cards may be identical).
+        local conn card_name connected_slot candidate matches c_vendor c_device c_driver
+        for conn in "$DRM_DIR"/card*-*/status; do
+            [[ -r $conn && $(<"$conn") == connected ]] || continue
+            card_name=${conn%/status}; card_name=${card_name##*/}; card_name=${card_name%%-*}
+            connected_slot=$(card_slot "$DRM_DIR/$card_name")
+            candidate='' matches=0
+            for entry in "${DETECTED_GPUS[@]}"; do
+                IFS='|' read -r g_slot g_vendor g_device g_driver g_model <<< "$entry"
+                if [[ $g_slot == "$connected_slot" ]]; then
+                    chosen_gpu=$entry
+                    selected=1
+                    break 2
+                fi
+            done
+            # Without PCI identity, match by vendor+device (and driver when available).
+            [[ $connected_slot == drm:* ]] || continue
+            c_vendor=$(cat "$DRM_DIR/$card_name/device/vendor" 2>/dev/null || true)
+            c_device=$(cat "$DRM_DIR/$card_name/device/device" 2>/dev/null || true)
+            c_driver=""
+            if [[ -L "$DRM_DIR/$card_name/device/driver" ]]; then
+                c_driver=$(basename "$(readlink -f "$DRM_DIR/$card_name/device/driver")")
+            fi
+            c_vendor=${c_vendor#0x}; c_vendor=${c_vendor,,}
+            c_device=${c_device#0x}; c_device=${c_device,,}
+            for entry in "${DETECTED_GPUS[@]}"; do
+                IFS='|' read -r g_slot g_vendor g_device g_driver g_model <<< "$entry"
+                if [[ $c_vendor == "$g_vendor" && $c_device == "$g_device" ]]; then
+                    if [[ -z $c_driver || -z $g_driver || $c_driver == "$g_driver" ]]; then
+                        [[ -n $candidate ]] || candidate=$entry
+                        matches=$((matches + 1))
                     fi
                 fi
             done
+            if ((matches >= 1)); then chosen_gpu=$candidate; selected=1; break; fi
         done
+
+        # Fallback: if no connector reported connected yet, prefer the DRM card with boot_vga=1
+        if (( ! selected && ${#DETECTED_GPUS[@]} > 1 )); then
+            local boot_file boot_card boot_slot
+            for boot_file in "$DRM_DIR"/card*/device/boot_vga; do
+                [[ -r $boot_file && $(<"$boot_file") == 1 ]] || continue
+                boot_card=${boot_file%/device/boot_vga}
+                boot_slot=$(card_slot "$boot_card")
+                for entry in "${DETECTED_GPUS[@]}"; do
+                    IFS='|' read -r g_slot _ <<< "$entry"
+                    if [[ $g_slot == "$boot_slot" ]]; then
+                        chosen_gpu=$entry
+                        break 2
+                    fi
+                done
+            done
+        fi
 
         local slot vendor device driver model
         IFS='|' read -r slot vendor device driver model <<< "$chosen_gpu"
@@ -378,21 +429,33 @@ ENV_VARS["GPU_DRIVER"]="$PRIMARY_DRIVER"
 # -----------------------------------------------------------------------------
 mkdir -p "$MINIMAL_CACHE"
 
+escape_env_val() {
+    local val=$1
+    val=${val//\\/\\\\}
+    val=${val//\"/\\\"}
+    val=${val//\$/\\\$}
+    val=${val//\`/\\\`}
+    printf '%s' "$val"
+}
+
 write_cache() {
     local tmp_file
     tmp_file=$(mktemp "$MINIMAL_CACHE/hardware.env.XXXXXXXX")
+    trap 'rm -f -- "$tmp_file"' EXIT
     {
         printf '# =============================================================================\n'
         printf '#  MINIMAL — HARDWARE AUTO-DETECTION CACHE\n'
         printf '#  Generated: %s\n' "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
         printf '#  Platform: %s | GPU: %s (%s)\n' "$PLATFORM" "$PRIMARY_MODEL" "$PRIMARY_FAMILY"
         printf '# =============================================================================\n\n'
-        for k in $(printf '%s\n' "${!ENV_VARS[@]}" | sort); do
-            printf 'export %s="%s"\n' "$k" "${ENV_VARS[$k]}"
-        done
+        while IFS= read -r k; do
+            [[ -n $k ]] || continue
+            printf 'export %s="%s"\n' "$k" "$(escape_env_val "${ENV_VARS[$k]}")"
+        done < <(printf '%s\n' "${!ENV_VARS[@]}" | sort)
     } > "$tmp_file"
+    chmod 0644 "$tmp_file"
     mv -f "$tmp_file" "$ENV_FILE"
-    chmod 0644 "$ENV_FILE"
+    trap - EXIT
 }
 
 write_cache
@@ -401,9 +464,10 @@ write_cache
 # 5. Output Handling (--print, --export, or quiet write)
 # -----------------------------------------------------------------------------
 if [[ "$ACTION" == "export" ]]; then
-    for k in $(printf '%s\n' "${!ENV_VARS[@]}" | sort); do
-        printf 'export %s="%s"\n' "$k" "${ENV_VARS[$k]}"
-    done
+    while IFS= read -r k; do
+        [[ -n $k ]] || continue
+        printf 'export %s="%s"\n' "$k" "$(escape_env_val "${ENV_VARS[$k]}")"
+    done < <(printf '%s\n' "${!ENV_VARS[@]}" | sort)
 elif [[ "$ACTION" == "print" ]]; then
     printf '=============================================================================\n'
     printf '  MINIMAL HARDWARE & GPU AUTO-DETECTION SUMMARY\n'
@@ -415,9 +479,10 @@ elif [[ "$ACTION" == "print" ]]; then
     printf '  Classification : %s\n' "$PRIMARY_SUMMARY"
     printf '\n'
     printf 'Applied Environment & Hyprland Flags:\n'
-    for k in $(printf '%s\n' "${!ENV_VARS[@]}" | sort); do
-        printf '  export %s="%s"\n' "$k" "${ENV_VARS[$k]}"
-    done
+    while IFS= read -r k; do
+        [[ -n $k ]] || continue
+        printf '  export %s="%s"\n' "$k" "$(escape_env_val "${ENV_VARS[$k]}")"
+    done < <(printf '%s\n' "${!ENV_VARS[@]}" | sort)
     printf '\n'
     printf 'Cached Configuration:\n'
     printf '  File           : %s [updated]\n' "$ENV_FILE"

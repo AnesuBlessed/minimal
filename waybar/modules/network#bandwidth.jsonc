@@ -13,7 +13,7 @@
 
     "format-disconnected": "󰖪 ",
     "tooltip-format-disconnected": "Disconnected",
-    "interval": 2
+    "interval": 15
   },
 
   "network#bandwidthUpBytes": {
@@ -30,7 +30,7 @@
 
     "format-disconnected": "󰖪 ",
     "tooltip-format-disconnected": "Disconnected",
-    "interval": 2,
+    "interval": 15,
     "class": "no-margin-padding"
   },
 
@@ -48,7 +48,7 @@
 
     "format-disconnected": "󰖪 ",
     "tooltip-format-disconnected": "Disconnected",
-    "interval": 2,
+    "interval": 15,
     "class": "no-margin-padding"
   },
   "network#bandwidthTotalBytes": {
@@ -65,7 +65,7 @@
 
     "format-disconnected": "󰖪 ",
     "tooltip-format-disconnected": "Disconnected",
-    "interval": 2,
+    "interval": 15,
     "class": "no-margin-padding"
   }
 }

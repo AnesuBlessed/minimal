@@ -1,9 +1,12 @@
 {
   "custom/keybindhint": {
-    "format": " ",
+    "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/parse-keybinds.py\" --waybar",
+    "return-type": "json",
+    "interval": 3600,
+    "format": "{}",
     "tooltip": true,
-    "tooltip-format": "  Keybinds Hint",
     "rotate": 0,
-    "on-click": "foot --title='Keybinds' less \"${MINIMAL_ROOT:-$HOME/.config/minimal}/RULES.md\""
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/keybinds.sh\"",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/keybinds.sh\" --fallback"
   }
 }

@@ -1,0 +1,8 @@
+{
+  "custom/github": {
+    "format": "󰊤",
+    "rotate": 0,
+    "tooltip-format": "GitHub",
+    "on-click": "xdg-open https://github.com"
+  }
+}

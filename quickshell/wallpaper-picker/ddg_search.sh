@@ -41,16 +41,28 @@ python3 -u "$SCRIPT_DIR/get_ddg_links.py" "$QUERY" | while IFS='|' read -r thumb
     fi
     
     while [[ "$state" == "pause" ]]; do
-        sleep 1
+        # Block on a file event; the timeout is only a safety net.
+        if command -v inotifywait >/dev/null 2>&1; then
+            inotifywait -q -t 30 -e close_write,moved_to,create "$RUN_DIR" >/dev/null 2>&1 || true
+        else
+            sleep 5
+        fi
         state=$(cat "$CONTROL_FILE" 2>/dev/null | tr -d '[:space:]')
     done
 
+    if [[ "$state" == "stop" ]]; then
+        echo "Stop signal received after pause. Exiting." >> "$LOG_FILE"
+        exit 0
+    fi
+
     if [ -z "$thumb_url" ] || [ -z "$full_url" ]; then continue; fi
 
+    [[ $thumb_url == https://* || $thumb_url == http://* ]] || continue
+    [[ $full_url == https://* || $full_url == http://* ]] || continue
     # =========================================================================
     # PRE-FLIGHT CHECK ON THE FULL URL
     # =========================================================================
-    target_headers=$(curl -s -I -L -m 3 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$full_url" 2>/dev/null || true)
+    target_headers=$(curl --proto '=http,https' --proto-redir '=http,https' -s -I -L -m 3 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$full_url" 2>/dev/null || true)
     target_type=$(echo "$target_headers" | grep -i "content-type:" | tail -n 1 | tr -d '\r')
 
     if [[ ! "$target_type" =~ "image/" ]]; then
@@ -59,26 +71,15 @@ python3 -u "$SCRIPT_DIR/get_ddg_links.py" "$QUERY" | while IFS='|' read -r thumb
     fi
     # =========================================================================
 
-    uuid=$(date +%s%N)
-    ext="${full_url##*.}"
-    ext="${ext%%\?*}"
-    ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
-    if [[ ! "$ext" =~ ^(jpg|jpeg|png|webp|gif)$ ]]; then ext="jpg"; fi
-
-    is_webp=0
-    if [[ "$ext" == "webp" ]]; then
-        is_webp=1
-        ext="jpg"
-    fi
-
-    filename="ddg_${uuid}.${ext}"
+    uuid="$(date +%s%N)_$$_${RANDOM}"
+    filename="ddg_${uuid}.png"
     filepath="$SEARCH_DIR/$filename"
     tmppath="${filepath}.tmp"
 
     echo "Downloading Thumb: $thumb_url -> $filename" >> "$LOG_FILE"
 
     # Timeout -m 5 prevents freezing on stalled connections
-    curl -s -L -m 5 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$thumb_url" -o "$tmppath" 2>/dev/null || true
+    curl --proto '=http,https' --proto-redir '=http,https' --max-filesize 8388608 --fail -s -L -m 5 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$thumb_url" -o "$tmppath" 2>/dev/null || true
 
     # Check state again AFTER the curl block
     state=$(cat "$CONTROL_FILE" 2>/dev/null | tr -d '[:space:]')
@@ -88,27 +89,12 @@ python3 -u "$SCRIPT_DIR/get_ddg_links.py" "$QUERY" | while IFS='|' read -r thumb
         exit 0 
     fi
 
-    # Verify the thumbnail itself is valid and not corrupted
-    if [ -s "$tmppath" ]; then
-        actual_mime=$(file -b --mime-type "$tmppath" 2>/dev/null || echo "unknown")
-        
-        if [[ ! "$actual_mime" =~ ^image/ ]]; then
-            echo "ERROR: Thumb is not an image ($actual_mime). Discarding." >> "$LOG_FILE"
-            rm -f "$tmppath"
-        else
-            if [[ "$actual_mime" == "image/webp" ]] || [ $is_webp -eq 1 ]; then
-                magick "$tmppath" "$filepath" 2>/dev/null || mv "$tmppath" "$filepath"
-                rm -f "$tmppath"
-            else
-                mv "$tmppath" "$filepath"
-            fi
-            echo "$filename|$full_url" >> "$MAP_FILE"
-            echo "Success: $filename saved." >> "$LOG_FILE"
-        fi
-    else
-        echo "ERROR: Failed or empty download for $thumb_url" >> "$LOG_FILE"
-        rm -f "$tmppath"
+    # Decode only recognized, bounded rasters; publish a normalized static PNG.
+    if "$MINIMAL_ROOT/scripts/image-preview.py" "$tmppath" "$filepath" 2>>"$LOG_FILE"; then
+        printf '%s|%s\n' "$filename" "$full_url" >> "$MAP_FILE"
     fi
+    rm -f -- "$tmppath"
+
 done
 
 echo "=== Pipeline finished ===" >> "$LOG_FILE"

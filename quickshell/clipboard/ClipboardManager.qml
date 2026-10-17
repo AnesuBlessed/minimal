@@ -13,30 +13,38 @@ Item {
 
     Caching { id: paths }
 
-    Scaler {
-        id: scaler
-        currentWidth: Screen.width
-        currentHeight: Screen.height
-    }
-    
-    function s(val) { 
-        return scaler.s(val); 
-    }
+    // Qt already uses logical pixels; keep text consistent with Fuzzel and Foot.
+    function s(val) { return Math.round(val); }
 
-    MatugenColors { id: _theme }
-    
-    readonly property color base: _theme.base
-    readonly property color crust: _theme.crust
-    readonly property color text: _theme.text
-    readonly property color subtext0: _theme.subtext0
-    readonly property color surface0: _theme.surface0
-    readonly property color surface1: _theme.surface1
-    readonly property color surface2: _theme.surface2
-    readonly property color mauve: _theme.mauve || "#cba6f7"
-    readonly property color blue: _theme.blue
+    Palette { id: theme }
+    readonly property color base: theme.base
+    readonly property color crust: theme.crust
+    readonly property color text: theme.text
+    readonly property color subtext0: theme.muted
+    readonly property color surface0: theme.selection
+    readonly property color surface1: theme.border
+    readonly property color surface2: Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.35)
+    readonly property color mauve: theme.accent
 
     property var allClips: []
-    
+    property string requestedQuery: ""
+    property bool pendingSearch: false
+    Timer {
+        id: searchDebounce
+        interval: 60
+        onTriggered: window.reloadSearch()
+    }
+    function reloadSearch() {
+        if (clipFetcher.running || clipboardAction.running) { pendingSearch = true; return; }
+        pendingSearch = false;
+        requestedQuery = searchInput.text;
+        requestedOffset = 0;
+        currentOffset = 0;
+        hasMore = true;
+        isLoading = true;
+        clipFetcher.running = true;
+    }
+
     // Pagination properties
     property int currentOffset: 0
     // Offset actually passed to the in-flight fetch. Kept separate from
@@ -44,9 +52,9 @@ Item {
     property int requestedOffset: 0
     property bool pendingMore: false
     property int fetchLimit: 24
-    property bool isLoading: false
+    property bool isLoading: true
     property bool hasMore: true
-    
+
     // Global state
     property int navDuration: 0
     property bool previewMode: false
@@ -79,9 +87,10 @@ Item {
 
     function updatePreviewText() {
         window.fullTextPreview = "";
+        fullTextFetcher.running = false;
         let item = clipModel.get(clipList.currentIndex);
         if (item && item.type === "text") {
-            fullTextFetcher.command = ["cliphist", "decode", item.id.toString()];
+            fullTextFetcher.command = ["python3", Quickshell.shellDir + "/clip_fetcher.py", "--text", item.id.toString()];
             fullTextFetcher.running = true;
         }
     }
@@ -89,83 +98,100 @@ Item {
     Process {
         id: clipFetcher
         running: window.visible
-        command: ["python3", Quickshell.shellDir + "/clip_fetcher.py", window.requestedOffset, window.fetchLimit, paths.getCacheDir("clipboard")]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    if (this.text && this.text.trim().length > 0) {
-                        let newItems = JSON.parse(this.text);
-
-                        if (newItems.length < window.fetchLimit) {
-                            window.hasMore = false;
-                        }
-
-                        // Compare against the offset this response was actually
-                        // requested for, not against currentOffset. Advancing the
-                        // offset while a fetch was in flight used to make a page-0
-                        // response take the append branch and duplicate page 0.
-                        if (window.requestedOffset === 0) {
-                            let isDifferent = window.allClips.length !== newItems.length;
-                            if (!isDifferent) {
-                                for (let i = 0; i < newItems.length; i++) {
-                                    if (window.allClips[i].id !== newItems[i].id) {
-                                        isDifferent = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (isDifferent || window.allClips.length === 0) {
-                                window.allClips = newItems;
-                                window.filterClips(searchInput.text);
-                            }
-                        } else {
-                            window.appendClips(newItems);
-                        }
-                    }
-                } catch(e) {
-                    console.log("Error parsing clipboard list: ", e);
-                } finally {
+        command: ["python3", Quickshell.shellDir + "/clip_fetcher.py", window.requestedOffset, window.fetchLimit, paths.getCacheDir("clipboard"), window.requestedQuery]
+        stdout: StdioCollector { id: clipOutput }
+        onExited: (exitCode, exitStatus) => {
+            window.isInitialLoad = false;
+            if (window.pendingSearch || window.requestedQuery !== searchInput.text) {
+                window.isLoading = false;
+                Qt.callLater(window.reloadSearch);
+                return;
+            }
+            if (clipboardAction.running) { window.isLoading = false; return; }
+            try {
+                const items = JSON.parse(clipOutput.text);
+                if (exitCode !== 0 || !Array.isArray(items)) {
+                    window.pendingMore = false;
                     window.isLoading = false;
-                    window.isInitialLoad = false;
-                    // A loadMore() that arrived mid-flight was a no-op because
-                    // `running = true` on a live Process does nothing. Re-issue it.
-                    if (window.pendingMore) {
-                        window.pendingMore = false;
-                        window.loadMore();
-                    }
+                    Quickshell.execDetached(["notify-send", "Clipboard unavailable", "Could not load or search history. Please retry."]);
+                    return;
                 }
+                window.currentOffset = window.requestedOffset + items.length;
+                window.hasMore = items.length === window.fetchLimit;
+                if (window.requestedOffset === 0) {
+                    window.allClips = items;
+                    window.filterClips();
+                } else {
+                    window.appendClips(items);
+                }
+                window.isLoading = false;
+                if (window.pendingMore) {
+                    window.pendingMore = false;
+                    Qt.callLater(window.loadMore);
+                }
+            } catch (error) {
+                window.isLoading = false;
+                window.pendingMore = false;
+                console.warn("Clipboard fetch failed:", error);
             }
         }
     }
 
-    ListModel {
-        id: clipModel
+    Process {
+        id: clipboardAction
+        property string action: ""
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0) {
+                console.warn("Clipboard action failed:", action);
+                return;
+            }
+            if (action === "copy") {
+                Qt.quit();
+            } else {
+                window.allClips = [];
+                clipModel.clear();
+                window.currentOffset = 0;
+                window.requestedOffset = 0;
+                window.pendingMore = false;
+                window.hasMore = true;
+                window.isLoading = true;
+                clipFetcher.running = true;
+            }
+        }
     }
 
+    function mutateClipboard(action, id) {
+        if (clipboardAction.running) return;
+        const args = [paths.minimalRoot + "/scripts/clipboard-action.sh", action];
+        if (action !== "wipe") {
+            if (!/^[0-9]+$/.test(String(id))) return;
+            args.push(String(id));
+        }
+        clipboardAction.action = action;
+        clipboardAction.command = args;
+        clipboardAction.running = true;
+        clipFetcher.running = false;
+    }
+
+    ListModel { id: clipModel }
+
     function loadMore() {
-        if (isLoading || !hasMore) return;
-        isLoading = true;
-        currentOffset += fetchLimit;
-        if (clipFetcher.running) {
-            // Defer; the in-flight response will call back into loadMore().
+        if (!hasMore || clipboardAction.running) return;
+        if (isLoading || clipFetcher.running) {
             pendingMore = true;
             return;
         }
         requestedOffset = currentOffset;
+        isLoading = true;
         clipFetcher.running = true;
     }
 
     function appendClips(newItems) {
-        let q = searchInput.text.toLowerCase();
         for (let i = 0; i < newItems.length; i++) {
             allClips.push(newItems[i]);
-            if (q === "" || newItems[i].type === "image" || newItems[i].content.toLowerCase().includes(q)) {
-                clipModel.append(newItems[i]);
-            }
+            clipModel.append(newItems[i]);
         }
-        
+
         if (window.pendingIndex !== -1) {
             if (window.pendingIndex < clipModel.count) {
                 clipList.currentIndex = window.pendingIndex;
@@ -176,17 +202,13 @@ Item {
         }
     }
 
-    function filterClips(query) {
+    function filterClips() {
         clipList.currentIndex = -1;
         clipList.positionViewAtBeginning();
-
-        let q = query.toLowerCase();
         clipModel.clear();
 
         for (let i = 0; i < allClips.length; i++) {
-            if (allClips[i].type === "image" || allClips[i].content.toLowerCase().includes(q)) {
-                clipModel.append(allClips[i]);
-            }
+            clipModel.append(allClips[i]);
         }
 
         if (clipModel.count > 0) {
@@ -195,17 +217,11 @@ Item {
     }
 
     function copyToClipboard(id) {
-        let safeId = parseInt(id, 10);
-        if (!isNaN(safeId)) Quickshell.execDetached(["bash", "-c", "cliphist decode " + safeId + " | wl-copy"]);
-        Quickshell.execDetached(["quickshell", "kill", "-p", Quickshell.shellDir]);
+        mutateClipboard("copy", id);
     }
 
-    Timer {
-        id: focusTimer
-        interval: 50
-        running: window.visible
-        repeat: false
-        onTriggered: searchInput.forceActiveFocus()
+    Component.onCompleted: {
+        searchInput.forceActiveFocus();
     }
 
     Connections {
@@ -216,24 +232,26 @@ Item {
                     window.isInitialLoad = true;
                 }
 
-                focusTimer.restart();
+                searchInput.forceActiveFocus();
                 introPhaseAnim.restart();
-                window.navDuration = 0; 
+                window.navDuration = 0;
                 window.previewMode = false;
                 window.previewAnimationDone = false;
                 window.fullTextPreview = "";
                 window.pendingIndex = -1;
-                
-                window.currentOffset = 0;
-                window.hasMore = true;
-                window.isLoading = true;
-                clipFetcher.command = ["python3", Quickshell.shellDir + "/clip_fetcher.py", 0, window.fetchLimit, paths.getCacheDir("clipboard")];
-                clipFetcher.running = true;
+
+                if (!clipFetcher.running) {
+                    window.currentOffset = 0;
+                    window.requestedOffset = 0;
+                    window.hasMore = true;
+                    window.isLoading = true;
+                    clipFetcher.running = true;
+                }
             } else {
                 searchInput.text = "";
                 window.pendingIndex = -1;
-                
-                window.filterClips("");
+
+                window.filterClips();
                 if (clipModel.count > 0) {
                     clipList.currentIndex = 0;
                     clipList.positionViewAtBeginning();
@@ -242,63 +260,41 @@ Item {
         }
     }
 
-    property real globalOrbitAngle: 0
-    NumberAnimation on globalOrbitAngle {
-        from: 0; to: Math.PI * 2; duration: 90000; loops: Animation.Infinite; running: window.visible
-    }
-
     property real introPhase: 0
     NumberAnimation on introPhase {
         id: introPhaseAnim
-        from: 0; to: 1; duration: 600; easing.type: Easing.OutExpo; running: window.visible 
+        from: 0; to: 1; duration: theme.duration; easing.type: Easing.OutExpo; running: window.visible
     }
 
     Rectangle {
         id: mainBg
-        width: layoutWidth > window.s(400) ? layoutWidth : window.s(800)
-        
-        property real searchHeight: window.s(65)
+        MouseArea { anchors.fill: parent }
+        width: layoutWidth
+
+        property real searchHeight: window.s(76)
+        property real footerHeight: window.s(34)
         property real separatorHeight: 1
-        
-        property int cols: 3
-        property real cellH: window.s(145) 
-        
-        property real maxVisibleRows: 4 
-        property real visibleRows: maxVisibleRows
-        property real animatedListHeight: visibleRows * cellH
+
+        property int cols: width < 560 ? 2 : 3
+        property real cellH: window.s(126)
+
+        property real animatedListHeight: Math.max(80, layoutHeight - searchHeight - separatorHeight - animatedMargins - footerHeight)
         property real animatedMargins: window.s(20)
 
-        height: searchHeight + separatorHeight + animatedMargins + animatedListHeight
+        height: layoutHeight
 
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        radius: window.s(16)
-        color: Qt.rgba(window.base.r, window.base.g, window.base.b, 1.0)
+        topLeftRadius: theme.panelRadius
+        topRightRadius: theme.panelRadius
+        color: theme.panel
         border.color: window.surface1
         border.width: 1
         clip: true
 
-        transform: Translate { y: (window.introPhase - 1) * window.s(60) }
+        transform: Translate { y: (window.introPhase - 1) * window.s(8) }
         opacity: window.introPhase
-
-        Rectangle {
-            width: parent.width * 0.8; height: width; radius: width / 2
-            x: (parent.width / 2 - width / 2) + Math.cos(window.globalOrbitAngle * 2) * window.s(150)
-            y: (parent.height / 2 - height / 2) + Math.sin(window.globalOrbitAngle * 2) * window.s(100)
-            opacity: 0.08
-            color: window.mauve
-            Behavior on color { ColorAnimation { duration: 1000 } }
-        }
-        
-        Rectangle {
-            width: parent.width * 0.9; height: width; radius: width / 2
-            x: (parent.width / 2 - width / 2) + Math.sin(window.globalOrbitAngle * 1.5) * window.s(-150)
-            y: (parent.height / 2 - height / 2) + Math.cos(window.globalOrbitAngle * 1.5) * window.s(-100)
-            opacity: 0.06
-            color: window.blue
-            Behavior on color { ColorAnimation { duration: 1000 } }
-        }
 
         Rectangle {
             id: headerArea
@@ -307,10 +303,22 @@ Item {
             anchors.right: parent.right
             height: mainBg.searchHeight
             color: "transparent"
-            
+
+            Rectangle {
+                width: 32; height: 3; radius: 1.5
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 9; color: theme.muted; opacity: 0.4
+            }
+            Rectangle {
+                x: theme.spaceLarge; y: 22
+                width: parent.width - theme.spaceLarge * 2; height: 40
+                radius: theme.controlRadius; color: theme.control
+            }
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: window.s(15)
+                anchors.margins: theme.spaceLarge
+                anchors.topMargin: 22
+                anchors.bottomMargin: 14
                 anchors.leftMargin: window.s(20)
                 anchors.rightMargin: window.s(20)
                 spacing: window.s(15)
@@ -322,34 +330,34 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "󰅌"
-                        font.family: "Iosevka Nerd Font"
+                        font.family: theme.fontFamily
                         font.pixelSize: window.s(18)
                         color: searchInput.activeFocus ? window.mauve : window.subtext0
-                        
+
                         opacity: !window.previewMode ? 1 : 0
                         scale: !window.previewMode ? 1 : 0.5
                         rotation: !window.previewMode ? 0 : -90
-                        
-                        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                        Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+
+                        Behavior on opacity { NumberAnimation { duration: theme.duration; easing.type: Easing.InOutQuad } }
+                        Behavior on scale { NumberAnimation { duration: theme.duration; easing.type: Easing.OutCubic } }
+                        Behavior on rotation { NumberAnimation { duration: theme.duration; easing.type: Easing.OutCubic } }
                         Behavior on color { ColorAnimation { duration: 100 } }
                     }
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰈈"
-                        font.family: "Iosevka Nerd Font"
+                        font.family: theme.fontFamily
                         font.pixelSize: window.s(18)
                         color: window.mauve
-                        
+
                         opacity: window.previewMode ? 1 : 0
                         scale: window.previewMode ? 1 : 0.5
                         rotation: window.previewMode ? 0 : 90
-                        
-                        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.InOutQuad } }
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                        Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+
+                        Behavior on opacity { NumberAnimation { duration: theme.duration; easing.type: Easing.InOutQuad } }
+                        Behavior on scale { NumberAnimation { duration: theme.duration; easing.type: Easing.OutCubic } }
+                        Behavior on rotation { NumberAnimation { duration: theme.duration; easing.type: Easing.OutCubic } }
                     }
                 }
 
@@ -357,21 +365,21 @@ Item {
                     id: searchInput
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    background: Item {} 
+                    background: Item {}
                     color: window.text
-                    font.family: "JetBrains Mono"
-                    font.pixelSize: window.s(16)
-                    
-                    placeholderText: "Search"
-                    placeholderTextColor: window.subtext0 
-                    
+                    font.family: theme.fontFamily
+                    font.pixelSize: theme.fontBody
+
+                    placeholderText: "Search clipboard"
+                    placeholderTextColor: window.subtext0
+
                     verticalAlignment: TextInput.AlignVCenter
                     focus: true
 
                     onTextChanged: {
                         if (window.previewMode) { window.previewMode = false; }
                         window.pendingIndex = -1;
-                        filterClips(text);
+                        searchDebounce.restart();
                     }
 
                     Keys.onTabPressed: {
@@ -386,37 +394,37 @@ Item {
 
                     Keys.onRightPressed: {
                         window.previewMode = false;
-                        window.navDuration = 250; 
+                        window.navDuration = 120;
                         window.pendingIndex = -1;
-                        
+
                         let targetIdx = clipList.currentIndex + 1;
-                        if (targetIdx < clipModel.count) { 
-                            clipList.currentIndex = targetIdx; 
+                        if (targetIdx < clipModel.count) {
+                            clipList.currentIndex = targetIdx;
                         } else if (window.hasMore) {
                             window.pendingIndex = targetIdx;
                             window.loadMore();
                         }
                         event.accepted = true;
                     }
-                    
+
                     Keys.onLeftPressed: {
                         window.previewMode = false;
-                        window.navDuration = 250;
+                        window.navDuration = 120;
                         window.pendingIndex = -1;
-                        
+
                         if (clipList.currentIndex > 0) { clipList.currentIndex--; }
                         event.accepted = true;
                     }
-                    
+
                     Keys.onDownPressed: {
                         if (window.previewMode && textPreviewFlickable.visible) {
                             textPreviewFlickable.contentY = Math.min(textPreviewFlickable.contentY + window.s(60), Math.max(0, textPreviewFlickable.contentHeight - textPreviewFlickable.height));
                         } else {
                             window.previewMode = false;
-                            window.navDuration = 250;
+                            window.navDuration = 120;
                             window.pendingIndex = -1;
-                            
-                            let targetIdx = clipList.currentIndex + mainBg.cols;
+
+                            let targetIdx = clipList.currentIndex < 0 ? 0 : clipList.currentIndex + mainBg.cols;
                             if (targetIdx < clipModel.count) {
                                 clipList.currentIndex = targetIdx;
                             } else if (window.hasMore) {
@@ -428,32 +436,32 @@ Item {
                         }
                         event.accepted = true;
                     }
-                    
+
                     Keys.onUpPressed: {
                         if (window.previewMode && textPreviewFlickable.visible) {
                             textPreviewFlickable.contentY = Math.max(textPreviewFlickable.contentY - window.s(60), 0);
                         } else {
                             window.previewMode = false;
-                            window.navDuration = 250;
+                            window.navDuration = 120;
                             window.pendingIndex = -1;
-                            
+
                             if (clipList.currentIndex - mainBg.cols >= 0) { clipList.currentIndex -= mainBg.cols; }
                         }
                         event.accepted = true;
                     }
-                    
+
                     Keys.onReturnPressed: {
                         if (clipList.currentIndex >= 0 && clipList.currentIndex < clipModel.count) {
                             copyToClipboard(clipModel.get(clipList.currentIndex).id);
                         }
                         event.accepted = true;
                     }
-                    
+
                     Keys.onEscapePressed: {
                         if (window.previewMode) {
                             window.previewMode = false;
                         } else {
-                            Quickshell.execDetached(["quickshell", "kill", "-p", Quickshell.shellDir]);
+                            Qt.quit();
                         }
                         event.accepted = true;
                     }
@@ -464,12 +472,12 @@ Item {
                     height: window.s(32)
                     radius: window.s(8)
                     color: clearMa.containsMouse ? window.mauve : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.4)
-                    
+
                     Text {
                         anchors.centerIn: parent
-                        text: "󰃢" 
-                        font.family: "JetBrainsMono Nerd Font, Iosevka Nerd Font"
-                        font.pixelSize: window.s(16)
+                        text: "󰃢"
+                        font.family: theme.fontFamily
+                        font.pixelSize: theme.fontBody
                         color: clearMa.containsMouse ? window.crust : window.text
                     }
                     MouseArea {
@@ -478,9 +486,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            Quickshell.execDetached(["bash", "-c", "cliphist wipe"]);
-                            window.allClips = [];
-                            clipModel.clear();
+                            window.mutateClipboard("wipe", "");
                         }
                     }
                 }
@@ -507,26 +513,26 @@ Item {
             anchors.leftMargin: window.s(10)
             anchors.rightMargin: window.s(10)
             height: mainBg.animatedListHeight
-            
+
             clip: true
             model: clipModel
 
             cellWidth: Math.floor((mainBg.width - window.s(20)) / mainBg.cols)
             cellHeight: mainBg.cellH
-            
+
             currentIndex: 0
             boundsBehavior: Flickable.StopAtBounds
 
             highlightFollowsCurrentItem: false
 
             populate: Transition {
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: theme.duration }
             }
-            
+
             add: Transition {
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: theme.duration }
             }
-            
+
             onContentYChanged: {
                 if (contentY + height >= contentHeight - window.s(80)) {
                     window.loadMore();
@@ -535,7 +541,7 @@ Item {
 
             Behavior on contentY {
                 enabled: window.navDuration > 0
-                NumberAnimation { duration: 250; easing.type: Easing.OutExpo }
+                NumberAnimation { duration: theme.duration; easing.type: Easing.OutExpo }
             }
 
             onCurrentIndexChanged: {
@@ -543,7 +549,7 @@ Item {
                     if (currentIndex >= clipModel.count - (mainBg.cols * 2)) {
                         window.loadMore();
                     }
-                    
+
                     let row = Math.floor(currentIndex / mainBg.cols);
                     let targetTop = row * mainBg.cellH;
                     let targetBottom = targetTop + mainBg.cellH;
@@ -572,25 +578,27 @@ Item {
             }
 
             highlight: Item {
-                z: 0 
+                z: 0
                 Rectangle {
                     id: activeHighlight
                     width: clipList.cellWidth - window.s(10)
                     height: clipList.cellHeight - window.s(10)
                     radius: window.s(8)
-                    color: window.mauve
+                    color: window.surface0
+                    border.color: window.surface2
+                    border.width: 1
 
                     property int curIdx: clipList.currentIndex
                     property real targetX: curIdx === -1 || clipList.model === null ? 0 : (curIdx % mainBg.cols) * clipList.cellWidth
                     property real targetY: curIdx === -1 || clipList.model === null ? 0 : Math.floor(curIdx / mainBg.cols) * clipList.cellHeight
 
-                    Behavior on x { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
-                    Behavior on y { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 350; easing.type: Easing.OutExpo } }
+                    Behavior on x { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 120; easing.type: Easing.OutExpo } }
+                    Behavior on y { NumberAnimation { duration: window.navDuration > 0 ? window.navDuration : 120; easing.type: Easing.OutExpo } }
 
                     x: targetX + window.s(5)
                     y: targetY + window.s(5)
                     opacity: clipList.count > 0 && clipList.currentIndex >= 0 && clipList.model !== null ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 300 } }
+                    Behavior on opacity { NumberAnimation { duration: theme.duration } }
                 }
             }
 
@@ -598,20 +606,20 @@ Item {
                 id: delegateRoot
                 width: clipList.cellWidth
                 height: clipList.cellHeight
-                
+
                 z: index === clipList.currentIndex ? 50 : 1
-                
+
                 Rectangle {
                     id: cardBg
                     x: window.s(5)
                     y: window.s(5)
                     width: parent.width - window.s(10)
                     height: parent.height - window.s(10)
-                    
+
                     radius: window.s(8)
-                    
-                    color: ma.containsMouse && index !== clipList.currentIndex ? Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.4) : "transparent"
-                    Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutSine } }
+
+                    color: index === clipList.currentIndex ? "transparent" : ma.containsMouse ? theme.control : theme.reading
+                    Behavior on color { ColorAnimation { duration: theme.duration; easing.type: Easing.OutSine } }
 
                     Rectangle {
                         z: 2
@@ -620,13 +628,13 @@ Item {
                         width: window.s(22)
                         height: window.s(22)
                         radius: window.s(6)
-                        
+
                         color: index === clipList.currentIndex ? window.crust : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.85)
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: (index + 1)
-                            font.family: "JetBrains Mono"
+                            font.family: theme.fontFamily
                             font.pixelSize: window.s(11)
                             font.weight: Font.Bold
                             color: index === clipList.currentIndex ? window.mauve : window.text
@@ -642,11 +650,11 @@ Item {
                         height: window.s(22)
                         radius: window.s(6)
                         color: deleteMa.containsMouse ? window.mauve : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.7)
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: "󰅖"
-                            font.family: "Iosevka Nerd Font"
+                            font.family: theme.fontFamily
                             font.pixelSize: window.s(12)
                             color: deleteMa.containsMouse ? window.crust : window.text
                         }
@@ -656,22 +664,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                let id = parseInt(model.id, 10);
-                                if (!isNaN(id)) Quickshell.execDetached(["bash", "-c", "cliphist list | grep -P '^" + id + "\\t' | cliphist delete"]);
-                                
-                                // Proper deletion logic for QML list
-                                for(let i=0; i<window.allClips.length; i++){
-                                    if(window.allClips[i].id === id) {
-                                        window.allClips.splice(i, 1);
-                                        break;
-                                    }
-                                }
-                                for(let i=0; i<clipModel.count; i++){
-                                    if(clipModel.get(i).id === id) {
-                                        clipModel.remove(i);
-                                        break;
-                                    }
-                                }
+                                window.mutateClipboard("delete", model.id);
                             }
                         }
                     }
@@ -685,12 +678,14 @@ Item {
                         color: "transparent"
                         radius: window.s(6)
                         clip: true
-                        
+
                         Image {
+                    sourceSize.width: 384
+                    sourceSize.height: 256
                             anchors.fill: parent
                             source: model.type === "image" ? "file://" + model.content : ""
                             fillMode: Image.PreserveAspectFit
-                            asynchronous: true 
+                            asynchronous: true
                             cache: true
                             smooth: true
                             mipmap: true
@@ -707,20 +702,18 @@ Item {
                         Text {
                             anchors.fill: parent
                             text: model.content
-                            font.family: "JetBrains Mono"
+                            font.family: theme.fontFamily
                             font.pixelSize: window.s(13)
-                            font.weight: index === clipList.currentIndex ? Font.Bold : Font.Medium
-                            color: index === clipList.currentIndex ? window.base : window.text
+                            font.weight: Font.Normal
+                            color: window.text
                             wrapMode: Text.Wrap
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignTop
-                            maximumLineCount: 4 
-                            
+                            maximumLineCount: 4
+
                             id: clipContentText
-                            property real textShift: index === clipList.currentIndex ? window.s(4) : 0
-                            transform: Translate { x: clipContentText.textShift }
-                            Behavior on textShift { NumberAnimation { duration: 500; easing.type: Easing.OutExpo } }
-                            Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutExpo } }
+                            textFormat: Text.PlainText
+                            Behavior on color { ColorAnimation { duration: theme.duration; easing.type: Easing.OutExpo } }
                         }
                     }
 
@@ -731,9 +724,9 @@ Item {
                         enabled: !window.previewMode
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
                         onClicked: (mouse) => {
-                            window.navDuration = 250;
+                            window.navDuration = 120;
                             clipList.currentIndex = index;
-                            
+
                             if (mouse.button === Qt.RightButton) {
                                 window.previewMode = true;
                                 window.updatePreviewText();
@@ -746,46 +739,79 @@ Item {
             }
         }
 
+        Text {
+            anchors.centerIn: clipList
+            visible: clipModel.count === 0
+            text: window.isLoading ? "Loading clipboard…" : (searchInput.text.length ? "No matching entries" : "Your clipboard history is empty")
+            color: window.subtext0
+            font.family: theme.fontFamily
+            font.pixelSize: 13
+        }
+
+        RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            height: mainBg.footerHeight
+            Text {
+                text: "Enter  Copy    Tab  Preview    Esc  Close"
+                color: window.subtext0
+                font.family: theme.fontFamily
+                font.pixelSize: 10
+                Layout.fillWidth: true
+            }
+            Text {
+                text: clipModel.count + (window.hasMore ? "+" : "") + " items"
+                color: window.subtext0
+                font.family: theme.fontFamily
+                font.pixelSize: 10
+            }
+        }
+
         // FULL SCREEN PREVIEW OVERLAY
         Rectangle {
             id: previewMorph
             z: 100
-            
+
             property var curItem: clipList.currentIndex >= 0 && clipModel.count > 0 ? clipModel.get(clipList.currentIndex) : null
             property int curIdx: clipList.currentIndex !== -1 ? clipList.currentIndex : 0
-            
+
             property real gridX: window.s(10)
             property real gridY: mainBg.searchHeight + mainBg.separatorHeight + mainBg.animatedMargins / 2
             property real gridW: mainBg.width - window.s(20)
             property real gridH: mainBg.animatedListHeight
-            
+
             property real startX: gridX + (curIdx % mainBg.cols) * clipList.cellWidth + window.s(5)
             property real startY: gridY + Math.floor(curIdx / mainBg.cols) * clipList.cellHeight - clipList.contentY + window.s(5)
             property real startW: clipList.cellWidth - window.s(10)
             property real startH: clipList.cellHeight - window.s(10)
-            
+
             color: window.crust
             border.color: window.mauve
-            border.width: window.previewMode ? window.s(2) : 0
-            Behavior on border.width { NumberAnimation { duration: 150 } }
+            border.width: window.previewMode ? 1 : 0
+            Behavior on border.width { NumberAnimation { duration: theme.duration } }
             clip: true
-            
+
             Image {
+                    sourceSize.width: 1280
+                    sourceSize.height: 1280
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: window.s(20)
-                
+
                 source: (previewMorph.curItem && previewMorph.curItem.type === "image") ? "file://" + previewMorph.curItem.content : ""
                 fillMode: Image.PreserveAspectFit
-                asynchronous: true 
+                asynchronous: true
                 visible: previewMorph.curItem && previewMorph.curItem.type === "image"
-                
+
                 opacity: window.previewMode ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: 150;  } }
+                Behavior on opacity { NumberAnimation { duration: theme.duration;  } }
             }
-            
+
             Flickable {
                 id: textPreviewFlickable
                 anchors.top: parent.top
@@ -793,37 +819,38 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: window.s(20)
-                
+
                 contentWidth: width
                 contentHeight: textPreviewContent.paintedHeight
                 clip: true
-                
-                Behavior on contentY { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                
+
+                Behavior on contentY { NumberAnimation { duration: theme.duration; easing.type: Easing.OutCubic } }
+
                 visible: previewMorph.curItem && previewMorph.curItem.type === "text"
                 opacity: window.previewMode ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: 150;  } }
-                
+                Behavior on opacity { NumberAnimation { duration: theme.duration;  } }
+
                 TextEdit {
                     id: textPreviewContent
+                    textFormat: TextEdit.PlainText
                     width: parent.width
-                    
+
                     text: {
                         if (!window.previewMode || !previewMorph.curItem || previewMorph.curItem.type !== "text") return "";
-                        
+
                         if (window.fullTextPreview !== "") {
                             if (!window.previewAnimationDone && window.fullTextPreview.length > 3000) {
                                 return window.fullTextPreview.substring(0, 3000);
                             }
                             return window.fullTextPreview;
                         }
-                        
-                        return previewMorph.curItem.content; 
+
+                        return previewMorph.curItem.content;
                     }
-                    
+
                     color: window.text
-                    font.family: "JetBrains Mono"
-                    font.pixelSize: window.s(14)
+                    font.family: theme.fontFamily
+                    font.pixelSize: theme.fontBody
                     wrapMode: TextEdit.Wrap
                     readOnly: true
                     selectByMouse: true
@@ -831,43 +858,43 @@ Item {
                     selectedTextColor: window.mauve
                 }
             }
-            
+
             states: [
                 State {
                     name: "hidden"
                     when: !window.previewMode
-                    PropertyChanges { 
-                        target: previewMorph; 
-                        opacity: 0; 
-                        x: previewMorph.startX; 
-                        y: previewMorph.startY; 
-                        width: previewMorph.startW; 
-                        height: previewMorph.startH; 
-                        radius: window.s(8) 
+                    PropertyChanges {
+                        target: previewMorph;
+                        opacity: 0;
+                        x: previewMorph.startX;
+                        y: previewMorph.startY;
+                        width: previewMorph.startW;
+                        height: previewMorph.startH;
+                        radius: window.s(8)
                     }
                 },
                 State {
                     name: "visible"
                     when: window.previewMode
-                    PropertyChanges { 
-                        target: previewMorph; 
-                        opacity: 1; 
-                        x: previewMorph.gridX; 
-                        y: previewMorph.gridY; 
-                        width: previewMorph.gridW; 
-                        height: previewMorph.gridH; 
-                        radius: window.s(12) 
+                    PropertyChanges {
+                        target: previewMorph;
+                        opacity: 1;
+                        x: previewMorph.gridX;
+                        y: previewMorph.gridY;
+                        width: previewMorph.gridW;
+                        height: previewMorph.gridH;
+                        radius: window.s(12)
                     }
                 }
             ]
-            
+
             transitions: [
                 Transition {
                     from: "hidden"; to: "visible"
                     SequentialAnimation {
                         ParallelAnimation {
-                            NumberAnimation { target: previewMorph; property: "opacity"; duration: 50 } 
-                            NumberAnimation { properties: "x,y,width,height,radius"; duration: 300; easing.type: Easing.OutExpo } 
+                            NumberAnimation { target: previewMorph; property: "opacity"; duration: 50 }
+                            NumberAnimation { properties: "x,y,width,height,radius"; duration: theme.duration; easing.type: Easing.OutExpo }
                         }
                         ScriptAction { script: { window.previewAnimationDone = true; } }
                     }
@@ -875,9 +902,9 @@ Item {
                 Transition {
                     from: "visible"; to: "hidden"
                     ParallelAnimation {
-                        NumberAnimation { properties: "x,y,width,height,radius"; duration: 250; easing.type: Easing.OutExpo } 
+                        NumberAnimation { properties: "x,y,width,height,radius"; duration: theme.duration; easing.type: Easing.OutExpo }
                         SequentialAnimation {
-                            PauseAnimation { duration: 150 }
+                            PauseAnimation { duration: 20 }
                             NumberAnimation { target: previewMorph; property: "opacity"; to: 0; duration: 100 }
                         }
                     }

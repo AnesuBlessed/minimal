@@ -1,8 +1,7 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import "."
-import "WindowRegistry.js" as LayoutMath 
+import "WindowRegistry.js" as LayoutMath
 
 Item {
     id: root
@@ -24,7 +23,7 @@ Item {
     }
 
     property real baseScale: rawBaseScale
-    Behavior on baseScale { NumberAnimation { duration: 150 } }
+    Behavior on baseScale { NumberAnimation { duration: 120 } }
     
     function s(val) { 
         return LayoutMath.s(val, baseScale); 

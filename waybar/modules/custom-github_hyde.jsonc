@@ -1,8 +1,0 @@
-{
-  "custom/github_hyde": {
-    "format": "󰊤",
-    "rotate": 0,
-    "tooltip-format": "GitHub",
-    "on-click": "xdg-open https://github.com"
-  }
-}

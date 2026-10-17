@@ -6,6 +6,16 @@
 local mainMod = "SUPER"
 local paths = require("paths")
 
+local raw_bind = hl.raw_bind or hl.bind
+hl.raw_bind = raw_bind
+hl.bind = function(combo, action, opts)
+    pcall(hl.unbind, combo)
+    if opts then
+        return raw_bind(combo, action, opts)
+    end
+    return raw_bind(combo, action)
+end
+
 -- =====================================================
 -- Window Management
 -- =====================================================
@@ -27,10 +37,10 @@ hl.bind(mainMod .. " + CTRL + up",    hl.dsp.window.move({ direction = "up" }))
 hl.bind(mainMod .. " + CTRL + down",  hl.dsp.window.move({ direction = "down" }))
 
 -- Resize Active Window (Super + Shift + Arrows)
-hl.bind(mainMod .. " + SHIFT + left",  function() hl.dispatch("resizeactive", "-30 0") end, { repeating = true })
-hl.bind(mainMod .. " + SHIFT + right", function() hl.dispatch("resizeactive", "30 0") end,  { repeating = true })
-hl.bind(mainMod .. " + SHIFT + up",    function() hl.dispatch("resizeactive", "0 -30") end, { repeating = true })
-hl.bind(mainMod .. " + SHIFT + down",  function() hl.dispatch("resizeactive", "0 30") end,  { repeating = true })
+hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.resize({ x = -30, y = 0, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x = 30, y = 0, relative = true }),  { repeating = true })
+hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.resize({ x = 0, y = -30, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.resize({ x = 0, y = 30, relative = true }),  { repeating = true })
 
 -- Workspaces Switching & Moving (Super + [1-9])
 for i = 1, 9 do
@@ -51,17 +61,20 @@ hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 -- =====================================================
 -- Applications & Shell Controls
 -- =====================================================
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("footclient || foot"))
-hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("firefox"))
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("firefox"))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("dolphin"))
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(paths.script("terminal.sh")))
+hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " browser"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " browser"))
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " files"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(paths.script("launcher.sh")))
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(paths.script("clipboard.sh")))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallchange.sh")))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(paths.script("wallchange.sh") .. " --random"))
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd(paths.script("usb-menu.sh")))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("nm-connection-editor"))
-hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("pavucontrol"))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " network"))
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " bluetooth"))
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " audio"))
+hl.bind(mainMod .. " + slash", hl.dsp.exec_cmd(paths.script("keybinds.sh")))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && " .. paths.script("waybar.sh") .. " --reload"))
 
 -- Power & Session Management
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
@@ -70,7 +83,7 @@ hl.bind("XF86PowerOff", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
 
 -- Laptop Lid Behavior (Safe lock on close, wake on open)
 hl.bind("switch:on:Lid Switch", hl.dsp.exec_cmd(paths.script("lock.sh")), { locked = true })
-hl.bind("switch:off:Lid Switch", function() hl.dispatch("hl.dsp.dpms({action = 'on'})") end, { locked = true })
+hl.bind("switch:off:Lid Switch", hl.dsp.dpms("on"), { locked = true })
 
 -- Notification Controls (Mako / Dunst)
 hl.bind(mainMod .. " + SHIFT + N",       hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dismiss"))
@@ -82,9 +95,9 @@ hl.bind(mainMod .. " + SHIFT + D",       hl.dsp.exec_cmd(paths.script("notificat
 -- Media & System Controls
 -- =====================================================
 -- Screenshots
-hl.bind("Print",         hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | satty --filename - --fullscreen'))
-hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd("grim - | wl-copy"))
+hl.bind("Print",               hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " region"))
+hl.bind("SHIFT + Print",       hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " edit"))
+hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " full"))
 
 -- Audio Controls (WirePlumber)
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume up"), { locked = true, repeating = true })

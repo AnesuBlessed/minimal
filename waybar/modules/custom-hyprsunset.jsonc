@@ -1,8 +1,8 @@
 {
   "custom/hyprsunset": {
-    "format": "󰛨",
+    "format": "\udb81\udee8",
     "tooltip": true,
     "tooltip-format": "Night Light / Hyprsunset (Click to toggle)",
-    "on-click": "bash -c 'pidof hyprsunset >/dev/null && pkill hyprsunset || (hyprsunset -t 4500 >/dev/null 2>&1 &)'"
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/night-light.sh\""
   }
 }

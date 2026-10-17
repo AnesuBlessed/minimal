@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""One-shot wallpaper palette; no HyDE dependency and no Python daemon."""
+"""One-shot wallpaper palette generator with no background daemon."""
 import colorsys
 import fcntl
 import os
 from pathlib import Path
-import re
 import sys
 import tempfile
-from PIL import Image
+import json
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def atomic_write(path, text):
+    if path.exists() and path.read_text() == text:
+        return
     fd, name = tempfile.mkstemp(prefix=".minimal-", dir=path.parent)
     try:
         with os.fdopen(fd, "w") as stream:
             stream.write(text)
-        os.chmod(name, path.stat().st_mode & 0o777)
+        os.chmod(name, (path.stat().st_mode & 0o777) if path.exists() else 0o644)
         os.replace(name, path)
     finally:
         if os.path.exists(name):
@@ -25,6 +26,7 @@ def atomic_write(path, text):
 
 
 def main():
+    from PIL import Image
     if len(sys.argv) != 2:
         raise SystemExit("Usage: update_fuzzel_colors.py WALLPAPER")
     with Image.open(sys.argv[1]) as source:
@@ -33,33 +35,19 @@ def main():
         dominant = source.quantize(colors=8).convert("RGB")
         rgb = max(dominant.getcolors(96 * 96), key=lambda item: item[0])[1]
     hue, _, saturation = colorsys.rgb_to_hls(*(value / 255 for value in rgb))
-    saturation = min(0.45, max(0.18, saturation))
-
-    def color(lightness):
-        return "".join(f"{round(v * 255):02x}" for v in colorsys.hls_to_rgb(hue, lightness, saturation))
-
-    bg, pill, accent = color(0.10), color(0.25), color(0.78)
+    # Wallpaper supplies only the accent; neutral surfaces stay recognizable.
+    accent = "".join(f"{round(v * 255):02x}" for v in colorsys.hls_to_rgb(
+        hue, 0.78, min(0.24, max(0.10, saturation))))
     cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "minimal"
     cache.mkdir(parents=True, exist_ok=True)
     with (cache / "palette.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        path = ROOT / "fuzzel/fuzzel.ini"
-        text = path.read_text()
-        before, rest = text.split("[colors]", 1)
-        section, after = rest.split("[border]", 1)
-        values = {"background": bg + "f0", "text": "ffffffff", "prompt": accent + "ff",
-                  "match": accent + "ff", "selection": pill + "ff", "selection-text": "ffffffff",
-                  "selection-match": accent + "ff", "border": accent + "55"}
-        for key, value in values.items():
-            section = re.sub(rf"^{re.escape(key)}=.*$", f"{key}={value}", section, flags=re.M)
-        atomic_write(path, before + "[colors]" + section + "[border]" + after)
-        palette = ROOT / "colors.css"
-        css = palette.read_text()
-        values = {"bg-glass": f"alpha(#{bg}, 0.88)", "bg-glass-hover": f"alpha(#{pill}, 0.95)",
-                  "border-glass": f"alpha(#{accent}, 0.30)", "accent": f"#{accent}", "accent-dark": f"#{bg}"}
-        for key, value in values.items():
-            css = re.sub(rf"@define-color {key} [^;]+;", f"@define-color {key} {value};", css)
-        atomic_write(palette, css)
+        path = ROOT / "theme.json"
+        theme = json.loads(path.read_text())
+        theme["colors"]["accent"] = accent
+        atomic_write(path, json.dumps(theme, indent=2) + "\n")
+        import runpy
+        runpy.run_path(str(ROOT / "scripts/sync-theme.py"), run_name="__main__")
 
 
 if __name__ == "__main__":

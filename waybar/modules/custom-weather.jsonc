@@ -1,6 +1,6 @@
 {
   "custom/weather": {
-    "exec": "curl -s 'https://wttr.in/?format=1' 2>/dev/null || echo ''",
+    "exec": "curl --connect-timeout 5 --max-time 10 -fsSL 'https://wttr.in/?format=1' 2>/dev/null || echo ''",
     "tooltip": true,
     "format": "{}",
     "interval": 3600

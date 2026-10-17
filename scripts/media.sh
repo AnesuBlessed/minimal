@@ -5,8 +5,8 @@ export LC_ALL=C
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
 kind=${1:-}; action=${2:-}
 case "$kind:$action" in
-    volume:up|volume:down|volume:mute|mic:mute|brightness:up|brightness:down) ;;
-    *) printf 'Usage: %s volume up|down|mute / mic mute / brightness up|down\n' "$0" >&2; exit 2 ;;
+    volume:up|volume:down|volume:mute|mic:up|mic:down|mic:mute|brightness:up|brightness:down) ;;
+    *) printf 'Usage: %s volume up|down|mute / mic up|down|mute / brightness up|down\n' "$0" >&2; exit 2 ;;
 esac
 mkdir -p -- "$MINIMAL_RUNTIME"
 exec 9>"$MINIMAL_RUNTIME/media-$kind.lock"

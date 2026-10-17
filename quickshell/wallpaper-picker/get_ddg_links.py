@@ -32,6 +32,13 @@ def get_state():
     except Exception:
         return "run"
 
+def read_bounded(response, limit=4 * 1024 * 1024):
+    with response:
+        data = response.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError("Search response exceeds size limit")
+    return data
+
 def main():
     log("=== NEW SEARCH STARTING (Safe Search: OFF) ===")
     if len(sys.argv) < 2: 
@@ -59,7 +66,7 @@ def main():
     for i in range(3):
         try:
             req = urllib.request.Request(search_url, headers=headers)
-            html = urllib.request.urlopen(req, timeout=10).read().decode("utf-8")
+            html = read_bounded(urllib.request.urlopen(req, timeout=10)).decode("utf-8")
             match = re.search(r'vqd=([0-9a-zA-Z_-]+)', html) or re.search(r'vqd[\'\"]?\s*:\s*[\'\"]?([0-9a-zA-Z_-]+)', html)
             
             if match: 
@@ -114,16 +121,20 @@ def main():
         try:
             req = urllib.request.Request(url, headers=headers)
             response = urllib.request.urlopen(req, timeout=10)
-            data = json.loads(response.read().decode("utf-8"))
+            data = json.loads(read_bounded(response).decode("utf-8"))
             results = data.get("results", [])
             log(f"Successfully parsed JSON. Found {len(results)} raw image results.")
             
             for res in results:
-                width = int(res.get("width", 0))
-                height = int(res.get("height", 0))
+                try:
+                    width = int(res.get("width") or 0)
+                    height = int(res.get("height") or 0)
+                except (TypeError, ValueError):
+                    continue
                 if width >= 1920 and height >= 1080:
                     t, i = res.get("thumbnail"), res.get("image")
-                    if t and i:
+                    if (t and i and all(urllib.parse.urlparse(u).scheme in ('http', 'https')
+                                       and not any(c in u for c in '\n\r|') for u in (t, i))):
                         try:
                             sys.stdout.write(f"{t}|{i}\n")
                             sys.stdout.flush()

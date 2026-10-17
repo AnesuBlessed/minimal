@@ -1,9 +1,10 @@
 {
   "custom/clipboard": {
-    "format": "󰅌",
+    "format": "\udb80\udd4c",
+    "interval": "once",
     "tooltip": true,
     "tooltip-format": "Clipboard (Click to browse, Right-click to wipe)",
-    "on-click": "bash -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy'",
-    "on-click-right": "cliphist wipe"
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/clipboard.sh\"",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/clipboard-action.sh\" wipe && notify-send Clipboard \"Clipboard history cleared\""
   }
 }

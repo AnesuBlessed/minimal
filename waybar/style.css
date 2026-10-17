@@ -1,12 +1,6 @@
-/* =============================================================================
- *  MINIMAL / HYDE WAYBAR — BASE STYLE ENGINE
- * ============================================================================= */
-
-/* Base HyDE Style Engine */
-@import "styles/hyprdots.css";
-
-/* Theme color definitions */
+/* Minimal: one palette, existing module layouts, final shared surface rules. */
+@import "colors.css";
 @import "theme.css";
-
-/* User frosted glass and geometric overrides */
+@import "styles/defaults.css";
 @import "user-style.css";
+@import "design.css";

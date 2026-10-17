@@ -2,53 +2,38 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "."
 
 ShellRoot {
-    id: root
-
+    Palette { id: theme }
     Connections {
         target: Quickshell
         function onReloadCompleted() { Quickshell.inhibitReloadPopup() }
-        function onReloadFailed(errorString) { Quickshell.inhibitReloadPopup() }
     }
-
     PanelWindow {
         id: pickerWindow
+        screen: Quickshell.screens.find(s => s.name === Quickshell.env("MINIMAL_POPUP_OUTPUT")) || Quickshell.screens[0]
         color: "transparent"
-
+        anchors.bottom: true
+        implicitWidth: screen.width
+        implicitHeight: Math.min(650, screen.height - 48)
         WlrLayershell.namespace: "qs-wallpaper-picker"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         exclusionMode: ExclusionMode.Ignore
         focusable: true
-
-        implicitWidth: Screen.width
-        implicitHeight: Screen.height
-
-        // Darkened backdrop overlay
+        HyprlandFocusGrab { windows: [pickerWindow]; active: true; onCleared: Qt.quit() }
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0.04, 0.04, 0.06, 0.70)
-        }
-
-        // Background click dismisses the picker
-        MouseArea {
-            anchors.fill: parent
-            z: -1
-            onClicked: {
-                Quickshell.execDetached(["quickshell", "kill", "-p", Quickshell.shellDir])
+            topLeftRadius: theme.panelRadius; topRightRadius: theme.panelRadius
+            color: theme.panel; border.width: 1; border.color: theme.border
+            Rectangle {
+                y: 9; width: 32; height: 3; radius: 1.5
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: theme.muted; opacity: 0.4
             }
         }
-
-        // Centered Wallpaper Picker
-        WallpaperPicker {
-            id: picker
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            height: picker.s(650)
-            focus: true
-        }
+        WallpaperPicker { anchors.fill: parent; focus: true }
     }
 }

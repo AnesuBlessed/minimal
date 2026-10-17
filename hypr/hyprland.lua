@@ -1,7 +1,7 @@
 -- =============================================================================
 --  MINIMAL — HYPRLAND MASTER CONFIGURATION (LUA)
 -- =============================================================================
---  Strictly adheres to RULES.md:
+--  Design principles summarized in README.md:
 --  - Future-proof native Lua engine (Hyprland 0.56+)
 --  - Zero runtime bloat, VFR enabled for low latency and cool iGPU operation
 --  - Event-driven architecture with native C utilities
@@ -9,7 +9,18 @@
 
 -- Add script directory to Lua package path for clean modular require()
 local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.*/)") or "./"
-package.path = script_dir .. "?.lua;" .. package.path
+local config_hypr = (os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config")) .. "/hypr/"
+package.path = script_dir .. "?.lua;" .. config_hypr .. "?.lua;" .. package.path
+
+-- Invalidate component cache so re-evaluating hyprland.lua always reloads all modules
+package.loaded["paths"] = nil
+package.loaded["monitors"] = nil
+package.loaded["hardware"] = nil
+package.loaded["looknfeel"] = nil
+package.loaded["keybinds"] = nil
+package.loaded["rules"] = nil
+package.loaded["colors"] = nil
+package.loaded["hyprland"] = nil
 
 -- --- Modular Component Inclusions ---
 local paths = require("paths")

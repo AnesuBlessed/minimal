@@ -2,19 +2,19 @@
 #  MINIMAL MAKO — LIGHTWEIGHT WAYLAND NOTIFICATIONS
 # =============================================================================
 #  - Ultra-lean C-native notification daemon
-#  - Minimalist floating dark glass styling with sage-olive accent
+#  - Minimalist floating dark glass styling with a wallpaper-derived accent
 # =============================================================================
 
-font=JetBrainsMono Nerd Font 10
-background-color=#16161af0
-text-color=#e4e4e7
+font=JetBrainsMono Nerd Font 12
+background-color=#171c1ef0
+text-color=#eef0f0
 width=320
 height=110
 margin=12
 padding=10
 border-size=1
-border-color=#b8c47088
-border-radius=10
+border-color=#cdc5c14c
+border-radius=12
 default-timeout=4000
 group-by=summary
 icons=1
@@ -22,31 +22,32 @@ max-icon-size=48
 layer=overlay
 
 [urgency=low]
-border-color=#252528cc
+border-color=#cdc5c14c
 default-timeout=2500
 
 [urgency=normal]
-border-color=#b8c47088
+border-color=#cdc5c14c
 default-timeout=4000
 
 [urgency=critical]
-border-color=#e06c75ee
-text-color=#ffffff
+border-color=#e06c754c
+text-color=#eef0f0
 default-timeout=0
 
 # Replacement-tagged OSDs stay separate from normal notification history.
 [app-name=minimal-osd]
+font=JetBrainsMono Nerd Font 10
 anchor=bottom-center
 margin=0,0,64,0
-width=300
-height=52
-padding=14
+width=200
+height=32
+padding=6,10
 border-size=1
-border-radius=10
-background-color=#181822f5
-text-color=#f4f4f5
-border-color=#b8c47088
-progress-color=over #b8c47033
+border-radius=6
+background-color=#171c1ef0
+text-color=#eef0f0
+border-color=#cdc5c14c
+progress-color=over #cdc5c166
 format=%s
 icons=0
 history=0

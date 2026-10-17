@@ -3,18 +3,12 @@
     "output": [
         "*"
     ],
-    "height": 10,
+    "height": 40,
     "exclusive": true,
     "passthrough": false,
     "reload_style_on_change": true,
     "include": [
-        "$XDG_CONFIG_HOME/waybar/modules/*json*",
-        "$XDG_CONFIG_HOME/waybar/includes/includes.json",
-        "$HOME/.config/waybar/modules/*.jsonc",
-        "$HOME/.config/waybar/modules/*.json",
-        "modules/*.jsonc",
-        "modules/*.json",
-        "includes/includes.json"
+        "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/includes/includes.json"
     ],
     "modules-left": [
         "group/pill#left1",
@@ -62,6 +56,7 @@
     "group/pill#right2": {
         "modules": [
             "privacy",
+            "bluetooth",
             "tray",
             "battery"
         ],
@@ -70,7 +65,7 @@
     "group/pill#right3": {
         "modules": [
             "custom/cliphist",
-            "custom/hyde-menu",
+            "custom/menu",
             "custom/power"
         ],
         "orientation": "inherit"

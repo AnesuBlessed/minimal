@@ -44,13 +44,20 @@ local function parse_env_line(line)
     return key, val
 end
 
+local M = {
+    vfr = (os.getenv("HYPR_VFR") ~= "false" and os.getenv("HYPR_VFR") ~= "0"),
+    blur = (os.getenv("HYPR_BLUR") == "true" or os.getenv("HYPR_BLUR") == "1"),
+}
+
 local function apply_flags(vars)
     for k, v in pairs(vars) do
         hl.env(k, v)
         if k == "HYPR_VFR" then
-            hl.config({ debug = { vfr = (v == "true" or v == "1") } })
+            M.vfr = (v == "true" or v == "1")
+            hl.config({ debug = { vfr = M.vfr } })
         elseif k == "HYPR_BLUR" then
-            hl.config({ decoration = { blur = { enabled = (v == "true" or v == "1") } } })
+            M.blur = (v == "true" or v == "1")
+            hl.config({ decoration = { blur = { enabled = M.blur } } })
         end
     end
 end
@@ -91,9 +98,11 @@ if ok and detected_vars and next(detected_vars) ~= nil then
 else
     -- Graceful fallback if hardware-detect is not yet run or fails
     hl.config({
-        debug = { vfr = true },
-        decoration = { blur = { enabled = false } },
+        debug = { vfr = M.vfr },
+        decoration = { blur = { enabled = M.blur } },
     })
-    hl.env("HYPR_VFR", "true")
-    hl.env("HYPR_BLUR", "false")
+    hl.env("HYPR_VFR", M.vfr and "true" or "false")
+    hl.env("HYPR_BLUR", M.blur and "true" or "false")
 end
+
+return M

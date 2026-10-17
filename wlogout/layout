@@ -1,36 +1,36 @@
 {
     "label": "lock",
-    "action": "$HOME/.config/minimal/scripts/lock.sh",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" lock",
     "text": "Lock",
     "keybind": "l"
 }
 {
     "label": "logout",
-    "action": "hyprctl dispatch exit",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" logout",
     "text": "Logout",
     "keybind": "e"
 }
 {
     "label": "suspend",
-    "action": "systemctl suspend",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" suspend",
     "text": "Suspend",
     "keybind": "u"
 }
 {
     "label": "shutdown",
-    "action": "systemctl poweroff",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" poweroff",
     "text": "Shutdown",
     "keybind": "s"
 }
 {
     "label": "hibernate",
-    "action": "systemctl hibernate",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" hibernate",
     "text": "Hibernate",
     "keybind": "h"
 }
 {
     "label": "reboot",
-    "action": "systemctl reboot",
+    "action": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/power-action.sh\" reboot",
     "text": "Reboot",
     "keybind": "r"
 }

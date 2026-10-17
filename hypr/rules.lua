@@ -3,11 +3,11 @@
 -- -----------------------------------------------------------------------------
 -- Rule 4: Clean, Ergonomic Window Management
 
--- Floating Utilities & Dialogs
+-- Floating Utilities & Dialogs (Curved 10px edges inherited from decoration.rounding)
 hl.window_rule({
     name  = "floating_utilities",
     match = {
-        class = "^(pavucontrol|org.pulseaudio.pavucontrol|blueman-manager|nm-connection-editor|file-roller|org.gnome.FileRoller|hyprpolkitagent|xdg-desktop-portal-gtk)$",
+        class = "^(pavucontrol|org\\.pulseaudio\\.pavucontrol|blueman-manager|blueman-applet|blueman-services|blueman-adapters|nm-connection-editor|nm-applet|iwgtk|overskride|blueberry\\.py|file-roller|org\\.gnome\\.FileRoller|hyprpolkitagent|xdg-desktop-portal-gtk)$",
     },
     float = true,
 })
@@ -38,7 +38,7 @@ hl.layer_rule({
     match = {
         namespace = "waybar",
     },
-    blur         = true,
+    blur         = false,
     ignore_alpha = 0.5,
 })
 
@@ -46,7 +46,18 @@ hl.layer_rule({
 hl.layer_rule({
     name  = "notifications",
     match = {
-        namespace = "^(notifications|dunst)$",
+        namespace = "^(notifications|mako)$",
     },
+    ignore_alpha = 0.5,
+})
+
+-- Launcher slides in from the bottom edge.
+hl.layer_rule({
+    name  = "launcher_bottom",
+    match = {
+        namespace = "^(launcher|fuzzel|minimal-launcher|qs-clipboard|qs-wallpaper-picker)$",
+    },
+    animation    = "slide bottom",
+    blur         = false,
     ignore_alpha = 0.5,
 })

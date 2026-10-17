@@ -9,6 +9,6 @@
     "on-scroll-up": "playerctl volume 0.05+ --player spotify",
     "on-scroll-down": "playerctl volume 0.05- --player spotify",
     "tooltip": true,
-    "interval": 2
+    "interval": 30
   }
 }

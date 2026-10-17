@@ -9,10 +9,12 @@ source_for() {
 parse_options() {
     CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
     CHECK_ONLY=false
+    AUTO_YES=false
     SELECTED_BACKUP=''
     while (($#)); do
         case $1 in
             --check) CHECK_ONLY=true; shift ;;
+            -y|--yes) AUTO_YES=true; shift ;;
             --config-dir) (($# >= 2)) || fail '--config-dir needs a path'; CONFIG_DIR=$2; shift 2 ;;
             --backup) (($# >= 2)) || fail '--backup needs a path'; SELECTED_BACKUP=$2; shift 2 ;;
             *) fail "Unknown option: $1" ;;
@@ -21,6 +23,13 @@ parse_options() {
     CONFIG_DIR=$(realpath -m -- "$CONFIG_DIR")
     [[ $CONFIG_DIR != / && $CONFIG_DIR != "$SOURCE_DIR" ]] || fail 'Unsafe configuration directory'
     [[ $CONFIG_DIR != *$'\n'* && $CONFIG_DIR != *$'\t'* && $SOURCE_DIR != *$'\n'* && $SOURCE_DIR != *$'\t'* ]] || fail 'Paths cannot contain tabs/newlines'
+    # Compare lexical destinations: resolving existing deployment links would
+    # mistake an ordinary second deployment for overlap.
+    local component destination
+    for component in "${COMPONENTS[@]}" backups; do
+        destination="$CONFIG_DIR/$component"
+        [[ "$SOURCE_DIR/" != "$destination/"* && "$destination/" != "$SOURCE_DIR/"* ]] || fail "Configuration destination overlaps checkout: $destination"
+    done
     BACKUP_BASE="$CONFIG_DIR/backups"
 }
 lock_deployment() {
@@ -28,10 +37,25 @@ lock_deployment() {
     exec 9>"$CONFIG_DIR/.minimal-deployment.lock"
     flock -n 9 || fail 'Another deployment or restore is running'
 }
+# Session registration lives outside CONFIG_DIR, so track it explicitly.
+snapshot_session() {
+    local path=$1
+    [[ ! -d $path || -L $path ]] || fail "Session entry is a directory: $path"
+    printf '%s\n' "$path" > "$TXN/session-path"
+    if exists "$path"; then cp -a -- "$path" "$TXN/session-original"; fi
+}
+rollback_session() {
+    [[ -f $TXN/session-changed ]] || return 0
+    local path
+    read -r path < "$TXN/session-path"
+    if exists "$path"; then mv -T -- "$path" "$TXN/session-interrupted" || return; fi
+    if exists "$TXN/session-original"; then cp -a -- "$TXN/session-original" "$path"; fi
+}
 # Roll back only operations recorded by this transaction. Never follow symlinks.
 rollback_transaction() {
-    local comp dst
+    local comp dst i
     set +e
+    rollback_session
     for ((i=${#CHANGED[@]}-1; i>=0; i--)); do
         comp=${CHANGED[i]}; dst="$CONFIG_DIR/$comp"
         if exists "$TXN/displaced/$comp"; then

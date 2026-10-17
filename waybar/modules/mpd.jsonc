@@ -7,7 +7,7 @@
 	"format": "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ",
 	"format-disconnected": "Disconnected ",
 	"format-stopped": "{consumeIcon}{randomIcon}{repeatIcon}{singleIcon}Stopped ",
-	"interval": 2,
+	"interval": 30,
 	"consume-icons": {
 		"on": " " // Icon shows only when "consume" is on
 	},

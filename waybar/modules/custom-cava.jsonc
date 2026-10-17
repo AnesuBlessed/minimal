@@ -2,7 +2,7 @@
   "custom/cava": {
     "format": "{}",
     "exec": "which cava >/dev/null 2>&1 && cava || true",
-    "restart-interval": 1,
+    "restart-interval": 30,
     "hide-empty": true,
     "tooltip": false
   }

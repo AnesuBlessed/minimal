@@ -28,6 +28,10 @@ while IFS=$'\t' read -r comp state src; do
     [[ $state != present ]] || exists "$BACKUP/original/$comp" || fail "Missing backup: $comp"
 done < "$BACKUP/manifest.tsv"
 ((${#seen[@]} == ${#COMPONENTS[@]})) || fail 'Incomplete backup manifest'
+if [[ -f $BACKUP/session-path ]]; then
+    read -r session_path < "$BACKUP/session-path"
+    [[ -f $session_path && ! -L $session_path ]] && cmp -s -- "$session_path" "$BACKUP/session-installed" || fail "Session entry changed outside deployment: $session_path (preserved)"
+fi
 if $CHECK_ONLY; then printf 'Restore preflight passed: %s\n' "$BACKUP"; exit 0; fi
 TXN=$(mktemp -d "$BACKUP_BASE/restore-$(date +%Y%m%d_%H%M%S_%N)-XXXXXXXX")
 mkdir -- "$TXN/staged" "$TXN/displaced" "$TXN/interrupted" "$TXN/created"
@@ -40,6 +44,13 @@ RESTORE_BACKUP=$BACKUP
 trap transaction_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM HUP
+if [[ -f $BACKUP/session-path ]]; then
+    snapshot_session "$session_path"
+    if exists "$BACKUP/session-original"; then cp -a -- "$BACKUP/session-original" "$TXN/session-staged"; fi
+    touch "$TXN/session-changed"
+    mv -T -- "$session_path" "$TXN/session-displaced"
+    if exists "$TXN/session-staged"; then mv -T -- "$TXN/session-staged" "$session_path"; fi
+fi
 while IFS=$'\t' read -r comp state src; do
     CHANGED+=("$comp")
     mv -T -- "$CONFIG_DIR/$comp" "$TXN/displaced/$comp"

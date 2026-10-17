@@ -1,15 +1,11 @@
-/* HyDE Waybar Theme Palette */
-@define-color bar-bg rgba(38, 38, 38, 0);
-
-@define-color main-bg #262626;
-@define-color main-fg #d9d9d9;
-
-@define-color wb-act-bg #d9d9d9;
-@define-color wb-act-fg #262626;
-
-@define-color wb-hvr-bg #a6a6a6;
-@define-color wb-hvr-fg #262626;
-
-@define-color wb-color #d9d9d9;
-@define-color wb-act-color #262626;
-@define-color wb-hvr-color #262626;
+/* Shared palette aliases; colors.css is loaded first. */
+@define-color bar-bg transparent;
+@define-color main-bg @bg-glass;
+@define-color main-fg @text-main;
+@define-color wb-act-bg @accent;
+@define-color wb-act-fg @accent-dark;
+@define-color wb-hvr-bg @bg-glass-hover;
+@define-color wb-hvr-fg @text-main;
+@define-color wb-color @text-main;
+@define-color wb-act-color @accent-dark;
+@define-color wb-hvr-color @text-main;

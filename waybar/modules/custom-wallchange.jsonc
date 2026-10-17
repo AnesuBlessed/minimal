@@ -3,9 +3,9 @@
     "format": "󰸉",
     "rotate": 0,
     "tooltip-format": "Switch Wallpaper (Click: Random | Right-click: Picker)",
-    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/wallchange.sh --random",
-    "on-click-right": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/wallchange.sh",
-    "on-click-middle": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/wallchange.sh",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/wallchange.sh\" --random",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/wallchange.sh\"",
+    "on-click-middle": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/wallchange.sh\"",
     "interval": 86400,
     "tooltip": true
   }

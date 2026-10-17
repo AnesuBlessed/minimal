@@ -6,11 +6,11 @@
 -- =============================================================================
 
 local colors = {
-    accent        = "rgba(b8c470ee)",
-    accent_subtle = "rgba(8a9454aa)",
-    border_dark   = "rgba(252528cc)",
-    bg_dark       = "0x121214",
-    text_main     = "0xe4e4e7",
+    accent        = "rgba(cdc5c1ee)",
+    accent_subtle = "rgba(cdc5c166)",
+    border_dark   = "rgba(343b3ecc)",
+    bg_dark       = "0x171c1e",
+    text_main     = "0xeef0f0",
 }
 
 return colors

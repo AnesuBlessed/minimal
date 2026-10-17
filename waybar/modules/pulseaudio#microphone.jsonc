@@ -2,13 +2,13 @@
   "pulseaudio#microphone": {
     "format": "{format_source}",
     "rotate": 0,
-    "format-source": "󰍬 {source_volume}%",
+    "format-source": "󰍬 {volume}%",
     "format-source-muted": "󰍭 Muted",
-    "on-click": "pavucontrol -t 4",
-    "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
-    "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SOURCE@ 5%+",
-    "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-",
-    "tooltip-format": "{desc} // {volume}%",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/open-app.sh\" audio",
+    "on-click-middle": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/media.sh\" mic mute",
+    "on-scroll-up": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/media.sh\" mic up",
+    "on-scroll-down": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/media.sh\" mic down",
+    "tooltip-format": "Microphone · {format_source}",
     "scroll-step": 5
   }
 }

@@ -4,6 +4,6 @@
     "tooltip": true,
     "tooltip-format": "  Application Launcher",
     "rotate": 0,
-    "on-click": "${MINIMAL_ROOT:-$HOME/.config/minimal}/scripts/launcher.sh"
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/launcher.sh\""
   }
 }

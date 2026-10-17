@@ -2,7 +2,7 @@
   "privacy": {
     "icon-spacing": 5,
     // "icon-size": 18, // Dynamically generated
-    "transition-duration": 250,
+    "transition-duration": 120,
     "modules": [
       {
         "type": "screenshare",

@@ -3,8 +3,8 @@
     "format": "",
     "rotate": 0,
     "tooltip-format": "Reload Bar (Click) | Toggle Bar (Right-click)",
-    "on-click": "killall -SIGUSR2 waybar",
-    "on-click-right": "killall -SIGUSR1 waybar",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/waybar.sh\" --reload",
+    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/waybar.sh\" --toggle",
     "interval": 86400,
     "tooltip": true
   }

@@ -2,7 +2,7 @@
   "group/eyecare": {
     "orientation": "inherit",
     "drawer": {
-      "transition-duration": "0.5",
+      "transition-duration": 120,
       "children-class": "eyecare-drawer",
       "transition-left-to-right": false,
       "click-to-reveal": false
@@ -15,9 +15,9 @@
   "backlight#eyecare": {
     "format": "<span size='large'>{icon}</span>",
     "format-icons": ["", "", "", "", "", "", "", "", ""],
-    "on-click": "bash -c 'pidof hyprsunset >/dev/null && pkill hyprsunset || (hyprsunset -t 4500 >/dev/null 2>&1 &)'",
-    "on-scroll-up": "brightnessctl set 5%+",
-    "on-scroll-down": "brightnessctl set 5%-",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/night-light.sh\"",
+    "on-scroll-up": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/media.sh\" brightness up",
+    "on-scroll-down": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/media.sh\" brightness down",
     "tooltip": true,
     "min-length": 2,
     "tooltip-format": "Backlight: {icon} {percent}%\n\n󰺤 Scroll to change brightness\n󰳾 Click to toggle night light"

@@ -3,6 +3,15 @@ import "."
 
 Item {
     id: root
+    property color panel: GlobalTheme.panel
+    property color control: GlobalTheme.control
+    property color border: GlobalTheme.border
+    property int panelRadius: GlobalTheme.panelRadius
+    property int controlRadius: GlobalTheme.controlRadius
+    property int duration: GlobalTheme.duration
+    property string fontFamily: GlobalTheme.fontFamily
+    property int fontBody: GlobalTheme.fontBody
+    property int fontSecondary: GlobalTheme.fontSecondary
     property color base: GlobalTheme.base
     property color mantle: GlobalTheme.mantle
     property color crust: GlobalTheme.crust
