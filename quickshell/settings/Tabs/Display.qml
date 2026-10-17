@@ -15,8 +15,6 @@ Item {
     property real marginRight: 55
     property real marginTop: 0
     property real marginBottom: 0
-    readonly property string stateDir: Quickshell.env("HOME") + "/.config/quickshell/state"
-    readonly property string monitorConfigPath: Quickshell.env("HOME") + "/.config/hypr/monitors.lua"
     readonly property var activeMonitors: monitors.filter((m) => {
         return !m.disabled;
     })
@@ -46,113 +44,34 @@ Item {
         };
     }
 
-    function loadState() {
-        try {
-            const saved = JSON.parse(displayFile.text());
-            if (saved && typeof saved.monitors === "object" && saved.monitors !== null)
-                savedState = saved.monitors;
-
-        } catch (error) {
-        }
-    }
-
-    function rememberMonitor(mon, fields) {
-        if (!mon || !mon.name)
-            return ;
-
-        const next = Object.assign({
-        }, savedState);
-        next[mon.name] = Object.assign({
-        }, next[mon.name] || {
-        }, fields);
-        savedState = next;
-        stateSaveTimer.restart();
-    }
-
-    function resetToConfig() {
-        stateSaveTimer.stop();
-        savedState = ({
-        });
-        pReset.command = ["sh", "-c", "rm -f '" + page.stateDir + "/display.json' '" + page.stateDir + "/display.lua'; hyprctl reload"];
-        pReset.running = true;
-    }
-
     function monitorMode(mon) {
         const rate = Number(mon.refreshRate);
         const safeRate = isNaN(rate) ? 0 : rate;
         return mon.width + "x" + mon.height + "@" + safeRate.toFixed(2);
     }
 
-    function luaString(value) {
-        return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+    function applyMonitorSettings(name, mode, pos, scale, disabled) {
+        let cmd = "";
+        if (disabled) {
+            cmd = "hyprctl keyword monitor '" + name + ",disable'";
+        } else {
+            const m = mode || "preferred";
+            const p = pos || "auto";
+            const s = (scale !== undefined && scale > 0) ? scale : 1.0;
+            cmd = "hyprctl keyword monitor '" + name + "," + m + "," + p + "," + s + "'";
+        }
+        pShell.command = ["sh", "-c", cmd + "; python3 \"$MINIMAL_ROOT/scripts/monitors.py\" --apply '" + name + "' '" + (mode || "preferred") + "' '" + (scale || 1.0) + "' 2>/dev/null || true"];
+        pShell.running = true;
     }
 
-    function updateMonitorConfig(output, mode, position, scale, disabled) {
-        const source = monitorConfigFile.text();
-        if (typeof source !== "string" || source.length === 0) {
-            console.warn("Display: could not read " + page.monitorConfigPath);
-            return false;
-        }
-        const lines = source.split("\n");
-        let found = false;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.indexOf("hl.monitor(") < 0)
-                continue;
+    function applyPreset(preset) {
+        pShell.command = ["sh", "-c", "python3 \"$MINIMAL_ROOT/scripts/monitors.py\" --preset '" + preset + "'"];
+        pShell.running = true;
+    }
 
-            const outputMatch = line.match(/output\s*=\s*[\"']([^\"']+)[\"']/);
-            if (!outputMatch || outputMatch[1] !== output)
-                continue;
-
-            let updated = line;
-            const replaceStringField = (key, value) => {
-                if (value === null || value === undefined)
-                    return ;
-
-                const pattern = new RegExp('(' + key + '\\s*=\\s*[\"\'])[^\"\']*([\"\'])');
-                if (pattern.test(updated))
-                    updated = updated.replace(pattern, (_, before, after) => {
-                        return before + String(value) + after;
-                    });
-                else
-                    updated = updated.replace(/\s*}\s*\)\s*$/, ', ' + key + ' = "' + String(value).replace(/\"/g, '\\"') + '})');
-            };
-            replaceStringField("mode", mode);
-            replaceStringField("position", position);
-            if (scale !== null && scale !== undefined) {
-                const scalePattern = /(scale\s*=\s*)[\d.]+/;
-                if (scalePattern.test(updated))
-                    updated = updated.replace(scalePattern, (_, before) => {
-                        return before + Number(scale).toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-                    });
-                else
-                    updated = updated.replace(/\s*}\s*\)\s*$/, ', scale = ' + Number(scale).toFixed(3).replace(/0+$/, "").replace(/\.$/, "") + '})');
-            }
-            if (disabled !== null && disabled !== undefined) {
-                const disabledPattern = /(disabled\s*=\s*)(true|false)/;
-                if (disabled === true) {
-                    if (disabledPattern.test(updated))
-                        updated = updated.replace(disabledPattern, "$1true");
-                    else
-                        updated = updated.replace(/\s*}\s*\)\s*$/, ', disabled = true})');
-                } else if (disabledPattern.test(updated)) {
-                    updated = updated.replace(/,\s*disabled\s*=\s*(?:true|false)/, "");
-                }
-            }
-            lines[i] = updated;
-            found = true;
-            break;
-        }
-        if (!found) {
-            console.warn("Display: no existing hl.monitor entry found for " + output);
-            return false;
-        }
-        const updatedSource = lines.join("\n");
-        if (updatedSource !== source) {
-            monitorConfigFile.setText(updatedSource);
-            configReloadTimer.restart();
-        }
-        return true;
+    function resetToConfig() {
+        pReset.command = ["sh", "-c", "rm -f \"$MINIMAL_STATE/monitors.json\" \"$MINIMAL_STATE/monitors.lua\"; hyprctl reload; python3 \"$MINIMAL_ROOT/scripts/monitors.py\" --preset extend-right 2>/dev/null || true"];
+        pReset.running = true;
     }
 
     function setPosition(mon, x, y) {
@@ -162,12 +81,7 @@ Item {
         const position = Math.round(Number(x)) + "x" + Math.round(Number(y));
         const mode = monitorMode(mon);
         const scale = mon.scale !== undefined ? mon.scale : 1;
-        rememberMonitor(mon, {
-            "mode": mode,
-            "position": position,
-            "scale": scale
-        });
-        updateMonitorConfig(mon.name, mode, position, scale);
+        applyMonitorSettings(mon.name, mode, position, scale, false);
     }
 
     function gluePosition(movedMon, x, y, w, h) {
@@ -236,38 +150,11 @@ Item {
         return !mon.disabled && page.activeMonitors.length > 0 && mon.x === 0 && mon.y === 0;
     }
 
-    function layoutCommands(ordered) {
-        const cmds = [];
-        let x = 0;
-        for (let i = 0; i < ordered.length; i++) {
-            const m = ordered[i];
-            const mode = monitorMode(m);
-            const pos = x + "x0";
-            rememberMonitor(m, {
-                "mode": mode,
-                "position": pos,
-                "disabled": false
-            });
-            updateMonitorConfig(m.name, mode, pos, m.scale !== undefined ? m.scale : 1);
-            x += Math.round(m.width / m.scale);
-        }
-        if (ordered.length > 0)
-            cmds.push("hyprctl dispatch focusmonitor '" + ordered[0].name + "'");
-
-        return cmds;
-    }
-
     function setMainMonitor(main) {
         if (!main || !main.name || main.disabled)
             return ;
 
-        const others = page.activeMonitors.filter((m) => {
-            return m.name !== main.name;
-        }).sort((a, b) => {
-            return a.x - b.x;
-        });
-        const cmds = layoutCommands([main].concat(others));
-        pShell.command = ["sh", "-c", cmds.join("; ")];
+        pShell.command = ["sh", "-c", "hyprctl dispatch focusmonitor '" + main.name + "'"];
         pShell.running = true;
     }
 
@@ -275,44 +162,14 @@ Item {
         if (!mon || !mon.name)
             return ;
 
-        let cmds = [];
         if (enabled) {
-            const entry = savedState[mon.name] || {
-            };
-            const mode = typeof entry.mode === "string" ? entry.mode : monitorMode(mon);
-            const scale = typeof entry.scale === "number" ? entry.scale : (mon.scale !== undefined ? mon.scale : 1);
-            const position = typeof entry.position === "string" ? entry.position : (mon.x + "x" + mon.y);
-            rememberMonitor(mon, {
-                "mode": mode,
-                "scale": scale,
-                "position": position,
-                "disabled": false
-            });
-            updateMonitorConfig(mon.name, mode, position, scale, false);
-            cmds.push("hyprctl reload");
+            applyMonitorSettings(mon.name, monitorMode(mon), (mon.x || 0) + "x" + (mon.y || 0), mon.scale || 1, false);
         } else {
             if (page.activeMonitors.length <= 1)
                 return ;
 
-            const wasMain = isMain(mon);
-            rememberMonitor(mon, {
-                "mode": monitorMode(mon),
-                "scale": mon.scale,
-                "disabled": true
-            });
-            updateMonitorConfig(mon.name, monitorMode(mon), mon.x + "x" + mon.y, mon.scale !== undefined ? mon.scale : 1, true);
-            cmds.push("hyprctl keyword monitor '" + mon.name + ",disable'");
-            if (wasMain) {
-                const rest = page.activeMonitors.filter((m) => {
-                    return m.name !== mon.name;
-                }).sort((a, b) => {
-                    return a.x - b.x;
-                });
-                cmds = cmds.concat(layoutCommands(rest));
-            }
+            applyMonitorSettings(mon.name, monitorMode(mon), (mon.x || 0) + "x" + (mon.y || 0), mon.scale || 1, true);
         }
-        pShell.command = ["sh", "-c", cmds.join("; ")];
-        pShell.running = true;
     }
 
     function refresh() {
@@ -379,13 +236,8 @@ Item {
             page.monitors = updated;
         }
         const mode = monitorMode(mon);
-        const position = mon.x + "x" + mon.y;
-        rememberMonitor(mon, {
-            "mode": mode,
-            "position": position,
-            "scale": applied
-        });
-        updateMonitorConfig(mon.name, mode, position, applied);
+        const position = (mon.x !== undefined ? mon.x : 0) + "x" + (mon.y !== undefined ? mon.y : 0);
+        applyMonitorSettings(mon.name, mode, position, applied, false);
     }
 
     function resolutionList(mon) {
@@ -449,13 +301,8 @@ Item {
             return ;
 
         const scale = mon.scale !== undefined ? mon.scale : 1;
-        const position = mon.x + "x" + mon.y;
-        rememberMonitor(mon, {
-            "mode": mode,
-            "position": position,
-            "scale": scale
-        });
-        updateMonitorConfig(mon.name, mode, position, scale);
+        const position = (mon.x !== undefined ? mon.x : 0) + "x" + (mon.y !== undefined ? mon.y : 0);
+        applyMonitorSettings(mon.name, mode, position, scale, false);
     }
 
     function refreshRates(mon) {
@@ -498,76 +345,16 @@ Item {
 
         const mode = mon.width + "x" + mon.height + "@" + Number(rate).toFixed(2);
         const scale = mon.scale !== undefined ? mon.scale : 1;
-        const position = mon.x + "x" + mon.y;
-        rememberMonitor(mon, {
-            "mode": mode,
-            "position": position,
-            "scale": scale
-        });
-        updateMonitorConfig(mon.name, mode, position, scale);
+        const position = (mon.x !== undefined ? mon.x : 0) + "x" + (mon.y !== undefined ? mon.y : 0);
+        applyMonitorSettings(mon.name, mode, position, scale, false);
     }
 
-    Component.onCompleted: {
-        stateDirProcess.running = true;
-        loadState();
-    }
-
-    Process {
-        id: stateDirProcess
-        command: ["mkdir", "-p", page.stateDir]
-    }
-
-    FileView {
-        id: displayFile
-        path: page.stateDir + "/display.json"
-        blockLoading: true
-    }
-
-    FileView {
-        id: displayLua
-        path: page.stateDir + "/display.lua"
-    }
-
-    FileView {
-        id: monitorConfigFile
-        path: page.monitorConfigPath
-        blockLoading: true
-    }
-
-    Timer {
-        id: stateSaveTimer
-        interval: 300
-        onTriggered: {
-            try {
-                displayFile.setText(JSON.stringify({
-                    "monitors": page.savedState
-                }, null, 2));
-            } catch (error) {
-            }
-        }
-    }
+    Component.onCompleted: page.refresh()
 
     Process {
         id: pReset
         onExited: (exitCode) => {
             refreshTimer.restart();
-        }
-    }
-
-    Timer {
-        id: configReloadTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            pConfigReload.command = ["hyprctl", "reload"];
-            pConfigReload.running = true;
-        }
-    }
-
-    Process {
-        id: pConfigReload
-        onExited: (exitCode) => {
-            return refreshTimer.restart();
         }
     }
 
@@ -640,6 +427,50 @@ Item {
                 width: parent.width
                 height: 1
                 color: Theme.border
+            }
+
+            Row {
+                width: parent.width
+                spacing: 8
+                visible: page.monitors.length > 1
+
+                Repeater {
+                    model: [
+                        { "label": "EXTEND RIGHT", "preset": "extend-right" },
+                        { "label": "EXTEND LEFT", "preset": "extend-left" },
+                        { "label": "MIRROR", "preset": "mirror" },
+                        { "label": "LAPTOP ONLY", "preset": "internal-only" },
+                        { "label": "EXTERNAL ONLY", "preset": "external-only" }
+                    ]
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: (parent.width - 32) / 5
+                        height: 30
+                        radius: Theme.radiusSm
+                        color: presetMouse.containsMouse ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
+                        border.width: 1
+                        border.color: presetMouse.containsMouse ? Theme.accent : Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: presetMouse.containsMouse ? Theme.accent : Theme.textDim
+                            font.family: Theme.monoFont
+                            font.pixelSize: 9
+                            font.bold: true
+                            font.letterSpacing: 0.5
+                        }
+
+                        MouseArea {
+                            id: presetMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: page.applyPreset(modelData.preset)
+                        }
+                    }
+                }
             }
 
             Rectangle {

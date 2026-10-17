@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Services.Pipewire
+import Quickshell.Io
 import "../"
 
 Item {
@@ -29,35 +30,97 @@ Item {
     property var inputSources: Pipewire.nodes.values.filter(n => !n.isSink && !n.isStream && n.audio)
     property var appStreams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink && n.audio)
 
+    property var alsaPorts: []
+    property string activeAlsaPort: ""
+
+    Process {
+        id: pChime
+        command: ["canberra-gtk-play", "-i", "audio-volume-change"]
+    }
+
+    Process {
+        id: pPorts
+        command: ["sh", "-c", "pactl list sinks | awk '/Ports:/{p=1;next}/Active Port:/{print \"ACTIVE:\" $3; p=0} p{print}'"]
+        running: true
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = text.trim().split("\n");
+                var ports = [];
+                var active = "";
+                for (var i = 0; i < lines.length; i++) {
+                    var l = lines[i].trim();
+                    if (l.indexOf("ACTIVE:") === 0) {
+                        active = l.substring(7).trim();
+                    } else if (l.indexOf("analog-output-speaker") === 0) {
+                        ports.push({ "id": "analog-output-speaker", "label": "Speakers", "icon": "󰓃" });
+                    } else if (l.indexOf("analog-output-headphones") === 0) {
+                        ports.push({ "id": "analog-output-headphones", "label": "Headphones (3.5mm)", "icon": "󰋋" });
+                    }
+                }
+                page.alsaPorts = ports;
+                page.activeAlsaPort = active;
+            }
+        }
+    }
+
+    Timer {
+        interval: 3000
+        running: true
+        repeat: true
+        onTriggered: {
+            if (!pPorts.running) pPorts.running = true;
+        }
+    }
+
+    function setSinkPort(portId) {
+        page.activeAlsaPort = portId;
+        pSetPort.command = ["pactl", "set-sink-port", "@DEFAULT_SINK@", portId];
+        pSetPort.running = true;
+    }
+
+    Process {
+        id: pSetPort
+        onExited: {
+            pPorts.running = true;
+            if (!pChime.running) pChime.running = true;
+        }
+    }
+
     function displayName(node, fallback) {
-        return node?.description || node?.nickname || node?.name || fallback
+        var raw = node?.description || node?.nickname || node?.name || fallback;
+        if (raw.indexOf("Built-in Audio") !== -1 || raw.indexOf("Analog Stereo") !== -1 || raw.indexOf("ALC3226") !== -1) {
+            return "Internal Audio";
+        }
+        if (raw.indexOf("bluez") !== -1 || (node?.name && node.name.indexOf("bluez") !== -1)) {
+            return "󰂯 " + raw;
+        }
+        return raw;
     }
 
     function setDefaultOutput(output) {
-        if (output)
-            Pipewire.preferredDefaultAudioSink = output
+        if (output) {
+            Pipewire.preferredDefaultAudioSink = output;
+            pPorts.running = true;
+        }
     }
 
     function setDefaultInput(input) {
         if (input)
-            Pipewire.preferredDefaultAudioSource = input
+            Pipewire.preferredDefaultAudioSource = input;
     }
 
     Flickable {
         id: flick
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-
+        anchors.fill: parent
         anchors.leftMargin: page.marginLeft
         anchors.rightMargin: page.marginRight
         anchors.topMargin: page.marginTop
         anchors.bottomMargin: page.marginBottom
 
         contentWidth: width
-        contentHeight: content.implicitHeight
+        contentHeight: content.implicitHeight + 20
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
@@ -72,7 +135,7 @@ Item {
             }
 
             contentItem: Rectangle {
-                color: "transparent"
+                color: Theme.accent
                 radius: width / 2
             }
         }
@@ -96,15 +159,15 @@ Item {
                 color: Theme.border
             }
 
+            // Output Volume Row
             Row {
                 id: outputRow
-
                 width: parent.width
-                spacing: 6
+                spacing: 8
 
                 Rectangle {
-                    width: 28
-                    height: 28
+                    width: 34
+                    height: 34
                     radius: Theme.radius
                     anchors.verticalCenter: parent.verticalCenter
                     color: page.muted ? Theme.alpha(Theme.danger, 0.15) : Theme.alpha(Theme.accent, 0.10)
@@ -113,10 +176,10 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: page.muted ? "\uf026" : "\uf028"
+                        text: page.muted ? "󰝟" : (page.volume > 0.5 ? "󰕾" : (page.volume > 0 ? "󰖀" : "󰕿"))
                         color: page.muted ? Theme.danger : Theme.accent
                         font.family: Theme.iconFont
-                        font.pixelSize: 12
+                        font.pixelSize: 15
                     }
 
                     MouseArea {
@@ -124,38 +187,33 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (page.sink?.audio)
-                                page.sink.audio.muted = !page.sink.audio.muted
+                                page.sink.audio.muted = !page.sink.audio.muted;
                         }
                     }
                 }
 
-                Text {
-                    width: 76
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "OUTPUT"
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 15
-                    font.letterSpacing: 2
-                }
-
                 Slider {
-                    width: outputRow.width - 28 - 100 - outputRow.spacing * 2
-                    height: 72
+                    width: outputRow.width - 42
                     anchors.verticalCenter: parent.verticalCenter
-                    label: ""
+                    label: "OUTPUT"
                     icon: ""
+                    displayText: Math.round(page.volume * 100) + "%"
                     value: page.muted ? 0 : page.volume
 
                     onMoved: v => {
                         if (page.sink?.audio) {
-                            page.sink.audio.muted = false
-                            page.sink.audio.volume = v
+                            page.sink.audio.muted = false;
+                            page.sink.audio.volume = v;
                         }
+                    }
+
+                    onCommitted: v => {
+                        if (!pChime.running) pChime.running = true;
                     }
                 }
             }
 
+            // Output Sink Devices
             Column {
                 width: parent.width
                 spacing: page.sectionSpacing
@@ -169,7 +227,7 @@ Item {
                         property bool active: page.sink?.id === output?.id
 
                         width: parent.width
-                        height: 40
+                        height: 38
                         radius: Theme.radius
                         color: active ? Theme.alpha(Theme.accent, 0.10) : "transparent"
                         border.width: 1
@@ -177,27 +235,38 @@ Item {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
 
                             Text {
-                                width: 20
+                                width: 18
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: active ? "\uf192" : "\uf10c"
+                                text: active ? "󰓃" : "󰓄"
                                 color: active ? Theme.accent : Theme.textFaint
                                 font.family: Theme.iconFont
-                                font.pixelSize: 11
+                                font.pixelSize: 14
                             }
 
                             Text {
-                                width: parent.width - 28
+                                width: parent.width - 80
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: page.displayName(output, "Unknown output").toUpperCase()
+                                text: page.displayName(output, "Audio Output").toUpperCase()
                                 color: active ? Theme.accent : Theme.text
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 10
+                                font.family: Theme.monoFont
+                                font.pixelSize: 11
+                                font.bold: active
                                 elide: Text.ElideRight
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: active ? "ACTIVE" : ""
+                                color: Theme.accent
+                                font.family: Theme.monoFont
+                                font.pixelSize: 9
+                                font.bold: true
                             }
                         }
 
@@ -208,27 +277,74 @@ Item {
                         }
                     }
                 }
+            }
 
-                Text {
-                    visible: page.outputSinks.length === 0
-                    text: "NO SOUND OUTPUTS"
-                    color: Theme.textFaint
-                    leftPadding: 4
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 10
-                    font.letterSpacing: 1.5
+            // Earphones & Speakers Port Switcher (for ALSA / 3.5mm jack)
+            Row {
+                width: parent.width
+                spacing: 8
+                visible: page.alsaPorts.length > 0
+
+                Repeater {
+                    model: page.alsaPorts
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        property bool active: page.activeAlsaPort === modelData.id
+                        width: (parent.width - 8) / 2
+                        height: 36
+                        radius: Theme.radiusSm
+                        color: active ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
+                        border.width: 1
+                        border.color: active ? Theme.accent : Theme.border
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Text {
+                                text: modelData.icon
+                                color: active ? Theme.accent : Theme.textDim
+                                font.family: Theme.iconFont
+                                font.pixelSize: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: modelData.label.toUpperCase()
+                                color: active ? Theme.accent : Theme.text
+                                font.family: Theme.monoFont
+                                font.pixelSize: 10
+                                font.bold: true
+                                font.letterSpacing: 0.8
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: page.setSinkPort(modelData.id)
+                        }
+                    }
                 }
             }
 
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.border
+            }
+
+            // Input (Microphone) Row
             Row {
                 id: inputRow
-
                 width: parent.width
-                spacing: 6
+                spacing: 8
 
                 Rectangle {
-                    width: 28
-                    height: 28
+                    width: 34
+                    height: 34
                     radius: Theme.radius
                     anchors.verticalCenter: parent.verticalCenter
                     color: page.inputMuted ? Theme.alpha(Theme.danger, 0.15) : Theme.alpha(Theme.accent, 0.10)
@@ -237,10 +353,10 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: page.inputMuted ? "\uf131" : "\uf130"
+                        text: page.inputMuted ? "󰍭" : "󰍬"
                         color: page.inputMuted ? Theme.danger : Theme.accent
                         font.family: Theme.iconFont
-                        font.pixelSize: 12
+                        font.pixelSize: 15
                     }
 
                     MouseArea {
@@ -248,49 +364,29 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (page.source?.audio)
-                                page.source.audio.muted = !page.source.audio.muted
+                                page.source.audio.muted = !page.source.audio.muted;
                         }
                     }
                 }
 
-                Text {
-                    width: 76
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "INPUT"
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 15
-                    font.letterSpacing: 2
-                }
-
                 Slider {
-                    width: inputRow.width - 28 + - 100 - inputRow.spacing * 2
-                    height: 72
+                    width: inputRow.width - 42
                     anchors.verticalCenter: parent.verticalCenter
-                    label: ""
+                    label: "INPUT"
                     icon: ""
+                    displayText: Math.round(page.inputVolume * 100) + "%"
                     value: page.inputMuted ? 0 : page.inputVolume
 
                     onMoved: v => {
-                        const audio = page.source?.audio
-                        if (!audio)
-                            return
-
-                        audio.muted = false
-                        audio.volume = v
-                    }
-
-                    onCommitted: v => {
-                        const audio = page.source?.audio
-                        if (!audio)
-                            return
-
-                        audio.muted = false
-                        audio.volume = v
+                        const audio = page.source?.audio;
+                        if (!audio) return;
+                        audio.muted = false;
+                        audio.volume = v;
                     }
                 }
             }
 
+            // Input Sources
             Column {
                 width: parent.width
                 spacing: page.sectionSpacing
@@ -304,7 +400,7 @@ Item {
                         property bool active: page.source?.id === input?.id
 
                         width: parent.width
-                        height: 40
+                        height: 38
                         radius: Theme.radius
                         color: active ? Theme.alpha(Theme.accent, 0.10) : "transparent"
                         border.width: 1
@@ -312,27 +408,38 @@ Item {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
 
                             Text {
-                                width: 20
+                                width: 18
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: active ? "\uf192" : "\uf10c"
+                                text: active ? "󰍬" : "󰍭"
                                 color: active ? Theme.accent : Theme.textFaint
                                 font.family: Theme.iconFont
-                                font.pixelSize: 11
+                                font.pixelSize: 14
                             }
 
                             Text {
-                                width: parent.width - 28
+                                width: parent.width - 80
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: page.displayName(input, "Unknown input").toUpperCase()
+                                text: page.displayName(input, "Audio Input").toUpperCase()
                                 color: active ? Theme.accent : Theme.text
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 10
+                                font.family: Theme.monoFont
+                                font.pixelSize: 11
+                                font.bold: active
                                 elide: Text.ElideRight
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: active ? "ACTIVE" : ""
+                                color: Theme.accent
+                                font.family: Theme.monoFont
+                                font.pixelSize: 9
+                                font.bold: true
                             }
                         }
 
@@ -343,16 +450,6 @@ Item {
                         }
                     }
                 }
-
-                Text {
-                    visible: page.inputSources.length === 0
-                    text: "NO SOUND INPUTS"
-                    color: Theme.textFaint
-                    leftPadding: 4
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 10
-                    font.letterSpacing: 1.5
-                }
             }
 
             Rectangle {
@@ -361,6 +458,7 @@ Item {
                 color: Theme.border
             }
 
+            // Per-App Volume Header
             Row {
                 width: parent.width
                 spacing: 10
@@ -369,20 +467,21 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "PER-APP VOLUME"
                     color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 14
+                    font.family: Theme.monoFont
+                    font.pixelSize: 13
                     font.letterSpacing: 2
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: page.appStreams.length
-                    color: Theme.textFaint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    text: "(" + page.appStreams.length + ")"
+                    color: Theme.textDim
+                    font.family: Theme.monoFont
+                    font.pixelSize: 11
                 }
             }
 
+            // Per-App Streams
             Column {
                 width: parent.width
                 spacing: page.sectionSpacing
@@ -399,19 +498,18 @@ Item {
                         property real streamVolume: stream?.audio?.volume ?? 0
 
                         width: parent.width
-                        height: 48
+                        height: 44
                         radius: Theme.radius
-                        color: streamMuted ? Theme.alpha(Theme.danger, 0.06) : "transparent"
+                        color: streamMuted ? Theme.alpha(Theme.danger, 0.06) : Theme.tint("#ffffff", 0.03)
                         border.width: 1
                         border.color: streamMuted ? Theme.alpha(Theme.danger, 0.5) : Theme.border
 
                         Row {
                             id: appRow
-
                             anchors.fill: parent
                             anchors.leftMargin: 10
-                            anchors.rightMargin: 14
-                            spacing: 6
+                            anchors.rightMargin: 10
+                            spacing: 8
 
                             Rectangle {
                                 width: 28
@@ -424,7 +522,7 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: streamMuted ? "\uf026" : "\uf028"
+                                    text: streamMuted ? "󰝟" : "󰕾"
                                     color: streamMuted ? Theme.danger : Theme.accent
                                     font.family: Theme.iconFont
                                     font.pixelSize: 12
@@ -435,40 +533,33 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
                                         if (stream?.audio)
-                                            stream.audio.muted = !stream.audio.muted
+                                            stream.audio.muted = !stream.audio.muted;
                                     }
                                 }
                             }
 
                             Text {
-                                width: 82
+                                width: 90
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: page.displayName(stream, "Unknown app").toUpperCase()
+                                text: page.displayName(stream, "App").toUpperCase()
                                 color: streamMuted ? Theme.textDim : Theme.text
-                                font.family: Theme.fontFamily
+                                font.family: Theme.monoFont
                                 font.pixelSize: 11
                                 elide: Text.ElideRight
                             }
 
                             Slider {
-                                width: appRow.width - 28 - 100 - appRow.spacing * 2
-                                height: 72
+                                width: appRow.width - 28 - 90 - 24
                                 anchors.verticalCenter: parent.verticalCenter
                                 label: ""
                                 icon: ""
+                                displayText: Math.round(streamVolume * 100) + "%"
                                 value: streamMuted ? 0 : streamVolume
 
                                 onMoved: v => {
                                     if (stream?.audio) {
-                                        stream.audio.muted = false
-                                        stream.audio.volume = v
-                                    }
-                                }
-
-                                onCommitted: v => {
-                                    if (stream?.audio) {
-                                        stream.audio.muted = false
-                                        stream.audio.volume = v
+                                        stream.audio.muted = false;
+                                        stream.audio.volume = v;
                                     }
                                 }
                             }
@@ -481,7 +572,7 @@ Item {
                     text: "NO ACTIVE SOUND STREAMS"
                     color: Theme.textDim
                     leftPadding: 4
-                    font.family: Theme.fontFamily
+                    font.family: Theme.monoFont
                     font.pixelSize: 10
                     font.letterSpacing: 1.5
                 }

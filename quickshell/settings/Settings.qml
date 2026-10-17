@@ -13,13 +13,13 @@ FloatingWindow {
     property string systemUptime: ""
     property var sink: Pipewire.defaultAudioSink
     property var navEntries: [{
-        "group": "DISPLAY & SOUND",
+        "group": "HARDWARE",
         "name": "Display",
         "short": "1",
         "icon": "\uf108",
         "page": "Display"
     }, {
-        "group": "DISPLAY & SOUND",
+        "group": "HARDWARE",
         "name": "Sound",
         "short": "2",
         "icon": "\uf028",
@@ -38,34 +38,16 @@ FloatingWindow {
         "page": "Bluetooth"
     }, {
         "group": "SYSTEM",
-        "name": "Storage",
+        "name": "Power & Sleep",
         "short": "5",
-        "icon": "󰋊",
-        "page": "Storage"
-    }, {
-        "group": "SYSTEM",
-        "name": "Power",
-        "short": "6",
         "icon": "󰐥",
         "page": "Power"
     }, {
-        "group": "ADVANCED",
-        "name": "Keybinds",
-        "short": "7",
-        "icon": "󰌌",
-        "page": "Keybinds"
-    }, {
-        "group": "ADVANCED",
-        "name": "AutoStart",
-        "short": "8",
-        "icon": "󰧮",
-        "page": "Autostart"
-    }, {
-        "group": "ADVANCED",
-        "name": "Configs",
-        "short": "9",
-        "icon": "󰧮",
-        "page": "Configs"
+        "group": "SYSTEM",
+        "name": "Maintenance",
+        "short": "6",
+        "icon": "󰋊",
+        "page": "Storage"
     }]
 
     function show() {
@@ -97,10 +79,10 @@ FloatingWindow {
     title: "Settings"
     color: "transparent"
     visible: showing
-    implicitWidth: 940
-    implicitHeight: 640
-    minimumSize: Qt.size(720, 480)
-    maximumSize: Qt.size(1400, 900)
+    implicitWidth: 780
+    implicitHeight: 520
+    minimumSize: Qt.size(680, 440)
+    maximumSize: Qt.size(1050, 700)
     onClosed: {
         root.showing = false;
         root.cardVisible = false;
@@ -188,28 +170,13 @@ FloatingWindow {
             root.show();
         }
 
-        function storage() {
+        function power() {
             root.selectedIndex = 4;
             root.show();
         }
 
-        function power() {
+        function storage() {
             root.selectedIndex = 5;
-            root.show();
-        }
-
-        function keybinds() {
-            root.selectedIndex = 6;
-            root.show();
-        }
-
-        function autostart() {
-            root.selectedIndex = 7;
-            root.show();
-        }
-
-        function configs() {
-            root.selectedIndex = 8;
             root.show();
         }
 

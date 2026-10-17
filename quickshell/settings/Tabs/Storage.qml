@@ -225,17 +225,16 @@ Item {
                 for (var i = 1; i < lines.length; ++i) {
                     var item = page.parseDfLine(lines[i]);
                     if (item) {
-                        if (!seenFsys[item.filesystem] || item.mount === "/") {
-                            if (item.mount === "/") {
-                                for (var k = 0; k < fs.length; ++k) {
-                                    if (fs[k].filesystem === item.filesystem) {
-                                        fs.splice(k, 1);
-                                        break;
-                                    }
+                        if (!seenFsys[item.filesystem]) {
+                            seenFsys[item.filesystem] = item;
+                            fs.push(item);
+                        } else if (item.mount === "/" || item.mount === "/home") {
+                            for (var k = 0; k < fs.length; ++k) {
+                                if (fs[k].filesystem === item.filesystem) {
+                                    fs[k] = item;
+                                    break;
                                 }
                             }
-                            seenFsys[item.filesystem] = true;
-                            fs.push(item);
                         }
                     }
                 }
@@ -251,7 +250,7 @@ Item {
     Process {
         id: pCleanup
 
-        command: ["sh", "-c", "p() { printf '%s %s\\n' \"$1\" \"${2:-0}\"; }; " + "p YAY \"$(du -sb \"$HOME/.cache/yay\" 2>/dev/null | awk '{print $1}')\"; " + "p PACMAN \"$(du -sb /var/cache/pacman/pkg 2>/dev/null | awk '{print $1}')\"; " + "p JOURNAL \"$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+ ?[BKMGT]' | tail -1 | tr -d ' ')\"; " + "p TRASH \"$(du -sb \"$HOME/.local/share/Trash\" 2>/dev/null | awk '{print $1}')\"; " + "p FLATPAK \"$(flatpak uninstall --unused --assumeno 2>/dev/null | grep -oE '[0-9.]+ ?(kB|MB|GB|TB)' | tail -1 | tr -d ' ')\"; " + "p CLIPHIST \"$(cliphist list 2>/dev/null | wc -l)\"; " + "p THUMBS \"$(du -sb \"$HOME/.cache/quickshell/thumbs\" 2>/dev/null | awk '{print $1}')\""]
+        command: ["sh", "-c", "p() { printf '%s %s\\n' \"$1\" \"${2:-0}\"; }; " + "p PACMAN \"$(du -sb /var/cache/pacman/pkg 2>/dev/null | awk '{print $1}')\"; " + "p JOURNAL \"$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+ ?[BKMGT]' | tail -1 | tr -d ' ')\"; " + "p TRASH \"$(du -sb \"$HOME/.local/share/Trash\" 2>/dev/null | awk '{print $1}')\"; " + "p FLATPAK \"$(flatpak uninstall --unused --assumeno 2>/dev/null | grep -oE '[0-9.]+ ?(kB|MB|GB|TB)' | tail -1 | tr -d ' ')\"; " + "p CLIPHIST \"$(cliphist list 2>/dev/null | wc -l)\"; " + "p THUMBS \"$(du -sb \"$HOME/.cache/thumbnails\" \"$HOME/.cache/quickshell/thumbs\" 2>/dev/null | awk '{s+=$1} END {print s}')\""]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -708,49 +707,42 @@ Item {
                             "action": "EMPTY",
                             "title": "EMPTY TRASH?",
                             "message": "Permanently deletes the contents of your trash.",
-                            "command": "mkdir -p \"$HOME/.local/share/Trash/files\" \"$HOME/.local/share/Trash/info\" && find \"$HOME/.local/share/Trash/files\" \"$HOME/.local/share/Trash/info\" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
+                            "command": "rm -rf \"$HOME/.local/share/Trash/files/\"* \"$HOME/.local/share/Trash/info/\"* 2>/dev/null; trash-empty 2>/dev/null || true; notify-send 'Maintenance' 'Trash emptied'"
                         }, {
                             "key": "cliphist",
                             "label": "CLIPHIST",
                             "action": "WIPE",
                             "title": "WIPE CLIPBOARD HISTORY?",
                             "message": "Clears the clipboard history.",
-                            "command": "cliphist wipe"
+                            "command": "cliphist wipe; notify-send 'Maintenance' 'Clipboard history cleared'"
                         }, {
                             "key": "thumbs",
-                            "label": "WALLPAPER PICKER",
+                            "label": "THUMBNAILS & CACHE",
                             "action": "CLEAR",
-                            "title": "CLEAR THUMBNAIL CACHE?",
-                            "message": "Clears the Quickshell thumbnail cache.",
-                            "command": "mkdir -p \"$HOME/.cache/quickshell/thumbs\" && find \"$HOME/.cache/quickshell/thumbs\" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
+                            "title": "CLEAR THUMBNAIL CACHES?",
+                            "message": "Clears system and Quickshell image and thumbnail caches.",
+                            "command": "rm -rf \"$HOME/.cache/thumbnails/\"* \"$HOME/.cache/quickshell/thumbs/\"* 2>/dev/null; notify-send 'Maintenance' 'Thumbnail caches cleared'"
                         }, {
-                            "key": "yay",
-                            "label": "YAY CACHE",
-                            "action": "CLEAN",
-                            "title": "CLEAR YAY CACHE?",
-                            "message": "Deletes the contents of the Yay cache.",
-                            "command": "mkdir -p \"$HOME/.cache/yay\" && find \"$HOME/.cache/yay\" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
+                            "key": "journal",
+                            "label": "JOURNAL LOGS",
+                            "action": "VACUUM",
+                            "title": "VACUUM JOURNAL LOGS?",
+                            "message": "Trims system and user systemd journals down to 10MB.",
+                            "command": "journalctl --user --vacuum-size=10M 2>/dev/null; journalctl --vacuum-size=10M 2>/dev/null; notify-send 'Maintenance' 'Journals trimmed down to 10MB'"
                         }, {
                             "key": "pacman",
                             "label": "PACMAN CACHE",
-                            "action": "CLEAN ALL",
-                            "title": "DELETE ALL PACMAN CACHE?",
-                            "message": "Permanently deletes all cached package files and download directories. Installed packages are not uninstalled, but cached packages cannot be reinstalled offline.",
-                            "command": "pkexec find /var/cache/pacman/pkg -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
-                        }, {
-                            "key": "journal",
-                            "label": "JOURNAL",
-                            "action": "2 DAYS",
-                            "title": "VACUUM JOURNAL?",
-                            "message": "Keeps journal entries from the last 2 days and removes older archived entries.",
-                            "command": "pkexec journalctl --vacuum-time=2d"
+                            "action": "CLEAN",
+                            "title": "CLEAN PACMAN CACHE?",
+                            "message": "Removes outdated package tarballs from pacman cache keeping the latest version.",
+                            "command": "pkexec paccache -rk1 2>/dev/null || pkexec pacman -Sc --noconfirm 2>/dev/null || true; notify-send 'Maintenance' 'Pacman cache cleaned'"
                         }, {
                             "key": "flatpak",
                             "label": "FLATPAK UNUSED",
                             "action": "CLEAN",
                             "title": "REMOVE UNUSED FLATPAKS?",
                             "message": "Removes unused Flatpak runtimes and packages.",
-                            "command": "flatpak uninstall --unused --assumeyes"
+                            "command": "flatpak uninstall --unused --assumeyes 2>/dev/null || true; notify-send 'Maintenance' 'Unused Flatpaks removed'"
                         }]
 
                         delegate: CleanupButton {

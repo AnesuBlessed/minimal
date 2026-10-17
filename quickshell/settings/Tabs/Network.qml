@@ -44,8 +44,13 @@ Item {
 
     function setWifiEnabled(on) {
         page.wifiEnabled = on;
-        pRadioSet.command = ["nmcli", "networking", on ? "on" : "off"];
+        pRadioSet.command = ["nmcli", "radio", "wifi", on ? "on" : "off"];
         pRadioSet.running = true;
+    }
+
+    function rescanWifi() {
+        if (!pRescan.running)
+            pRescan.running = true;
     }
 
     function connectOpen(ssid) {
@@ -65,6 +70,7 @@ Item {
 
     Component.onCompleted: {
         pRadioGet.running = true;
+        pRescan.running = true;
         pList.running = true;
         pEthernet.running = true;
     }
@@ -202,7 +208,7 @@ Item {
     Process {
         id: pRadioGet
 
-        command: ["nmcli", "networking"]
+        command: ["nmcli", "radio", "wifi"]
         running: true
 
         stdout: StdioCollector {
@@ -210,10 +216,17 @@ Item {
                 page.wifiEnabled = text.trim() === "enabled";
                 if (page.wifiEnabled && !pList.running)
                     pList.running = true;
-
             }
         }
+    }
 
+    Process {
+        id: pRescan
+        command: ["nmcli", "device", "wifi", "rescan"]
+        onExited: {
+            if (page.wifiEnabled && !pList.running)
+                pList.running = true;
+        }
     }
 
     Process {
@@ -224,7 +237,6 @@ Item {
                 pRadioGet.running = true;
             }
         }
-
     }
 
     Process {
@@ -239,8 +251,8 @@ Item {
                 if (raw) {
                     var lines = raw.split("\n");
                     for (var i = 0; i < lines.length; ++i) {
-                        var line = lines[i].trim();
-                        if (!line)
+                        var line = lines[i];
+                        if (!line || !line.trim())
                             continue;
 
                         var fields = [];
@@ -261,7 +273,11 @@ Item {
                             }
                         }
                         fields.push(current);
-                        if (fields.length < 4 || !fields[1])
+                        if (fields.length < 4)
+                            continue;
+
+                        var ssid = (fields[1] || "").trim();
+                        if (!ssid)
                             continue;
 
                         var signal = parseInt(fields[2]);
@@ -269,14 +285,29 @@ Item {
                             signal = 0;
 
                         out.push({
-                            "ssid": fields[1],
+                            "ssid": ssid,
                             "signal": signal,
                             "secured": fields[3] !== "" && fields[3] !== "--",
-                            "connected": fields[0] === "*"
+                            "connected": fields[0].trim() === "*"
                         });
                     }
                 }
-                page.networks = out;
+
+                // Deduplicate SSIDs, keeping strongest signal or connected one
+                var map = {};
+                for (var k = 0; k < out.length; k++) {
+                    var item = out[k];
+                    if (!map[item.ssid] || item.connected || item.signal > map[item.ssid].signal) {
+                        map[item.ssid] = item;
+                    }
+                }
+                var uniqueList = Object.values(map);
+                uniqueList.sort(function(a, b) {
+                    if (a.connected) return -1;
+                    if (b.connected) return 1;
+                    return b.signal - a.signal;
+                });
+                page.networks = uniqueList;
             }
         }
 
@@ -303,6 +334,7 @@ Item {
         stderr: StdioCollector {
             onStreamFinished: pConnect.refresh()
         }
+    }
 
     Process {
         id: pPortalCheck
@@ -547,13 +579,13 @@ Item {
             id: listContainer
 
             width: parent.width
-            height: parent.height - y
+            height: Math.max(160, page.height - y - page.marginBottom)
 
             Flickable {
                 anchors.fill: parent
                 clip: true
                 contentWidth: width
-                contentHeight: list.height
+                contentHeight: list.implicitHeight
 
                 Column {
                     id: list

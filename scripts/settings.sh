@@ -13,7 +13,7 @@ IPC_LOG="$LOG_DIR/ipc.log"
 ACTION="${1:-toggle}"
 
 usage() {
-    echo "Usage: settings.sh [start|stop|restart|toggle|show|hide|sound|display|network|bluetooth|storage|power|keybinds|autostart|configs|log]" >&2
+    echo "Usage: settings.sh [start|stop|restart|toggle|show|hide|display|sound|network|bluetooth|power|storage|log]" >&2
 }
 
 if ! command -v quickshell >/dev/null 2>&1; then
@@ -46,7 +46,7 @@ case "$ACTION" in
     log)
         tail -n 100 "$LOG_FILE"
         ;;
-    toggle|show|hide|sound|display|network|bluetooth|storage|power|keybinds|autostart|configs)
+    toggle|show|hide|display|sound|network|bluetooth|power|storage)
         if call_ipc "$ACTION" >"$IPC_LOG" 2>&1; then
             exit 0
         fi

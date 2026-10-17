@@ -79,25 +79,9 @@ Item {
             return
         }
 
-        if (dev.pairing) {
-            page.setStatus("Pairing with " + name + "...")
-            return
-        }
-
         page.setDiscovering(false)
-        dev.trusted = true
-
-        if (!dev.paired) {
-            if (deviceCard)
-                deviceCard.connectAfterPair = true
-
-            page.setStatus("Pairing with " + name + "...")
-            dev.pair()
-            return
-        }
-
         page.setStatus("Connecting to " + name + "...")
-        connectProcess.command = ["bluetoothctl", "connect", address]
+        connectProcess.command = ["sh", "-c", "bluetoothctl trust '" + address + "' && bluetoothctl pair '" + address + "'; bluetoothctl connect '" + address + "'"]
         connectProcess.running = true
     }
 
@@ -131,8 +115,10 @@ Item {
         if (!dev)
             return
 
-        if (typeof BluetoothState !== "undefined" && BluetoothState.markRemoved) {
-            BluetoothState.markRemoved(dev)
+        var address = dev.address
+        if (address) {
+            disconnectProcess.command = ["bluetoothctl", "remove", address]
+            disconnectProcess.running = true
         }
 
         if (
@@ -501,14 +487,8 @@ Item {
                         readonly property bool isConnected:
                             modelData.connected || modelData.state === BluetoothDeviceState.Connected
 
-                        readonly property string deviceKey:
-                            modelData.address || modelData.name || ""
-
-                        visible: !(BluetoothState.removingDevices &&
-                                   BluetoothState.removingDevices[deviceKey])
-
                         width: list.width
-                        height: visible ? 52 : 0
+                        height: 52
                         radius: Theme.radius
 
                         color: isConnected

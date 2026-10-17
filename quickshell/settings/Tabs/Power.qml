@@ -17,16 +17,37 @@ Item {
     property string batteryStatus: "Connected"
     property bool isCharging: false
     property bool caffeineActive: false
+    property string activePowerProfile: "balanced"
+    property int idleBlankSec: 300
+    property int idleSleepSec: 1800
 
     function refresh() {
-        if (!pBattery.running)
-            pBattery.running = true;
-        if (!pCaffeine.running)
-            pCaffeine.running = true;
+        if (!pBattery.running) pBattery.running = true;
+        if (!pCaffeine.running) pCaffeine.running = true;
+        if (!pProfileGet.running) pProfileGet.running = true;
+        if (!pIdleGet.running) pIdleGet.running = true;
     }
 
     function toggleCaffeine() {
         pCaffeineToggle.running = true;
+    }
+
+    function setPowerProfile(profile) {
+        page.activePowerProfile = profile;
+        pProfileSet.command = ["powerprofilesctl", "set", profile];
+        pProfileSet.running = true;
+    }
+
+    function setBlankTimeout(sec) {
+        page.idleBlankSec = sec;
+        pIdleSet.command = ["sh", "-c", "\"$MINIMAL_ROOT/scripts/idle-config.sh\" set-blank " + sec];
+        pIdleSet.running = true;
+    }
+
+    function setSleepTimeout(sec) {
+        page.idleSleepSec = sec;
+        pIdleSet.command = ["sh", "-c", "\"$MINIMAL_ROOT/scripts/idle-config.sh\" set-sleep " + sec];
+        pIdleSet.running = true;
     }
 
     function runCommand(cmd) {
@@ -64,6 +85,41 @@ Item {
     }
 
     Process {
+        id: pProfileGet
+        command: ["powerprofilesctl", "get"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var p = text.trim();
+                if (p) page.activePowerProfile = p;
+            }
+        }
+    }
+
+    Process {
+        id: pProfileSet
+        onExited: pProfileGet.running = true
+    }
+
+    Process {
+        id: pIdleGet
+        command: ["sh", "-c", "if [ -x \"$MINIMAL_ROOT/scripts/idle-config.sh\" ]; then \"$MINIMAL_ROOT/scripts/idle-config.sh\" status; else echo '{\"blank\":300,\"sleep\":1800}'; fi"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var obj = JSON.parse(text.trim());
+                    page.idleBlankSec = obj.blank !== undefined ? obj.blank : 300;
+                    page.idleSleepSec = obj.sleep !== undefined ? obj.sleep : 1800;
+                } catch(e) {}
+            }
+        }
+    }
+
+    Process {
+        id: pIdleSet
+        onExited: pIdleGet.running = true
+    }
+
+    Process {
         id: pCaffeine
         command: ["sh", "-c", "if [ -x \"$MINIMAL_ROOT/scripts/caffeine.sh\" ]; then \"$MINIMAL_ROOT/scripts/caffeine.sh\" status 2>/dev/null; " +
                   "else echo '{\"class\":\"deactivated\"}'; fi"]
@@ -90,9 +146,7 @@ Item {
 
     Process {
         id: pCommand
-        onExited: {
-            page.refresh();
-        }
+        onExited: page.refresh()
     }
 
     Timer {
@@ -148,60 +202,53 @@ Item {
                     anchors.margins: 16
                     spacing: 10
 
-                    Row {
+                    Item {
                         width: parent.width
-                        spacing: 10
+                        height: 24
 
-                        Text {
-                            text: page.hasBattery ? (page.isCharging ? "󱐋" : "󰁹") : "󰚥"
-                            color: page.hasBattery ? (page.batteryPercent <= 15 ? Theme.danger : Theme.accent) : Theme.accent
-                            font.family: Theme.iconFont
-                            font.pixelSize: 18
+                        Row {
+                            anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: page.hasBattery ? "BATTERY" : "AC POWER SOURCE"
-                            color: Theme.text
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                            font.letterSpacing: 1.5
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Item {
-                            width: 1
-                            height: 1
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Rectangle {
-                            height: 22
-                            width: statusLabel.implicitWidth + 14
-                            radius: 4
-                            color: Theme.tint(page.isCharging ? Theme.accent : Theme.textDim, 0.12)
-                            border.width: 1
-                            border.color: Theme.tint(page.isCharging ? Theme.accent : Theme.textDim, 0.25)
-                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
 
                             Text {
-                                id: statusLabel
-                                anchors.centerIn: parent
-                                text: page.hasBattery ? page.batteryStatus.toUpperCase() : "CONNECTED"
-                                color: page.isCharging ? Theme.accent : Theme.textDim
-                                font.family: Theme.monoFont
-                                font.pixelSize: 10
-                                font.weight: Font.Bold
-                                font.letterSpacing: 0.8
+                                text: page.hasBattery ? (page.isCharging ? "󱐋" : "󰁹") : "󰚥"
+                                color: page.hasBattery ? (page.batteryPercent <= 15 ? Theme.danger : Theme.accent) : Theme.accent
+                                font.family: Theme.iconFont
+                                font.pixelSize: 18
+                                anchors.verticalCenter: parent.verticalCenter
                             }
-                        }
 
-                        Item {
-                            width: 1
-                            height: 1
-                            anchors.fill: parent
-                            visible: false
+                            Text {
+                                text: page.hasBattery ? "BATTERY" : "AC POWER SOURCE"
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
+                                font.letterSpacing: 1.5
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Rectangle {
+                                height: 22
+                                width: statusLabel.implicitWidth + 14
+                                radius: 4
+                                color: Theme.tint(page.isCharging ? Theme.accent : Theme.textDim, 0.12)
+                                border.width: 1
+                                border.color: Theme.tint(page.isCharging ? Theme.accent : Theme.textDim, 0.25)
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    id: statusLabel
+                                    anchors.centerIn: parent
+                                    text: page.hasBattery ? page.batteryStatus.toUpperCase() : "CONNECTED"
+                                    color: page.isCharging ? Theme.accent : Theme.textDim
+                                    font.family: Theme.monoFont
+                                    font.pixelSize: 10
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.8
+                                }
+                            }
                         }
 
                         Text {
@@ -234,10 +281,193 @@ Item {
                     }
 
                     Text {
-                        text: page.hasBattery ? (page.isCharging ? "Battery is charging from AC power" : "Running on battery power") : "Desktop workstation running on continuous AC power"
+                        text: page.hasBattery ? (page.isCharging ? "Battery is charging from AC power" : "Running on battery power") : "Workstation running on continuous AC power"
                         color: Theme.textDim
                         font.family: Theme.fontFamily
                         font.pixelSize: 11
+                    }
+                }
+            }
+
+            // Power Profile Selector
+            Text {
+                text: "POWER PROFILE"
+                color: Theme.text
+                topPadding: 4
+                font.family: Theme.fontFamily
+                font.pixelSize: 14
+                font.bold: true
+                font.letterSpacing: 2
+            }
+
+            Row {
+                width: parent.width
+                spacing: 8
+
+                Repeater {
+                    model: [
+                        { "id": "performance", "label": "PERFORMANCE", "icon": "󰓅", "desc": "Maximum CPU clock & responsive governors" },
+                        { "id": "balanced", "label": "BALANCED", "icon": "󰾆", "desc": "Dynamic scaling for work & everyday use" },
+                        { "id": "power-saver", "label": "POWER SAVER", "icon": "󰌪", "desc": "Limits frequencies to preserve battery" }
+                    ]
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        property bool active: page.activePowerProfile === modelData.id
+                        width: (parent.width - 16) / 3
+                        height: 54
+                        radius: Theme.radius
+                        color: active ? Theme.alpha(Theme.accent, 0.12) : Theme.tint("#ffffff", 0.03)
+                        border.width: 1
+                        border.color: active ? Theme.accent : Theme.border
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 3
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 6
+
+                                Text {
+                                    text: modelData.icon
+                                    color: active ? Theme.accent : Theme.textDim
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 14
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: modelData.label
+                                    color: active ? Theme.accent : Theme.text
+                                    font.family: Theme.monoFont
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    font.letterSpacing: 1
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: active ? "ACTIVE" : ""
+                                color: Theme.accent
+                                font.family: Theme.monoFont
+                                font.pixelSize: 9
+                                font.bold: true
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: page.setPowerProfile(modelData.id)
+                        }
+                    }
+                }
+            }
+
+            // Screen Blanking / Idle Timeout
+            Text {
+                text: "SCREEN BLANK TIMEOUT"
+                color: Theme.text
+                topPadding: 4
+                font.family: Theme.fontFamily
+                font.pixelSize: 14
+                font.bold: true
+                font.letterSpacing: 2
+            }
+
+            Row {
+                width: parent.width
+                spacing: 6
+
+                Repeater {
+                    model: [
+                        { "sec": 180, "label": "3M" },
+                        { "sec": 300, "label": "5M" },
+                        { "sec": 600, "label": "10M" },
+                        { "sec": 900, "label": "15M" },
+                        { "sec": 1800, "label": "30M" },
+                        { "sec": 0, "label": "NEVER" }
+                    ]
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        property bool active: page.idleBlankSec === modelData.sec
+                        width: (parent.width - 30) / 6
+                        height: 32
+                        radius: Theme.radiusSm
+                        color: active ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
+                        border.width: 1
+                        border.color: active ? Theme.accent : Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: active ? Theme.accent : Theme.textDim
+                            font.family: Theme.monoFont
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: page.setBlankTimeout(modelData.sec)
+                        }
+                    }
+                }
+            }
+
+            // System Sleep Timeout
+            Text {
+                text: "SYSTEM SLEEP TIMEOUT"
+                color: Theme.text
+                topPadding: 4
+                font.family: Theme.fontFamily
+                font.pixelSize: 14
+                font.bold: true
+                font.letterSpacing: 2
+            }
+
+            Row {
+                width: parent.width
+                spacing: 6
+
+                Repeater {
+                    model: [
+                        { "sec": 900, "label": "15M" },
+                        { "sec": 1800, "label": "30M" },
+                        { "sec": 3600, "label": "1H" },
+                        { "sec": 7200, "label": "2H" },
+                        { "sec": 0, "label": "NEVER" }
+                    ]
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        property bool active: page.idleSleepSec === modelData.sec
+                        width: (parent.width - 24) / 5
+                        height: 32
+                        radius: Theme.radiusSm
+                        color: active ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
+                        border.width: 1
+                        border.color: active ? Theme.accent : Theme.border
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: active ? Theme.accent : Theme.textDim
+                            font.family: Theme.monoFont
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: page.setSleepTimeout(modelData.sec)
+                        }
                     }
                 }
             }
@@ -246,7 +476,7 @@ Item {
             Rectangle {
                 id: caffeineCard
                 width: parent.width
-                height: 76
+                height: 64
                 radius: Theme.radius
                 color: page.caffeineActive ? Theme.tint(Theme.accent, 0.08) : Theme.tint("#ffffff", 0.03)
                 border.width: 1
@@ -265,8 +495,8 @@ Item {
                     spacing: 14
 
                     Rectangle {
-                        width: 40
-                        height: 40
+                        width: 36
+                        height: 36
                         radius: Theme.radiusSm
                         color: page.caffeineActive ? Theme.tint(Theme.accent, 0.2) : Theme.tint("#ffffff", 0.06)
                         border.width: 1
@@ -277,47 +507,25 @@ Item {
                             anchors.centerIn: parent
                             text: page.caffeineActive ? "󰅶" : "󰛊"
                             font.family: Theme.iconFont
-                            font.pixelSize: 20
+                            font.pixelSize: 18
                             color: page.caffeineActive ? Theme.accent : Theme.textDim
                         }
                     }
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
+                        spacing: 2
 
-                        Row {
-                            spacing: 8
-                            Text {
-                                text: "Keep Screen Awake (Caffeine)"
-                                color: Theme.text
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 14
-                                font.weight: Font.Bold
-                            }
-
-                            Rectangle {
-                                width: 44
-                                height: 18
-                                radius: 4
-                                color: page.caffeineActive ? Theme.tint(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.06)
-                                border.width: 1
-                                border.color: page.caffeineActive ? Theme.accent : Theme.border
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: page.caffeineActive ? "ACTIVE" : "OFF"
-                                    color: page.caffeineActive ? Theme.accent : Theme.textFaint
-                                    font.family: Theme.monoFont
-                                    font.pixelSize: 9
-                                    font.weight: Font.Bold
-                                }
-                            }
+                        Text {
+                            text: "Keep Screen Awake (Caffeine)"
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 13
+                            font.weight: Font.Bold
                         }
 
                         Text {
-                            text: page.caffeineActive ? "Display lock and system sleep are blocked while active" : "Allows normal screen timeout, blanking, and idle sleep"
+                            text: page.caffeineActive ? "Screen lock and idle sleep inhibited" : "Screen follows normal timeout and sleep rules"
                             color: Theme.textDim
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
@@ -331,9 +539,9 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 48
-                    height: 26
-                    radius: 13
+                    width: 44
+                    height: 24
+                    radius: 12
                     color: page.caffeineActive ? Theme.accent : Theme.tint("#ffffff", 0.1)
                     border.width: 1
                     border.color: page.caffeineActive ? Theme.accent : Theme.borderStrong
@@ -344,9 +552,9 @@ Item {
 
                     Rectangle {
                         id: switchThumb
-                        width: 20
-                        height: 20
-                        radius: 10
+                        width: 18
+                        height: 18
+                        radius: 9
                         color: page.caffeineActive ? "#ffffff" : Theme.textDim
                         anchors.verticalCenter: parent.verticalCenter
                         x: page.caffeineActive ? parent.width - width - 3 : 3
@@ -371,13 +579,13 @@ Item {
                 }
             }
 
-            // Quick Tools & Modes
+            // Quick Modes
             Text {
                 text: "MODES & PERFORMANCE"
                 color: Theme.text
-                topPadding: 6
+                topPadding: 4
                 font.family: Theme.fontFamily
-                font.pixelSize: 15
+                font.pixelSize: 14
                 font.bold: true
                 font.letterSpacing: 2
             }
@@ -402,7 +610,7 @@ Item {
                     required property var modelData
 
                     width: content.width
-                    height: 52
+                    height: 48
                     radius: Theme.radius
                     color: Theme.tint("#ffffff", 0.03)
                     border.width: 1
@@ -420,7 +628,7 @@ Item {
                             text: modeRoot.modelData.icon
                             color: Theme.accent
                             font.family: Theme.iconFont
-                            font.pixelSize: 18
+                            font.pixelSize: 17
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -432,7 +640,7 @@ Item {
                                 text: modeRoot.modelData.label
                                 color: Theme.text
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 13
+                                font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
 
@@ -440,7 +648,7 @@ Item {
                                 text: modeRoot.modelData.desc
                                 color: Theme.textFaint
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
                         }
                     }
@@ -450,8 +658,8 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 72
-                        height: 28
+                        width: 68
+                        height: 26
                         radius: Theme.radiusSm
                         color: Theme.tint(Theme.accent, 0.12)
                         border.width: 1
@@ -463,7 +671,7 @@ Item {
                             color: Theme.accent
                             font.family: Theme.monoFont
                             font.pixelSize: 10
-                            font.weight: Font.Bold
+                            font.bold: true
                             font.letterSpacing: 0.8
                         }
                     }
@@ -481,126 +689,6 @@ Item {
                             parent.border.color = Theme.border;
                         }
                         onClicked: page.runCommand(modeRoot.modelData.command)
-                    }
-                }
-            }
-
-            // Session & Power Actions
-            Text {
-                text: "SESSION & POWER ACTIONS"
-                color: Theme.text
-                topPadding: 6
-                font.family: Theme.fontFamily
-                font.pixelSize: 15
-                font.bold: true
-                font.letterSpacing: 2
-            }
-
-            Repeater {
-                model: [{
-                    "icon": "󰌾",
-                    "label": "Lock Session",
-                    "desc": "Lock the current session immediately",
-                    "action": "LOCK",
-                    "command": "bash -c 'if [ -x \"$MINIMAL_ROOT/scripts/lock.sh\" ]; then \"$MINIMAL_ROOT/scripts/lock.sh\"; else hyprlock; fi'"
-                }, {
-                    "icon": "󰒲",
-                    "label": "Suspend System",
-                    "desc": "Put the machine into low-power sleep mode",
-                    "action": "SLEEP",
-                    "command": "systemctl suspend"
-                }, {
-                    "icon": "",
-                    "label": "Open Power Menu",
-                    "desc": "Shutdown, restart, hibernate, or log out",
-                    "action": "POWER",
-                    "command": "bash -c 'if [ -x \"$MINIMAL_ROOT/scripts/powermenu.sh\" ]; then \"$MINIMAL_ROOT/scripts/powermenu.sh\"; fi'"
-                }]
-
-                delegate: Rectangle {
-                    id: actionRoot
-                    required property var modelData
-
-                    width: content.width
-                    height: 52
-                    radius: Theme.radius
-                    color: Theme.tint("#ffffff", 0.03)
-                    border.width: 1
-                    border.color: Theme.border
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 14
-                        anchors.right: actPill.left
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 12
-
-                        Text {
-                            text: actionRoot.modelData.icon
-                            color: Theme.accent
-                            font.family: Theme.iconFont
-                            font.pixelSize: 18
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
-
-                            Text {
-                                text: actionRoot.modelData.label
-                                color: Theme.text
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                                font.weight: Font.Medium
-                            }
-
-                            Text {
-                                text: actionRoot.modelData.desc
-                                color: Theme.textFaint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 11
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        id: actPill
-                        anchors.right: parent.right
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 72
-                        height: 28
-                        radius: Theme.radiusSm
-                        color: Theme.tint(Theme.accent, 0.12)
-                        border.width: 1
-                        border.color: Theme.tint(Theme.accent, 0.3)
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: actionRoot.modelData.action
-                            color: Theme.accent
-                            font.family: Theme.monoFont
-                            font.pixelSize: 10
-                            font.weight: Font.Bold
-                            font.letterSpacing: 0.8
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: {
-                            parent.color = Theme.tint(Theme.accent, 0.08);
-                            parent.border.color = Theme.accent;
-                        }
-                        onExited: {
-                            parent.color = Theme.tint("#ffffff", 0.03);
-                            parent.border.color = Theme.border;
-                        }
-                        onClicked: page.runCommand(actionRoot.modelData.command)
                     }
                 }
             }
