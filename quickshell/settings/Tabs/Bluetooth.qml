@@ -575,10 +575,12 @@ Item {
                             font.family: Theme.monoFont
                             font.pixelSize: Theme.fontTitle
                             font.bold: true
+                            width: Math.min(implicitWidth, Math.max(40, parent.width - (page.localAddress !== "" ? (addrText.implicitWidth + 8) : 0)))
                             elide: Text.ElideRight
                         }
 
                         Text {
+                            id: addrText
                             visible: page.localAddress !== ""
                             text: "(" + page.localAddress + ")"
                             color: Theme.accent
@@ -785,24 +787,39 @@ Item {
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
+                                height: 30
                                 spacing: 10
 
-                                Text {
-                                    id: actionText
-                                    width: Math.min(implicitWidth, 80)
-                                    height: parent.height
-                                    text: page.actionLabel(card.device)
-                                    color: card.isConnected
-                                           ? Theme.danger
-                                           : Theme.accent
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSecondary
-                                    verticalAlignment: Text.AlignVCenter
-                                    elide: Text.ElideRight
+                                Rectangle {
+                                    id: actionButton
+                                    width: Math.max(76, actionText.implicitWidth + 16)
+                                    height: 28
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    radius: Theme.radiusSm
+                                    color: actionMa.containsMouse
+                                           ? (card.isConnected ? Theme.alpha(Theme.danger, 0.22) : Theme.alpha(Theme.accent, 0.22))
+                                           : (card.isConnected ? Theme.alpha(Theme.danger, 0.12) : Theme.alpha(Theme.accent, 0.12))
+                                    border.width: 1
+                                    border.color: card.isConnected ? Theme.danger : Theme.accent
+
+                                    Text {
+                                        id: actionText
+                                        anchors.centerIn: parent
+                                        text: page.actionLabel(card.device)
+                                        color: card.isConnected
+                                               ? Theme.danger
+                                               : Theme.accent
+                                        font.family: Theme.monoFont
+                                        font.pixelSize: Theme.fontSecondary
+                                        font.bold: true
+                                        font.letterSpacing: 0
+                                    }
 
                                     ControlArea {
+                                        id: actionMa
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
+                                        hoverEnabled: true
                                         onClicked: {
                                             page.deviceAction(
                                                 card.device,
@@ -819,12 +836,20 @@ Item {
                                     height: 28
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "󰈔"
-                                        color: Theme.accent
-                                        font.family: Theme.iconFont
-                                        font.pixelSize: 15
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: Theme.radiusSm
+                                        color: sendMouseArea.containsMouse ? Theme.alpha(Theme.accent, 0.2) : "transparent"
+                                        border.width: 1
+                                        border.color: sendMouseArea.containsMouse ? Theme.accent : "transparent"
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "󰈔"
+                                            color: Theme.accent
+                                            font.family: Theme.iconFont
+                                            font.pixelSize: 15
+                                        }
                                     }
 
                                     ControlArea {
@@ -866,12 +891,20 @@ Item {
                                     height: 28
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "\uf293"
-                                        color: Theme.textDim
-                                        font.family: Theme.iconFont
-                                        font.pixelSize: 16
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: Theme.radiusSm
+                                        color: unpairMouseArea.containsMouse ? Theme.alpha(Theme.danger, 0.2) : "transparent"
+                                        border.width: 1
+                                        border.color: unpairMouseArea.containsMouse ? Theme.danger : "transparent"
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "\uf293"
+                                            color: unpairMouseArea.containsMouse ? Theme.danger : Theme.textDim
+                                            font.family: Theme.iconFont
+                                            font.pixelSize: 16
+                                        }
                                     }
 
                                     ControlArea {
@@ -892,13 +925,15 @@ Item {
                                         width: tooltipText.width + 16
                                         height: 24
                                         radius: 4
-                                        color: "transparent"
+                                        color: Theme.alpha(Theme.baseColor, 0.95)
+                                        border.width: 1
+                                        border.color: Theme.border
 
                                         Text {
                                             id: tooltipText
                                             anchors.centerIn: parent
                                             text: "Unpair"
-                                            color: "white"
+                                            color: Theme.text
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontSecondary
                                         }

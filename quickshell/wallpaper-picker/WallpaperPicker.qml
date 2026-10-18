@@ -93,14 +93,6 @@ Item {
     readonly property var filterData: [
         { name: "All", hex: "", label: "All" },
         { name: "Video", hex: "", label: "Vid" },
-        { name: "Red", hex: "#FF4500", label: "" },
-        { name: "Orange", hex: "#FFA500", label: "" },
-        { name: "Yellow", hex: "#FFD700", label: "" },
-        { name: "Green", hex: "#32CD32", label: "" },
-        { name: "Blue", hex: "#1E90FF", label: "" },
-        { name: "Purple", hex: "#8A2BE2", label: "" },
-        { name: "Pink", hex: "#FF69B4", label: "" },
-        { name: "Monochrome", hex: "#A9A9A9", label: "" },
         { name: "Search", hex: "", label: "Search" }
     ]
 
@@ -456,14 +448,9 @@ Item {
 
     function checkItemMatchesFilter(fileName, isVid, cv, filter) {
         if (filter === "Search") return true;
-
         if (filter === "All") return true;
         if (filter === "Video") return isVid;
-
-        let hexColor = window.colorMap[String(fileName)];
-        if (!hexColor) return filter === "Monochrome";
-
-        return window.getHexBucket(hexColor) === filter;
+        return true;
     }
 
     FolderListModel {
@@ -534,7 +521,7 @@ Item {
             return;
         }
 
-        let filterOrder = ["All", "Video", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Monochrome"];
+        let filterOrder = ["All", "Video"];
         let currentFilterIdx = filterOrder.indexOf(window.currentFilter);
 
         if (currentFilterIdx === -1) {
@@ -977,6 +964,8 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
                     enabled: delegateRoot.matchesFilter && !window.isScrollingBlocked && !window.isApplying
                     onClicked: {
                         view.currentIndex = index

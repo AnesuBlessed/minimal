@@ -6,8 +6,8 @@
 -- =============================================================================
 
 local colors = {
-    accent        = "rgba(bdbed0ee)",
-    accent_subtle = "rgba(bdbed066)",
+    accent        = "rgba(d4b9c7ee)",
+    accent_subtle = "rgba(d4b9c766)",
     border_dark   = "rgba(343b3ecc)",
     bg_dark       = "0x171c1e",
     text_main     = "0xeef0f0",

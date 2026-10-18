@@ -56,15 +56,23 @@ ShellRoot {
     }
 
     Component.onCompleted: {
-        applyJson(Quickshell.env("MINIMAL_MONITORS_JSON"));
+        const envData = Quickshell.env("MINIMAL_MONITORS_JSON");
+        if (envData && envData.trim() !== "") {
+            applyJson(envData);
+        } else {
+            proc.command = ["python3", root.minimalRoot + "/scripts/monitors.py", "--state"];
+            proc.running = true;
+        }
     }
 
     PanelWindow {
         id: panel
         screen: Quickshell.screens.find(s => s.name === Quickshell.env("MINIMAL_POPUP_OUTPUT")) || Quickshell.screens[0]
         anchors.bottom: true
-        implicitWidth: Math.min(560, screen.width - 24)
-        implicitHeight: Math.min(390, screen.height - 48)
+        width: Math.min(560, (screen ? screen.width : 1366) - 24)
+        height: Math.min(390, (screen ? screen.height : 768) - 48)
+        implicitWidth: width
+        implicitHeight: height
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "minimal-monitors"
@@ -111,24 +119,35 @@ ShellRoot {
                     Repeater {
                         model: root.presets
                         delegate: Rectangle {
+                            id: presetPill
                             required property var modelData
+                            readonly property bool isMultiMonOnly: modelData.id !== "internal-only"
+                            readonly property bool isApplicable: root.monitors.length > 1 || !isMultiMonOnly
+                            opacity: isApplicable ? 1.0 : 0.4
                             width: (panel.width - 24 - 24) / 5
                             height: 30
                             radius: theme.controlRadius
-                            color: theme.control
+                            color: presetMa.containsMouse && isApplicable ? theme.reading : theme.control
                             border.width: 1
-                            border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+                            border.color: presetMa.containsMouse && isApplicable ? theme.accent : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
 
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.label
                                 font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                color: theme.text
+                                color: isApplicable ? theme.text : theme.muted
                             }
 
                             MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: root.runPreset(modelData.id)
+                                id: presetMa
+                                anchors.fill: parent
+                                cursorShape: isApplicable ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                hoverEnabled: true
+                                onClicked: {
+                                    if (isApplicable) {
+                                        root.runPreset(modelData.id);
+                                    }
+                                }
                             }
                         }
                     }
@@ -145,6 +164,7 @@ ShellRoot {
                     boundsBehavior: Flickable.StopAtBounds
 
                     delegate: Rectangle {
+                        id: monitorCard
                         required property var modelData
                         width: parent.width
                         height: 132
@@ -190,7 +210,7 @@ ShellRoot {
                                     }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.applyMonitor(modelData, "preferred", modelData.scale, !modelData.vrr)
+                                        onClicked: root.applyMonitor(monitorCard.modelData, "preferred", monitorCard.modelData.scale, !monitorCard.modelData.vrr)
                                     }
                                 }
                             }
@@ -209,11 +229,11 @@ ShellRoot {
                                     model: root.scales
                                     delegate: Rectangle {
                                         required property real modelData
-                                        readonly property bool isCur: Math.abs(parent.parent.parent.modelData.scale - modelData) < 0.05
+                                        readonly property bool isCur: Math.abs(monitorCard.modelData.scale - modelData) < 0.05
                                         width: 52; height: 24
                                         radius: Math.max(4, theme.controlRadius - 1)
-                                        color: isCur ? theme.accent : theme.reading
-                                        border.width: 1; border.color: theme.border
+                                        color: isCur ? theme.accent : (scaleMa.containsMouse ? theme.control : theme.reading)
+                                        border.width: 1; border.color: isCur ? theme.accent : theme.border
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData + "x"
@@ -221,10 +241,11 @@ ShellRoot {
                                             color: isCur ? theme.base : theme.text
                                         }
                                         MouseArea {
+                                            id: scaleMa
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            hoverEnabled: true
                                             onClicked: {
-                                                const mon = parent.parent.parent.modelData;
-                                                root.applyMonitor(mon, "preferred", modelData, mon.vrr);
+                                                root.applyMonitor(monitorCard.modelData, "preferred", modelData, monitorCard.modelData.vrr);
                                             }
                                         }
                                     }
@@ -242,12 +263,12 @@ ShellRoot {
                                     color: theme.muted
                                 }
                                 Repeater {
-                                    model: modelData.modes
+                                    model: monitorCard.modelData.modes
                                     delegate: Rectangle {
                                         required property string modelData
                                         width: modeLbl.implicitWidth + 14; height: 24
                                         radius: Math.max(4, theme.controlRadius - 1)
-                                        color: theme.reading
+                                        color: modeMa.containsMouse ? theme.control : theme.reading
                                         border.width: 1; border.color: theme.border
                                         Text {
                                             id: modeLbl
@@ -257,10 +278,11 @@ ShellRoot {
                                             color: theme.accent
                                         }
                                         MouseArea {
+                                            id: modeMa
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            hoverEnabled: true
                                             onClicked: {
-                                                const mon = parent.parent.parent.modelData;
-                                                root.applyMonitor(mon, modelData, mon.scale, mon.vrr);
+                                                root.applyMonitor(monitorCard.modelData, modelData, monitorCard.modelData.scale, monitorCard.modelData.vrr);
                                             }
                                         }
                                     }

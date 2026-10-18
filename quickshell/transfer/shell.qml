@@ -19,6 +19,7 @@ ShellRoot {
     readonly property string cancelFile: minimalRuntime + "/bt-transfer-cancel"
 
     property var transferData: ({
+        id: "",
         active: false,
         direction: "incoming",
         device: "",
@@ -93,9 +94,6 @@ ShellRoot {
         onTriggered: Qt.quit()
     }
 
-    Process {
-        id: actionProcess
-    }
 
     PanelWindow {
         id: win
@@ -257,17 +255,21 @@ ShellRoot {
                     visible: root.transferData.status === "transferring" || root.transferData.status === "complete"
                     spacing: 4
 
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 16
                         Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: Math.round((root.transferData.progress || 0) * 100) + "%"
                             font.family: theme.fontFamily
                             font.pixelSize: theme.fontSecondary
                             font.bold: true
                             color: theme.accent
                         }
-                        Item { Layout.fillWidth: true; width: parent.width - 100 }
                         Text {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             text: root.transferData.status === "complete" ? "Finished" : "Transferring..."
                             font.family: theme.fontFamily
                             font.pixelSize: theme.fontSecondary
@@ -305,7 +307,7 @@ ShellRoot {
                         width: (parent.width - 8) / 2
                         height: 32
                         radius: theme.controlRadius
-                        color: theme.reading
+                        color: declineArea.containsPress ? theme.surfaceAlt : (declineArea.containsMouse ? theme.control : (theme.reading || "transparent"))
                         border.width: 1
                         border.color: theme.border
 
@@ -318,11 +320,12 @@ ShellRoot {
                             color: theme.muted
                         }
 
-                        Button {
-                            background: Rectangle { color: parent.visualFocus ? theme.control : "transparent"; border.width: parent.visualFocus ? 1 : 0; border.color: theme.accent; radius: theme.controlRadius }
-                            enabled: !root.actionPending
+                        MouseArea {
+                            id: declineArea
                             anchors.fill: parent
-                            
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: !root.actionPending
                             onClicked: root.respondAction("decline")
                         }
                     }
@@ -331,7 +334,7 @@ ShellRoot {
                         width: (parent.width - 8) / 2
                         height: 32
                         radius: theme.controlRadius
-                        color: theme.accent
+                        color: acceptArea.containsPress ? Qt.darker(theme.accent, 1.15) : (acceptArea.containsMouse ? Qt.lighter(theme.accent, 1.1) : theme.accent)
 
                         Text {
                             anchors.centerIn: parent
@@ -342,11 +345,12 @@ ShellRoot {
                             color: theme.base
                         }
 
-                        Button {
-                            background: Rectangle { color: parent.visualFocus ? theme.control : "transparent"; border.width: parent.visualFocus ? 1 : 0; border.color: theme.accent; radius: theme.controlRadius }
-                            enabled: !root.actionPending
+                        MouseArea {
+                            id: acceptArea
                             anchors.fill: parent
-                            
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: !root.actionPending
                             onClicked: root.respondAction("accept")
                         }
                     }
@@ -358,7 +362,7 @@ ShellRoot {
                     height: 28
                     visible: root.transferData.status === "transferring"
                     radius: theme.controlRadius
-                    color: theme.control
+                    color: cancelArea.containsPress ? theme.surfaceAlt : (cancelArea.containsMouse ? theme.control : "transparent")
                     border.width: 1
                     border.color: theme.border
 
@@ -371,11 +375,12 @@ ShellRoot {
                         color: theme.muted
                     }
 
-                    Button {
-                            background: Rectangle { color: parent.visualFocus ? theme.control : "transparent"; border.width: parent.visualFocus ? 1 : 0; border.color: theme.accent; radius: theme.controlRadius }
-                            enabled: !root.actionPending
+                    MouseArea {
+                        id: cancelArea
                         anchors.fill: parent
-                        
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        enabled: !root.actionPending
                         onClicked: root.cancelTransfer()
                     }
                 }
