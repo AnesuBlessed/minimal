@@ -6,11 +6,12 @@
     "muted": "adb4b6",
     "accent": "bdbed0",
     "warning": "e5c07b",
-    "critical": "e06c75"
+    "critical": "e06c75",
+    "success": "98c379"
   },
   "opacity": {
     "panel": 0.8,
-    "reading": 0.94,
+    "reading": 0.98,
     "control": 0.85,
     "border": 0.3
   },
@@ -27,7 +28,7 @@
   "font": {
     "family": "JetBrainsMono Nerd Font",
     "body": 12,
-    "secondary": 10,
+    "secondary": 11,
     "title": 14
   },
   "motion": {

@@ -9,10 +9,11 @@ Item {
     id: page
 
     property var monitors: []
+    property string actionError: ""
     property var savedState: ({
     })
     property real marginLeft: 0
-    property real marginRight: 55
+    property real marginRight: 12
     property real marginTop: 0
     property real marginBottom: 0
     readonly property var activeMonitors: monitors.filter((m) => {
@@ -20,6 +21,10 @@ Item {
     })
     property var pendingScaleMonitor: null
     property real pendingScaleValue: 1
+    property real pendingRate: -1
+    property string pendingRateMonitor: ""
+    property string pendingRes: ""
+    property string pendingResMonitor: ""
 
     readonly property var bboxCenter: {
         if (activeMonitors.length === 0)
@@ -51,16 +56,12 @@ Item {
     }
 
     function applyMonitorSettings(name, mode, pos, scale, disabled) {
-        let cmd = "";
-        if (disabled) {
-            cmd = "hyprctl keyword monitor '" + name + ",disable'";
-        } else {
-            const m = mode || "preferred";
-            const p = pos || "auto";
-            const s = (scale !== undefined && scale > 0) ? scale : 1.0;
-            cmd = "hyprctl keyword monitor '" + name + "," + m + "," + p + "," + s + "'";
-        }
-        pShell.command = ["sh", "-c", cmd + "; python3 \"$MINIMAL_ROOT/scripts/monitors.py\" --apply '" + name + "' '" + (mode || "preferred") + "' '" + (scale || 1.0) + "' 2>/dev/null || true"];
+        if (pShell.running) return;
+        page.actionError = "";
+        var rootDir = Quickshell.env("MINIMAL_ROOT") || ((Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/minimal");
+        pShell.command = ["python3", rootDir + "/scripts/monitors.py", "--configure",
+            JSON.stringify({name: name, mode: mode || "preferred", position: pos || "auto",
+                            scale: scale || 1, disabled: Boolean(disabled)})];
         pShell.running = true;
     }
 
@@ -300,6 +301,20 @@ Item {
         if (!mon || !mon.name || !mode)
             return ;
 
+        const match = mode.match(/^(\d+)x(\d+)/);
+        if (match) {
+            page.pendingRes = match[1] + "x" + match[2];
+            page.pendingResMonitor = mon.name;
+            for (let i = 0; i < page.monitors.length; i++) {
+                if (page.monitors[i].name === mon.name) {
+                    let copy = page.monitors.slice();
+                    copy[i] = Object.assign({}, copy[i], { width: parseInt(match[1]), height: parseInt(match[2]) });
+                    page.monitors = copy;
+                    break;
+                }
+            }
+        }
+
         const scale = mon.scale !== undefined ? mon.scale : 1;
         const position = (mon.x !== undefined ? mon.x : 0) + "x" + (mon.y !== undefined ? mon.y : 0);
         applyMonitorSettings(mon.name, mode, position, scale, false);
@@ -343,6 +358,17 @@ Item {
         if (!mon || !mon.name || rate === undefined)
             return ;
 
+        page.pendingRate = Number(rate);
+        page.pendingRateMonitor = mon.name;
+        for (let i = 0; i < page.monitors.length; i++) {
+            if (page.monitors[i].name === mon.name) {
+                let copy = page.monitors.slice();
+                copy[i] = Object.assign({}, copy[i], { refreshRate: Number(rate) });
+                page.monitors = copy;
+                break;
+            }
+        }
+
         const mode = mon.width + "x" + mon.height + "@" + Number(rate).toFixed(2);
         const scale = mon.scale !== undefined ? mon.scale : 1;
         const position = (mon.x !== undefined ? mon.x : 0) + "x" + (mon.y !== undefined ? mon.y : 0);
@@ -354,13 +380,18 @@ Item {
     Process {
         id: pReset
         onExited: (exitCode) => {
+            if (exitCode !== 0 && !page.actionError) page.actionError = "Could not apply display settings.";
             refreshTimer.restart();
         }
     }
 
     Process {
         id: pShell
+        stderr: StdioCollector {
+            onStreamFinished: { if (text.trim()) page.actionError = text.trim(); }
+        }
         onExited: (exitCode) => {
+            if (exitCode !== 0 && !page.actionError) page.actionError = "Could not apply display settings.";
             refreshTimer.restart();
         }
     }
@@ -377,6 +408,10 @@ Item {
                 } catch (error) {
                     page.monitors = [];
                 }
+                page.pendingRate = -1;
+                page.pendingRateMonitor = "";
+                page.pendingRes = "";
+                page.pendingResMonitor = "";
             }
         }
     }
@@ -412,21 +447,16 @@ Item {
 
         Column {
             id: content
-            width: flick.width
+            width: Math.max(0, flick.width - 10)
             spacing: 14
-
             Text {
-                text: "DISPLAY"
-                color: Theme.text
-                font.family: Theme.fontFamily
-                font.pixelSize: 19
-                font.letterSpacing: 3
-            }
-
-            Rectangle {
+                visible: page.actionError !== ""
                 width: parent.width
-                height: 1
-                color: Theme.border
+                text: page.actionError
+                color: Theme.danger
+                wrapMode: Text.Wrap
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontBody
             }
 
             Row {
@@ -450,19 +480,19 @@ Item {
                         radius: Theme.radiusSm
                         color: presetMouse.containsMouse ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
                         border.width: 1
-                        border.color: presetMouse.containsMouse ? Theme.accent : Theme.border
+                        border.color: presetMouse.containsMouse ? Theme.borderAccent : Theme.border
 
                         Text {
                             anchors.centerIn: parent
                             text: modelData.label
                             color: presetMouse.containsMouse ? Theme.accent : Theme.textDim
                             font.family: Theme.monoFont
-                            font.pixelSize: 9
+                            font.pixelSize: Theme.fontSecondary
                             font.bold: true
-                            font.letterSpacing: 0.5
+                            font.letterSpacing: 0
                         }
 
-                        MouseArea {
+                        ControlArea {
                             id: presetMouse
                             anchors.fill: parent
                             hoverEnabled: true
@@ -481,7 +511,7 @@ Item {
                 property real centerY: page.bboxCenter.y
 
                 width: parent.width
-                height: 260
+                height: page.activeMonitors.length > 1 ? 200 : 120
                 radius: Theme.radius
                 color: Theme.alpha(Theme.text, 0.025)
                 border.width: 1
@@ -552,7 +582,7 @@ Item {
                                 text: monitorTile.modelData.name
                                 color: Theme.text
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: Theme.fontSecondary
                                 font.bold: true
                             }
 
@@ -569,7 +599,7 @@ Item {
                                 text: monitorTile.modelData.width + " × " + monitorTile.modelData.height
                                 color: Theme.textDim
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 9
+                                font.pixelSize: Theme.fontSecondary
                             }
                         }
 
@@ -703,19 +733,19 @@ Item {
                                         radius: Theme.radius
                                         color: card.main ? Theme.alpha(Theme.accent, 0.1) : (mainMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000")
                                         border.width: 1
-                                        border.color: card.main || mainMouse.containsMouse ? Theme.accent : Theme.border
+                                        border.color: card.main || mainMouse.containsMouse ? Theme.borderAccent : Theme.border
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: card.main ? "MAIN" : "SET MAIN"
                                             color: card.main ? Theme.accent : Theme.text
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: 11
+                                            font.pixelSize: Theme.fontSecondary
                                             font.bold: true
-                                            font.letterSpacing: 1
+                                            font.letterSpacing: 0
                                         }
 
-                                        MouseArea {
+                                        ControlArea {
                                             id: mainMouse
                                             anchors.fill: parent
                                             hoverEnabled: true
@@ -732,19 +762,19 @@ Item {
                                         radius: Theme.radius
                                         color: toggleMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000"
                                         border.width: 1
-                                        border.color: toggleMouse.containsMouse ? Theme.accent : Theme.border
+                                        border.color: toggleMouse.containsMouse ? Theme.borderAccent : Theme.border
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: card.off ? "ENABLE" : "DISABLE"
                                             color: Theme.text
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: 11
+                                            font.pixelSize: Theme.fontSecondary
                                             font.bold: true
-                                            font.letterSpacing: 1
+                                            font.letterSpacing: 0
                                         }
 
-                                        MouseArea {
+                                        ControlArea {
                                             id: toggleMouse
                                             anchors.fill: parent
                                             hoverEnabled: true
@@ -763,10 +793,10 @@ Item {
                                 Text {
                                     width: 36
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "SCALE"
+                                    text: "Scale"
                                     color: Theme.textDim
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.fontSecondary
                                 }
 
                                 Controls.Slider {
@@ -791,7 +821,7 @@ Item {
                                     text: "Only 1.00x available on this resolution"
                                     color: Theme.textFaint
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Theme.fontSecondary
                                     font.italic: true
                                     elide: Text.ElideRight
                                 }
@@ -803,7 +833,7 @@ Item {
                                     text: (card.modelData.scale || 1).toFixed(2) + "x"
                                     color: Theme.text
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.fontSecondary
                                 }
                             }
 
@@ -819,7 +849,7 @@ Item {
                                     text: "RES"
                                     color: Theme.textDim
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.fontSecondary
                                 }
 
                                 Flow {
@@ -832,25 +862,26 @@ Item {
                                         delegate: Rectangle {
                                             id: resButton
                                             required property string modelData
-                                            property bool current: modelData === card.modelData.width + "x" + card.modelData.height
+                                            property bool isPending: page.pendingResMonitor === card.modelData.name && page.pendingRes !== ""
+                                            property bool current: isPending ? (modelData === page.pendingRes) : (modelData === card.modelData.width + "x" + card.modelData.height)
 
                                             width: 92
                                             height: 28
                                             radius: Theme.radius
-                                            color: current ? Theme.alpha(Theme.accent, 0.1) : (resMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000")
-                                            border.width: 1
-                                            border.color: current || resMouse.containsMouse ? Theme.accent : Theme.border
+                                            color: current ? Theme.alpha(Theme.accent, 0.16) : (resMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000")
+                                            border.width: current ? 1.5 : 1
+                                            border.color: current ? Theme.accent : (resMouse.containsMouse ? Theme.borderAccent : Theme.border)
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: resButton.modelData
-                                                color: Theme.text
+                                                color: current ? Theme.accent : Theme.text
                                                 font.family: Theme.fontFamily
-                                                font.pixelSize: 11
-                                                font.bold: true
+                                                font.pixelSize: Theme.fontSecondary
+                                                font.bold: current
                                             }
 
-                                            MouseArea {
+                                            ControlArea {
                                                 id: resMouse
                                                 anchors.fill: parent
                                                 hoverEnabled: true
@@ -878,7 +909,7 @@ Item {
                                     text: "HZ"
                                     color: Theme.textDim
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.fontSecondary
                                 }
 
                                 Flow {
@@ -891,25 +922,26 @@ Item {
                                         delegate: Rectangle {
                                             id: rateButton
                                             required property var modelData
-                                            property bool current: Math.abs(modelData - card.modelData.refreshRate) < 0.05
+                                            property bool isPending: page.pendingRateMonitor === card.modelData.name && page.pendingRate > 0
+                                            property bool current: isPending ? (Math.abs(modelData - page.pendingRate) < 0.05) : (Math.abs(modelData - card.modelData.refreshRate) < 0.05)
 
                                             width: 76
                                             height: 28
                                             radius: Theme.radius
-                                            color: current ? Theme.alpha(Theme.accent, 0.1) : (rateMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000")
-                                            border.width: 1
-                                            border.color: current || rateMouse.containsMouse ? Theme.accent : Theme.border
+                                            color: current ? Theme.alpha(Theme.accent, 0.16) : (rateMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000")
+                                            border.width: current ? 1.5 : 1
+                                            border.color: current ? Theme.accent : (rateMouse.containsMouse ? Theme.borderAccent : Theme.border)
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: rateButton.modelData.toFixed(2)
-                                                color: Theme.text
+                                                color: current ? Theme.accent : Theme.text
                                                 font.family: Theme.fontFamily
-                                                font.pixelSize: 11
-                                                font.bold: true
+                                                font.pixelSize: Theme.fontSecondary
+                                                font.bold: current
                                             }
 
-                                            MouseArea {
+                                            ControlArea {
                                                 id: rateMouse
                                                 anchors.fill: parent
                                                 hoverEnabled: true
@@ -931,19 +963,19 @@ Item {
                 radius: Theme.radius
                 color: resetMouse.containsMouse ? Theme.alpha(Theme.accent, 0.08) : "#00000000"
                 border.width: 1
-                border.color: resetMouse.containsMouse ? Theme.accent : Theme.border
+                border.color: resetMouse.containsMouse ? Theme.borderAccent : Theme.border
 
                 Text {
                     anchors.centerIn: parent
-                    text: "RESET TO CONFIG"
+                    text: "Reset to config"
                     color: Theme.text
                     font.family: Theme.fontFamily
                     font.pixelSize: 12
                     font.bold: true
-                    font.letterSpacing: 1
+                    font.letterSpacing: 0
                 }
 
-                MouseArea {
+                ControlArea {
                     id: resetMouse
                     anchors.fill: parent
                     hoverEnabled: true
@@ -953,16 +985,6 @@ Item {
             }
         }
 
-        ScrollBar.vertical: ScrollBar {
-            id: scrollBar
-            background: Rectangle {
-                color: "transparent"
-                radius: width / 2
-            }
-            contentItem: Rectangle {
-                color: "transparent"
-                radius: width / 2
-            }
-        }
+        ScrollBar.vertical: SettingsScrollBar {}
     }
 }

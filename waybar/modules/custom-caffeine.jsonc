@@ -7,6 +7,7 @@
     "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/caffeine.sh\" status",
     "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/caffeine.sh\" toggle",
     "interval": 30,
+    "signal": 9,
     "tooltip": true
   }
 }

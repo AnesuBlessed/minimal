@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -63,661 +64,153 @@ FloatingWindow {
             return ;
 
         showing = false;
+        Qt.quit();
     }
 
     function toggle() {
         showing ? hide() : show();
     }
 
-    function isFirstOfGroup(idx) {
-        if (idx === 0)
-            return true;
-
-        return navEntries[idx].group !== navEntries[idx - 1].group;
-    }
-
-    title: "Settings"
+    title: "Minimal Settings"
     color: "transparent"
     visible: showing
-    implicitWidth: 780
-    implicitHeight: 520
-    minimumSize: Qt.size(680, 440)
-    maximumSize: Qt.size(1050, 700)
-    onClosed: {
-        root.showing = false;
-        root.cardVisible = false;
-    }
-    onVisibleChanged: {
-        if (visible) {
-            card.opacity = 0;
-            card.scale = 0.96;
-            openAnimation.start();
-            pSystemInfo.running = true;
-        }
-    }
+    implicitWidth: Math.min(820, (screen ? screen.width : 1366) - 32)
+    implicitHeight: Math.min(560, (screen ? screen.height : 768) - 80)
+    minimumSize: Qt.size(620, 400)
+    onClosed: Qt.quit()
 
-    Shortcut {
-        sequence: "Escape"
-        onActivated: root.hide()
-    }
-
-    Process {
-        id: pSystemInfo
-        command: ["sh", "-c", "printf '%s|%s' \"$(cat /etc/hostname 2>/dev/null || uname -n)\" \"$(uptime -p 2>/dev/null | sed 's/up //')\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var parts = text.trim().split("|");
-                if (parts[0]) root.systemHost = parts[0];
-                if (parts[1]) root.systemUptime = parts[1];
-            }
-        }
-    }
-
-    ParallelAnimation {
-        id: openAnimation
-
-        NumberAnimation {
-            target: card
-            property: "opacity"
-            from: 0
-            to: 1
-            duration: 160
-            easing.type: Easing.OutCubic
-        }
-
-        NumberAnimation {
-            target: card
-            property: "scale"
-            from: 0.96
-            to: 1
-            duration: 260
-            easing.type: Easing.OutBack
-            easing.overshoot: 1.1
-        }
-
-    }
-
+    Shortcut { sequence: "Escape"; onActivated: root.hide() }
+    Shortcut { sequence: "Alt+1"; onActivated: root.selectedIndex = 0 }
+    Shortcut { sequence: "Alt+2"; onActivated: root.selectedIndex = 1 }
+    Shortcut { sequence: "Alt+3"; onActivated: root.selectedIndex = 2 }
+    Shortcut { sequence: "Alt+4"; onActivated: root.selectedIndex = 3 }
+    Shortcut { sequence: "Alt+5"; onActivated: root.selectedIndex = 4 }
+    Shortcut { sequence: "Alt+6"; onActivated: root.selectedIndex = 5 }
     IpcHandler {
-        function toggle() {
-            root.toggle();
-        }
-
-        function show() {
-            root.show();
-        }
-
-        function hide() {
-            root.hide();
-        }
-
-        function sound() {
-            root.selectedIndex = 1;
-            root.show();
-        }
-
-        function display() {
-            root.selectedIndex = 0;
-            root.show();
-        }
-
-        function network() {
-            root.selectedIndex = 2;
-            root.show();
-        }
-
-        function bluetooth() {
-            root.selectedIndex = 3;
-            root.show();
-        }
-
-        function power() {
-            root.selectedIndex = 4;
-            root.show();
-        }
-
-        function storage() {
-            root.selectedIndex = 5;
-            root.show();
-        }
-
         target: "settings"
+        function toggle() { root.toggle(); }
+        function show() { root.show(); }
+        function hide() { root.hide(); }
+        function display() { root.selectedIndex = 0; root.show(); }
+        function sound() { root.selectedIndex = 1; root.show(); }
+        function network() { root.selectedIndex = 2; root.show(); }
+        function bluetooth() { root.selectedIndex = 3; root.show(); }
+        function power() { root.selectedIndex = 4; root.show(); }
+        function storage() { root.selectedIndex = 5; root.show(); }
     }
-
-    PwObjectTracker {
-        objects: [Pipewire.defaultAudioSink]
-    }
-
     Rectangle {
-        id: card
-
         anchors.fill: parent
         color: Theme.glass
         radius: Theme.radius
-        border.width: 0
-        clip: true
-        opacity: 0
-        scale: 0.96
-        transformOrigin: Item.Center
+        border.width: 1
+        border.color: Theme.border
 
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: "transparent"
-            border.width: 1
-            border.color: Theme.ringOuter
-
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.topMargin: 1
-                anchors.leftMargin: parent.radius
-                anchors.rightMargin: parent.radius
-                height: 1
-                color: Theme.tint("#ffffff", 0.08)
+        Column {
+            id: navigation
+            x: 16; y: 20
+            width: 164
+            spacing: 4
+            Text {
+                text: "Minimal"
+                height: 44
+                leftPadding: 12
+                color: Theme.text
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontTitle
+                font.weight: Font.DemiBold
             }
-
-        }
-
-        Item {
-            anchors.fill: parent
-            anchors.margins: 22
-
-            Item {
-                id: sidebar
-
-                width: 180
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-
-                Item {
-                    id: sidebarHeader
-
-                    width: parent.width
-                    height: 56
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 12
-
-                        Rectangle {
-                            width: 32
-                            height: 32
-                            radius: 8
-                            color: Theme.tint(Theme.accent, 0.12)
-                            border.width: 1
-                            border.color: Theme.tint(Theme.accent, 0.3)
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰻂"
-                                font.family: Theme.iconFont
-                                font.pixelSize: 17
-                                color: Theme.accent
-                            }
-                        }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 3
-
-                            Text {
-                                text: "MINIMAL"
-                                color: Theme.text
-                                font.family: Theme.displayFont
-                                font.pixelSize: 14
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.2
-                            }
-
-                            Row {
-                                spacing: 5
-                                Rectangle {
-                                    width: 5
-                                    height: 5
-                                    radius: 2.5
-                                    color: Theme.accent
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "SYSTEM HUB"
-                                    color: Theme.textFaint
-                                    font.family: Theme.monoFont
-                                    font.pixelSize: 9
-                                    font.letterSpacing: 1.1
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                        }
+            Repeater {
+                model: root.navEntries
+                delegate: Button {
+                    required property var modelData
+                    required property int index
+                    width: navigation.width
+                    height: 40
+                    text: modelData.name
+                    Accessible.name: modelData.name
+                    onClicked: root.selectedIndex = index
+                    background: Rectangle {
+                        radius: Theme.radiusSm
+                        color: root.selectedIndex === index ? Theme.bgActive : (parent.hovered ? Theme.bgHover : "transparent")
+                        border.width: parent.visualFocus ? 1 : 0
+                        border.color: Theme.accent
                     }
-                }
-
-                Column {
-                    id: sidebarNav
-
-                    anchors.top: sidebarHeader.bottom
-                    anchors.topMargin: 4
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    spacing: 0
-
-                Repeater {
-                    model: root.navEntries
-
-                    delegate: Column {
-                        required property var modelData
-                        required property int index
-
-                        width: sidebar.width
-                        spacing: 0
-
-                        Item {
-                            width: parent.width
-                            height: root.isFirstOfGroup(index) ? 24 : 0
-                            visible: root.isFirstOfGroup(index)
-
-                            Text {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 12
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 6
-                                text: modelData.group
-                                color: Theme.textGhost
-                                font.family: Theme.monoFont
-                                font.pixelSize: 9
-                                font.weight: Font.Medium
-                                font.letterSpacing: 1.6
-                            }
-
-                        }
-
-                        Item {
-                            id: navItem
-
-                            readonly property bool active: root.selectedIndex === index
-
-                            width: sidebar.width
-                            height: 36
-
-                            Item {
-                                width: 8
-                                height: 20
-                                anchors.left: parent.left
-                                anchors.leftMargin: -4
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: navItem.active
-                                opacity: navItem.active ? 1 : 0
-
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 8
-                                    height: 20
-                                    radius: 4
-                                    color: Theme.tint("#ffffff", 0.15)
-                                }
-
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 3
-                                    height: 16
-                                    radius: 1.5
-                                    color: Theme.accent
-                                }
-
-                                Behavior on opacity {
-                                    NumberAnimation {
-                                        duration: Theme.animFast
-                                    }
-
-                                }
-
-                            }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 6
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.topMargin: 2
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 2
-                                radius: Theme.radiusSm
-                                color: navItem.active ? Theme.bgCard : (itemMouse.containsMouse ? Theme.bgPanel : "transparent")
-                                border.width: navItem.active ? 1 : 0
-                                border.color: Theme.border
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: Theme.animFast
-                                        easing.type: Easing.OutCubic
-                                    }
-
-                                }
-
-                                Behavior on border.width {
-                                    NumberAnimation {
-                                        duration: Theme.animFast
-                                    }
-
-                                }
-
-                            }
-
-                            Row {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 20
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 12
-
-                                Text {
-                                    text: modelData.icon
-                                    color: navItem.active ? Theme.accent : Theme.textFaint
-                                    font.family: Theme.iconFont
-                                    font.pixelSize: 13
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Behavior on color {
-                                        ColorAnimation {
-                                            duration: Theme.animFast
-                                        }
-
-                                    }
-
-                                }
-
-                                Text {
-                                    text: modelData.name
-                                    color: navItem.active ? Theme.text : Theme.textDim
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 13
-                                    font.weight: navItem.active ? Font.Medium : Font.Normal
-                                    font.letterSpacing: -0.1
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Behavior on color {
-                                        ColorAnimation {
-                                            duration: Theme.animFast
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                            Rectangle {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 18
-                                height: 18
-                                radius: 5
-                                color: navItem.active ? Theme.tint("#ffffff", 0.08) : "transparent"
-                                border.width: navItem.active ? 1 : 0
-                                border.color: Theme.border
-                                visible: navItem.active || itemMouse.containsMouse
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.short
-                                    color: navItem.active ? Theme.textSoft : Theme.textGhost
-                                    font.family: Theme.monoFont
-                                    font.pixelSize: 9
-                                    font.weight: Font.Medium
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: Theme.animFast
-                                    }
-
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: itemMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.selectedIndex = index
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            Rectangle {
-                    id: sidebarFooter
-
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.leftMargin: 6
-                    anchors.right: parent.right
-                    anchors.rightMargin: 6
-                    height: 44
-                    radius: Theme.radiusSm
-                    color: Theme.tint("#ffffff", 0.03)
-                    border.width: 1
-                    border.color: Theme.border
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 8
-
+                    contentItem: Row {
+                        spacing: 10
+                        leftPadding: 12
                         Text {
-                            text: "󰣇"
+                            text: modelData.icon
+                            color: root.selectedIndex === index ? Theme.accent : Theme.textDim
                             font.family: Theme.iconFont
-                            font.pixelSize: 15
-                            color: Theme.accent
+                            font.pixelSize: 14
                             anchors.verticalCenter: parent.verticalCenter
                         }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
-
-                            Text {
-                                text: root.systemHost
-                                color: Theme.text
-                                font.family: Theme.displayFont
-                                font.pixelSize: 11
-                                font.weight: Font.Medium
-                            }
-
-                            Text {
-                                text: root.systemUptime !== "" ? ("up " + root.systemUptime) : "active"
-                                color: Theme.textFaint
-                                font.family: Theme.monoFont
-                                font.pixelSize: 9
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 26
-                        height: 20
-                        radius: 4
-                        color: Theme.tint("#ffffff", 0.06)
-                        border.width: 1
-                        border.color: Theme.border
-
                         Text {
-                            anchors.centerIn: parent
-                            text: "ESC"
-                            font.family: Theme.monoFont
-                            font.pixelSize: 8
-                            font.weight: Font.Bold
-                            color: Theme.textFaint
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.hide()
+                            text: modelData.name
+                            color: root.selectedIndex === index ? Theme.text : Theme.textDim
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontBody
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }
-
             }
-
-            Rectangle {
-                id: divider
-
-                x: sidebar.x + sidebar.width + 12
-                y: 6
-                width: 1
-                height: parent.height - 12
-                color: Theme.border
-            }
-
-            Item {
-                anchors.left: divider.right
-                anchors.leftMargin: 28
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-
-                Item {
-                    id: contentHeader
-
-                    width: parent.width
-                    height: 56
-
-                    Column {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 4
-
-                        Row {
-                            spacing: 10
-
-                            Text {
-                                text: root.navEntries[root.selectedIndex].name
-                                color: Theme.text
-                                font.family: Theme.displayFont
-                                font.pixelSize: 22
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: -0.4
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Rectangle {
-                                width: 6
-                                height: 6
-                                radius: 3
-                                color: Theme.textGhost
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "configure"
-                                color: Theme.textFaint
-                                font.family: Theme.monoFont
-                                font.pixelSize: 10
-                                font.letterSpacing: 1.3
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                        }
-
-                    }
-
-                    Text {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.navEntries[root.selectedIndex].icon
-                        color: Theme.textGhost
-                        font.family: Theme.iconFont
-                        font.pixelSize: 30
-                        opacity: 0.35
-                    }
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 1
-                        color: Theme.border
-                    }
-
-                }
-
-                Item {
-                    anchors.top: contentHeader.bottom
-                    anchors.topMargin: 20
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    clip: true
-
-                    Loader {
-                        id: pageLoader
-
-                        anchors.fill: parent
-                        source: "Tabs/" + root.navEntries[root.selectedIndex].page + ".qml"
-                        onSourceChanged: fadeIn.restart()
-
-                        SequentialAnimation {
-                            id: fadeIn
-
-                            PropertyAction {
-                                target: pageLoader
-                                property: "opacity"
-                                value: 0
-                            }
-
-                            ParallelAnimation {
-                                NumberAnimation {
-                                    target: pageLoader
-                                    property: "opacity"
-                                    to: 1
-                                    duration: Theme.animMed
-                                    easing.type: Easing.OutCubic
-                                }
-
-                                NumberAnimation {
-                                    target: pageLoader
-                                    property: "scale"
-                                    from: 0.99
-                                    to: 1
-                                    duration: Theme.animMed
-                                    easing.type: Easing.OutCubic
-                                }
-
-                            }
-
-                        }
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: Theme.animMed
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
         }
-
+        Text {
+            x: 28
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 20
+            text: "Alt + 1–6 to switch"
+            color: Theme.textDim
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSecondary
+        }
+        Rectangle {
+            x: 196; y: 20
+            width: 1; height: parent.height - 40
+            color: Theme.border
+        }
+        Item {
+            x: 217; y: 20
+            width: parent.width - x - 20
+            height: parent.height - 40
+            Text {
+                text: root.navEntries[root.selectedIndex].name
+                color: Theme.text
+                font.family: Theme.fontFamily
+                font.pixelSize: 20
+                font.weight: Font.DemiBold
+                anchors.top: parent.top
+                anchors.topMargin: 6
+            }
+            Button {
+                anchors.right: parent.right
+                width: 32; height: 32
+                text: "×"
+                Accessible.name: "Close settings"
+                onClicked: root.hide()
+                background: Rectangle {
+                    radius: Theme.radiusSm
+                    color: parent.hovered ? Theme.bgHover : "transparent"
+                    border.width: parent.visualFocus ? 1 : 0
+                    border.color: Theme.accent
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: Theme.textDim
+                    font.pixelSize: 20
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            Loader {
+                id: pageLoader
+                anchors.fill: parent
+                anchors.topMargin: 56
+                clip: true
+                active: root.showing
+                source: "Tabs/" + root.navEntries[root.selectedIndex].page + ".qml"
+            }
+        }
     }
-
 }

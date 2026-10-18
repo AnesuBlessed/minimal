@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  MINIMAL — BARE-METAL ARCH / CACHYOS BOOTSTRAP
-#  Turns a fresh Arch/CachyOS installation into the complete Minimal desktop.
+#  Provisions Minimal on Arch/CachyOS with an already working graphics kernel driver.
 # =============================================================================
 set -euo pipefail
 
@@ -16,25 +16,14 @@ BASE_PACKAGES=(
     waybar wlogout fuzzel foot mako hyprpaper hypridle hyprlock
     pipewire wireplumber pipewire-pulse pipewire-alsa
     wl-clipboard cliphist grim slurp satty tesseract tesseract-data-eng
-    playerctl brightnessctl imagemagick jq python python-pillow python-gobject
-    networkmanager nm-connection-editor bluez bluez-utils
+    playerctl brightnessctl imagemagick jq python python-pillow python-gobject python-dbus zenity xdg-user-dirs
+    networkmanager nm-connection-editor bluez bluez-utils bluez-obex
+    libpulse power-profiles-daemon
     fastfetch fish ttf-jetbrains-mono-nerd noto-fonts noto-fonts-emoji
 )
 
 detect_gpu_packages() {
-    local pci_info
-    pci_info=$(lspci 2>/dev/null | grep -iE 'vga|3d|display' || true)
-    local pkgs=(mesa)
-    if grep -qi 'amd\|radeon' <<< "$pci_info"; then
-        pkgs+=(vulkan-radeon libva-mesa-driver)
-    fi
-    if grep -qi 'intel' <<< "$pci_info"; then
-        pkgs+=(vulkan-intel intel-media-driver)
-    fi
-    if grep -qi 'nvidia' <<< "$pci_info"; then
-        pkgs+=(nvidia-utils libva-nvidia-driver)
-    fi
-    printf '%s\n' "${pkgs[@]}"
+    "$ROOT_DIR/scripts/hardware-detect.sh" --packages
 }
 
 mapfile -t GPU_PACKAGES < <(detect_gpu_packages)

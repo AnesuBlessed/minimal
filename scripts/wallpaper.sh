@@ -36,6 +36,9 @@ rollback_wallpaper() {
                 rm -f -- "${files[index]}"
             fi
         done
+        if [[ " ${changed[*]} " == "  " ]]; then
+            mapfile -t changed < <(hyprctl -j monitors | jq -r '.[].name')
+        fi
         for monitor in "${changed[@]}"; do
             previous=''
             if [[ -r $MINIMAL_STATE/wallpapers.json ]]; then
@@ -50,6 +53,7 @@ rollback_wallpaper() {
                 printf 'No previous wallpaper available for rollback on %s\n' "${monitor:-all}" >&2
             fi
         done
+        python3 "$MINIMAL_ROOT/scripts/video-state.py" || printf 'Video wallpaper rollback failed\n' >&2
     fi
     rm -rf -- "$transaction"
     exit "$result"
@@ -66,15 +70,6 @@ else
     [[ -n $outputs && $outputs != *$'\n'* ]] || exit 2
     IFS=',' read -r -a monitors <<< "$outputs"
 fi
-# Stop only video units created by Minimal, never unrelated mpvpaper instances.
-if [[ $outputs == all ]]; then
-    systemctl --user stop "$MINIMAL_SERVICE_PREFIX-video-*.service" 2>/dev/null || true
-else
-    systemctl --user stop "$MINIMAL_SERVICE_PREFIX-video-$(printf all | sha256sum | cut -c1-12).service" 2>/dev/null || true
-    for output in "${monitors[@]}"; do
-        systemctl --user stop "$MINIMAL_SERVICE_PREFIX-video-$(printf '%s' "$output" | sha256sum | cut -c1-12).service" 2>/dev/null || true
-    done
-fi
 for monitor in "${monitors[@]}"; do
     changed+=("$monitor")
     reply=$(hyprctl hyprpaper wallpaper "$monitor,$wall,cover")
@@ -84,7 +79,8 @@ done
 tmp=$(mktemp "$MINIMAL_STATE/wallpaper-XXXXXXXX")
 printf '%s\n' "$wall" > "$tmp"
 mv -f -- "$tmp" "$MINIMAL_STATE/current_wallpaper"
-"$MINIMAL_ROOT/scripts/wallpaper-state.py" "$wall" "$outputs" image "$wall"
+"$MINIMAL_ROOT/scripts/wallpaper-state.py" "${4:-$wall}" "$outputs" "${3:-image}" "$wall"
+python3 "$MINIMAL_ROOT/scripts/video-state.py"
 committed=true
 if systemctl --user is-active --quiet "$MINIMAL_SERVICE_PREFIX-mako.service"; then
     makoctl reload || printf 'Wallpaper applied, but notification theme reload failed\n' >&2

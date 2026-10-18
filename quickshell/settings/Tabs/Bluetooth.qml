@@ -11,13 +11,55 @@ Item {
     readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter
     readonly property bool powered: adapter ? adapter.enabled : false
     readonly property bool scanning: adapter ? adapter.discovering : false
+    readonly property bool discoverable: adapter ? adapter.discoverable : false
 
     property string statusText: ""
     property real marginLeft: 0
-    property real marginRight: 55
+    property real marginRight: 12
     property real marginTop: 0
     property real marginBottom: 0
     property bool manualOff: false
+    property int deviceStateRevision: 0
+    property string localAddress: ""
+    property string localName: adapter ? (adapter.name || "cachyos-x8664") : "cachyos-x8664"
+
+    function refreshLocalInfo() {
+        pLocalInfo.running = true
+    }
+
+    function sendFile(address, name) {
+        page.setStatus("Opening file transfer to " + (name || address || "device") + "...")
+        var scriptPath = (Quickshell.env("MINIMAL_ROOT") || ((Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/minimal")) + "/scripts/bluetooth-send.py";
+        if (address) {
+            Quickshell.execDetached(["python3", scriptPath, address])
+        } else {
+            Quickshell.execDetached(["python3", scriptPath])
+        }
+    }
+
+    readonly property bool hasConnected: {
+        var rev = deviceStateRevision;
+        if (!page.adapter || !page.adapter.devices) return false;
+        var vals = page.adapter.devices.values;
+        if (!vals) return false;
+        for (var i = 0; i < vals.length; i++) {
+            if (vals[i] && (vals[i].connected || vals[i].state === BluetoothDeviceState.Connected))
+                return true;
+        }
+        return false;
+    }
+
+    readonly property bool hasAvailable: {
+        var rev = deviceStateRevision;
+        if (!page.adapter || !page.adapter.devices) return false;
+        var vals = page.adapter.devices.values;
+        if (!vals) return false;
+        for (var i = 0; i < vals.length; i++) {
+            if (vals[i] && !(vals[i].connected || vals[i].state === BluetoothDeviceState.Connected))
+                return true;
+        }
+        return false;
+    }
 
     function setStatus(text) {
         page.statusText = text
@@ -28,21 +70,25 @@ Item {
             statusTimer.stop()
     }
 
-    function tryAutoPower() {
-        if (!page.adapter || page.manualOff)
-            return
-
-        if (page.adapter.enabled)
-            return
-
-        page.adapter.enabled = true
-    }
-
     function setDiscovering(on) {
         if (!page.adapter || !page.powered)
             return
 
+        // Never aggressively scan when devices are connected to prevent packet loss & disconnects
+        if (on && page.hasConnected)
+            return
+
         page.adapter.discovering = Boolean(on)
+    }
+
+    function toggleDiscoverable() {
+        if (!page.adapter || !page.powered) return;
+        var next = !page.adapter.discoverable;
+        Quickshell.execDetached(["bluetoothctl", "discoverable-timeout", "0"]);
+        Quickshell.execDetached(["bluetoothctl", "pairable", "on"]);
+        Quickshell.execDetached(["bluetoothctl", "discoverable", next ? "on" : "off"]);
+        page.adapter.discoverable = next;
+        page.setStatus(next ? "Device is now always discoverable" : "Device is hidden from discovery");
     }
 
     function togglePower() {
@@ -62,14 +108,29 @@ Item {
 
         page.manualOff = false
         page.adapter.enabled = true
-        page.setStatus("Turning Bluetooth on...")
+        Quickshell.execDetached(["bluetoothctl", "discoverable-timeout", "0"]);
+        Quickshell.execDetached(["bluetoothctl", "pairable", "on"]);
+        Quickshell.execDetached(["bluetoothctl", "discoverable", "on"]);
+        page.setStatus("Turning Bluetooth on (Discoverable)...")
+    }
+
+    function deviceDisplayName(dev) {
+        if (!dev)
+            return "Bluetooth Device"
+        var candidate = (dev.name || dev.deviceName || dev.alias || "").trim()
+        var isCode = !candidate ||
+                     /^([0-9A-Fa-f]{2}[:_-]){5}([0-9A-Fa-f]{2})$/i.test(candidate) ||
+                     /^dev[_-][0-9A-Za-z_:]+$/i.test(candidate) ||
+                     /^[0-9A-Fa-f]{12}$/i.test(candidate) ||
+                     /^bluez_/i.test(candidate)
+        return isCode ? "Bluetooth Device" : candidate
     }
 
     function deviceAction(dev, deviceCard) {
         if (!dev)
             return
 
-        var name = dev.name || dev.deviceName || dev.address || "device"
+        var name = page.deviceDisplayName(dev)
         var address = dev.address
 
         if (dev.connected || dev.state === BluetoothDeviceState.Connected) {
@@ -81,7 +142,7 @@ Item {
 
         page.setDiscovering(false)
         page.setStatus("Connecting to " + name + "...")
-        connectProcess.command = ["sh", "-c", "bluetoothctl trust '" + address + "' && bluetoothctl pair '" + address + "'; bluetoothctl connect '" + address + "'"]
+        connectProcess.command = ["sh", "-c", "bluetoothctl discoverable-timeout 0; bluetoothctl pairable on; if ! bluetoothctl info '" + address + "' | grep -q 'Paired: yes'; then bluetoothctl pair '" + address + "'; fi && bluetoothctl trust '" + address + "' && bluetoothctl connect '" + address + "'"]
         connectProcess.running = true
     }
 
@@ -107,7 +168,25 @@ Item {
         command: ["sh", "-c", "rfkill unblock bluetooth 2>/dev/null; bluetoothctl power off 2>/dev/null; sleep 0.5; bluetoothctl power on 2>/dev/null; notify-send 'Bluetooth' 'Adapter reset successfully'"]
         onExited: {
             page.setStatus("Adapter reset complete");
-            page.tryAutoPower();
+            page.setDiscovering(page.visible && page.powered);
+            page.refreshLocalInfo();
+        }
+    }
+
+    Process {
+        id: pLocalInfo
+        command: ["sh", "-c", "bluetoothctl show | awk '/Controller/ {mac=$2} /Alias:/ {alias=$2} /Name:/ {if(!alias) alias=$2} END {print mac \",\" (alias ? alias : \"minimal\")}'"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                var trimmed = line.trim()
+                var parts = trimmed.split(",")
+                if (parts.length >= 1 && parts[0]) {
+                    page.localAddress = parts[0].trim()
+                }
+                if (parts.length >= 2 && parts[1]) {
+                    page.localName = parts[1].trim()
+                }
+            }
         }
     }
 
@@ -158,12 +237,12 @@ Item {
     }
 
     onAdapterChanged: {
-        page.tryAutoPower()
+        page.setDiscovering(page.visible && page.powered)
     }
 
     onVisibleChanged: {
         if (page.visible) {
-            page.tryAutoPower()
+            page.setDiscovering(page.visible && page.powered)
             page.setDiscovering(page.powered)
         } else {
             page.setDiscovering(false)
@@ -173,13 +252,15 @@ Item {
     onPoweredChanged: {
         if (page.powered) {
             page.setDiscovering(page.visible)
+            page.refreshLocalInfo()
         } else {
             page.setDiscovering(false)
         }
     }
 
     Component.onCompleted: {
-        page.tryAutoPower()
+        page.setDiscovering(page.visible && page.powered)
+        page.refreshLocalInfo()
     }
 
     Component.onDestruction: {
@@ -191,21 +272,6 @@ Item {
         interval: 3500
         onTriggered: {
             page.statusText = ""
-        }
-    }
-
-    Timer {
-        id: autoPowerTimer
-        interval: 1500
-        repeat: true
-        running: true
-        onTriggered: {
-            if (!page.adapter) {
-                return
-            }
-            if (!page.adapter.enabled && !page.manualOff) {
-                page.adapter.enabled = true
-            }
         }
     }
 
@@ -224,16 +290,18 @@ Item {
 
     Timer {
         id: discoveryRetryTimer
-        interval: 1500
+        interval: 8000
         repeat: true
-        running: page.powered &&
+        running: page.visible && page.powered &&
                  page.adapter &&
-                 page.adapter.enabled
+                 page.adapter.enabled &&
+                 !page.hasConnected
 
         onTriggered: {
             if (
                 page.adapter &&
                 page.powered &&
+                !page.hasConnected &&
                 !page.adapter.discovering
             ) {
                 page.adapter.discovering = true
@@ -249,26 +317,12 @@ Item {
         anchors.bottomMargin: page.marginBottom
         spacing: 14
 
-        Text {
-            text: "BLUETOOTH"
-            color: Theme.text
-            font.family: Theme.fontFamily
-            font.pixelSize: 19
-            font.letterSpacing: 3
-        }
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.border
-        }
-
         Row {
             width: parent.width
-            spacing: 9
+            spacing: 8
 
             Rectangle {
-                width: (parent.width - 9) / 2
+                width: (parent.width - 16) / 3
                 height: 36
                 radius: Theme.radius
 
@@ -286,7 +340,7 @@ Item {
 
                     text: {
                         if (!page.adapter)
-                            return "BLUETOOTH UNAVAILABLE"
+                            return "NO ADAPTER"
 
                         return page.powered
                                ? "BLUETOOTH ON"
@@ -298,12 +352,12 @@ Item {
                            : Theme.textFaint
 
                     font.family: Theme.monoFont
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSecondary
                     font.bold: true
-                    font.letterSpacing: 1
+                    font.letterSpacing: 0
                 }
 
-                MouseArea {
+                ControlArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
@@ -313,7 +367,63 @@ Item {
             }
 
             Rectangle {
-                width: (parent.width - 9) / 2
+                width: (parent.width - 16) / 3
+                height: 36
+                radius: Theme.radius
+                opacity: page.powered ? 1.0 : 0.45
+
+                color: (page.powered && page.discoverable)
+                       ? Theme.alpha(Theme.accent, 0.12)
+                       : Theme.alpha(Theme.textFaint, 0.15)
+
+                border.width: 1
+                border.color: (page.powered && page.discoverable)
+                              ? Theme.accent
+                              : Theme.textFaint
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        text: (page.powered && page.discoverable) ? "󰂯" : "󰂲"
+                        font.family: Theme.iconFont
+                        font.pixelSize: 13
+                        color: (page.powered && page.discoverable)
+                               ? Theme.accent
+                               : Theme.textFaint
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: (page.powered && page.discoverable)
+                              ? "DISCOVERABLE"
+                              : "HIDDEN"
+
+                        color: (page.powered && page.discoverable)
+                               ? Theme.accent
+                               : Theme.textFaint
+
+                        font.family: Theme.monoFont
+                        font.pixelSize: Theme.fontSecondary
+                        font.bold: true
+                        font.letterSpacing: 0
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                ControlArea {
+                    anchors.fill: parent
+                    cursorShape: page.powered ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: {
+                        if (page.powered)
+                            page.toggleDiscoverable()
+                    }
+                }
+            }
+
+            Rectangle {
+                width: (parent.width - 16) / 3
                 height: 36
                 radius: Theme.radius
                 color: Theme.tint(Theme.accent, 0.08)
@@ -322,7 +432,7 @@ Item {
 
                 Row {
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: 6
 
                     Text {
                         text: "󰑓"
@@ -333,17 +443,17 @@ Item {
                     }
 
                     Text {
-                        text: "RESET ADAPTER"
+                        text: "RESET"
                         color: Theme.accent
                         font.family: Theme.monoFont
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.fontSecondary
                         font.bold: true
-                        font.letterSpacing: 1
+                        font.letterSpacing: 0
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
-                MouseArea {
+                ControlArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
@@ -363,7 +473,7 @@ Item {
             text: page.statusText
             color: Theme.accent
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.fontSecondary
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
         }
@@ -374,9 +484,122 @@ Item {
             text: "Waiting for Bluetooth service and adapter..."
             color: Theme.textDim
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: Theme.fontSecondary
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        // Local PC Bluetooth Information Banner
+        Rectangle {
+            id: pcBanner
+            width: parent.width
+            height: 56
+            radius: Theme.radius
+            visible: page.powered
+            color: Theme.alpha(Theme.surfaceColor, 0.45)
+            border.width: 1
+            border.color: Theme.alpha(Theme.accent, 0.25)
+
+            // Right-anchored Send File Button
+            Rectangle {
+                id: sendBtn
+                anchors.right: parent.right
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                width: 96
+                height: 30
+                radius: Theme.radiusSm
+                color: Theme.alpha(Theme.accent, 0.15)
+                border.width: 1
+                border.color: Theme.accent
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 6
+                    Text {
+                        text: "󰈔"
+                        font.family: Theme.iconFont
+                        font.pixelSize: 13
+                        color: Theme.accent
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: "Send File"
+                        color: Theme.accent
+                        font.family: Theme.monoFont
+                        font.pixelSize: Theme.fontSecondary
+                        font.bold: true
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                ControlArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onEntered: parent.color = Theme.alpha(Theme.accent, 0.28)
+                    onExited: parent.color = Theme.alpha(Theme.accent, 0.15)
+                    onClicked: page.sendFile("", "")
+                }
+            }
+
+            // Left-anchored and constrained content area (never overlaps sendBtn)
+            Row {
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                anchors.right: sendBtn.left
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 10
+
+                Text {
+                    text: "󰌢"
+                    font.family: Theme.iconFont
+                    font.pixelSize: 22
+                    color: Theme.accent
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Column {
+                    width: Math.max(0, parent.width - 32)
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+
+                    Row {
+                        width: parent.width
+                        spacing: 8
+
+                        Text {
+                            text: page.localName || "minimal"
+                            color: Theme.text
+                            font.family: Theme.monoFont
+                            font.pixelSize: Theme.fontTitle
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            visible: page.localAddress !== ""
+                            text: "(" + page.localAddress + ")"
+                            color: Theme.accent
+                            font.family: Theme.monoFont
+                            font.pixelSize: Theme.fontSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: (page.discoverable
+                              ? "Discoverable: visible to nearby devices"
+                              : "Hidden from nearby devices") + (page.hasConnected ? " · Protected" : "")
+                        color: Theme.textDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                    }
+                }
+            }
         }
 
         Flickable {
@@ -390,7 +613,7 @@ Item {
 
             Column {
                 id: list
-                width: flick.width
+                width: Math.max(0, flick.width - 10)
                 spacing: 6
 
                 Item {
@@ -412,11 +635,11 @@ Item {
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "BLUETOOTH IS OFF"
+                            text: "Bluetooth is off"
                             color: Theme.textDim
                             font.family: Theme.fontFamily
-                            font.pixelSize: 11
-                            font.letterSpacing: 1
+                            font.pixelSize: Theme.fontSecondary
+                            font.letterSpacing: 0
                         }
                     }
                 }
@@ -424,7 +647,7 @@ Item {
                 Item {
                     width: list.width
                     height: 112
-                    visible: page.powered && repeater.count === 0
+                    visible: page.powered && !page.hasConnected && !page.hasAvailable
 
                     Column {
                         anchors.centerIn: parent
@@ -445,8 +668,8 @@ Item {
                                   : "NO DEVICES FOUND"
                             color: Theme.textDim
                             font.family: Theme.fontFamily
-                            font.pixelSize: 11
-                            font.letterSpacing: 1
+                            font.pixelSize: Theme.fontSecondary
+                            font.letterSpacing: 0
                         }
 
                         Text {
@@ -457,38 +680,31 @@ Item {
                                   : "Waiting for Bluetooth discovery..."
                             color: Theme.textFaint
                             font.family: Theme.fontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: Theme.fontSecondary
                             wrapMode: Text.Wrap
                             horizontalAlignment: Text.AlignHCenter
                         }
                     }
 
-                    MouseArea {
+                    ControlArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: page.setDiscovering(true)
                     }
                 }
 
-                Repeater {
-                    id: repeater
+                Component {
+                    id: deviceCardComponent
 
-                    model: page.adapter && page.powered
-                           ? page.adapter.devices
-                           : null
-
-                    delegate: Rectangle {
+                    Rectangle {
                         id: card
 
-                        required property BluetoothDevice modelData
-
+                        readonly property BluetoothDevice device: parent.deviceModel
                         property bool connectAfterPair: false
-
                         readonly property bool isConnected:
-                            modelData.connected || modelData.state === BluetoothDeviceState.Connected
+                            device ? (device.connected || device.state === BluetoothDeviceState.Connected) : false
 
-                        width: list.width
-                        height: 52
+                        anchors.fill: parent
                         radius: Theme.radius
 
                         color: isConnected
@@ -501,58 +717,57 @@ Item {
                                       : Theme.border
 
                         Connections {
-                            target: card.modelData
+                            target: card.device
 
                             function onPairedChanged() {
+                                page.deviceStateRevision++
                                 if (
-                                    card.modelData.paired &&
+                                    card.device &&
+                                    card.device.paired &&
                                     card.connectAfterPair
                                 ) {
                                     card.connectAfterPair = false
-                                    card.modelData.trusted = true
+                                    card.device.trusted = true
 
                                     page.setStatus(
                                         "Connecting to " +
-                                        (card.modelData.name ||
-                                         card.modelData.deviceName ||
-                                         card.modelData.address) + "..."
+                                        page.deviceDisplayName(card.device) + "..."
                                     )
 
-                                    connectProcess.command = ["bluetoothctl", "connect", card.modelData.address]
+                                    connectProcess.command = ["bluetoothctl", "connect", card.device.address]
                                     connectProcess.running = true
                                 }
                             }
 
                             function onConnectedChanged() {
-                                if (card.modelData.connected) {
+                                page.deviceStateRevision++
+                                if (card.device && card.device.connected) {
                                     page.setStatus(
                                         "Connected to " +
-                                        (card.modelData.name ||
-                                         card.modelData.deviceName ||
-                                         card.modelData.address)
+                                        page.deviceDisplayName(card.device)
                                     )
                                 }
                             }
 
                             function onStateChanged() {
+                                page.deviceStateRevision++
                                 if (
-                                    card.modelData.connected ||
-                                    card.modelData.state ===
-                                    BluetoothDeviceState.Connected
+                                    card.device &&
+                                    (card.device.connected ||
+                                     card.device.state === BluetoothDeviceState.Connected)
                                 ) {
                                     page.setStatus(
                                         "Connected to " +
-                                        (card.modelData.name ||
-                                         card.modelData.deviceName ||
-                                         card.modelData.address)
+                                        page.deviceDisplayName(card.device)
                                     )
                                 }
                             }
 
                             function onPairingChanged() {
                                 if (
-                                    !card.modelData.pairing &&
-                                    !card.modelData.paired &&
+                                    card.device &&
+                                    !card.device.pairing &&
+                                    !card.device.paired &&
                                     card.connectAfterPair
                                 ) {
                                     card.connectAfterPair = false
@@ -563,36 +778,84 @@ Item {
 
                         Item {
                             id: actionArea
-                            x: 14
+                            x: card.width - width - 14
                             y: 0
-                            width: 140
+                            width: 175
                             height: card.height
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 12
+                                spacing: 10
 
                                 Text {
                                     id: actionText
                                     width: Math.min(implicitWidth, 80)
                                     height: parent.height
-                                    text: page.actionLabel(card.modelData)
+                                    text: page.actionLabel(card.device)
                                     color: card.isConnected
                                            ? Theme.danger
                                            : Theme.accent
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: Theme.fontSecondary
                                     verticalAlignment: Text.AlignVCenter
                                     elide: Text.ElideRight
 
-                                    MouseArea {
+                                    ControlArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
                                             page.deviceAction(
-                                                card.modelData,
+                                                card.device,
                                                 card
                                             )
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    id: sendFileButton
+                                    visible: card.device && (card.device.paired || card.isConnected)
+                                    width: 28
+                                    height: 28
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰈔"
+                                        color: Theme.accent
+                                        font.family: Theme.iconFont
+                                        font.pixelSize: 15
+                                    }
+
+                                    ControlArea {
+                                        id: sendMouseArea
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            page.sendFile(card.device.address, page.deviceDisplayName(card.device))
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        visible: sendMouseArea.containsMouse
+                                        z: 100
+                                        x: -16
+                                        y: sendFileButton.height + 6
+                                        width: sendTooltipText.width + 16
+                                        height: 24
+                                        radius: 4
+                                        color: Theme.alpha(Theme.baseColor, 0.95)
+                                        border.width: 1
+                                        border.color: Theme.border
+
+                                        Text {
+                                            id: sendTooltipText
+                                            anchors.centerIn: parent
+                                            text: "Send File"
+                                            color: Theme.text
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSecondary
                                         }
                                     }
                                 }
@@ -611,13 +874,13 @@ Item {
                                         font.pixelSize: 16
                                     }
 
-                                    MouseArea {
+                                    ControlArea {
                                         id: unpairMouseArea
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         hoverEnabled: true
                                         onClicked: {
-                                            page.removeDevice(card.modelData)
+                                            page.removeDevice(card.device)
                                         }
                                     }
 
@@ -637,7 +900,7 @@ Item {
                                             text: "Unpair"
                                             color: "white"
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: 10
+                                            font.pixelSize: Theme.fontSecondary
                                         }
                                     }
                                 }
@@ -646,7 +909,7 @@ Item {
 
                         Item {
                             id: deviceInfo
-                            x: actionArea.width + 28
+                            x: 14
                             y: 0
                             width: Math.max(
                                 0,
@@ -678,9 +941,7 @@ Item {
 
                                 Text {
                                     width: parent.width
-                                    text: card.modelData.name ||
-                                          card.modelData.deviceName ||
-                                          card.modelData.address
+                                    text: page.deviceDisplayName(card.device)
                                     elide: Text.ElideRight
                                     color: Theme.text
                                     font.family: Theme.fontFamily
@@ -690,22 +951,26 @@ Item {
                                 Text {
                                     width: parent.width
                                     text: {
+                                        if (!card.device) return ""
                                         var parts = []
 
-                                        if (card.modelData.address)
-                                            parts.push(card.modelData.address)
-
                                         if (card.isConnected)
-                                            parts.push("connected")
-                                        else if (card.modelData.paired)
-                                            parts.push("paired")
+                                            parts.push("Connected")
+                                        else if (card.device.paired)
+                                            parts.push("Paired")
+                                        else
+                                            parts.push("Available")
 
-                                        if (card.modelData.batteryAvailable) {
+                                        if (card.device.batteryAvailable) {
                                             parts.push(
                                                 Math.round(
-                                                    card.modelData.battery * 100
+                                                    card.device.battery * 100
                                                 ) + "%"
                                             )
+                                        }
+
+                                        if (card.device.address) {
+                                            parts.push(card.device.address)
                                         }
 
                                         return parts.join("  •  ")
@@ -714,10 +979,76 @@ Item {
                                            ? Theme.accent
                                            : Theme.textFaint
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: Theme.fontSecondary
                                     elide: Text.ElideRight
                                 }
                             }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: page.hasConnected
+                    width: parent.width
+                    text: "CONNECTED DEVICES"
+                    color: Theme.accent
+                    font.family: Theme.monoFont
+                    font.pixelSize: 10
+                    font.bold: true
+                    font.letterSpacing: 0
+                }
+
+                Repeater {
+                    id: connectedRepeater
+                    model: page.adapter && page.powered ? page.adapter.devices : null
+                    delegate: Item {
+                        required property BluetoothDevice modelData
+                        readonly property bool isConnected: modelData.connected || modelData.state === BluetoothDeviceState.Connected
+                        visible: isConnected
+                        width: list.width
+                        height: isConnected ? 52 : 0
+
+                        Loader {
+                            anchors.fill: parent
+                            property BluetoothDevice deviceModel: modelData
+                            active: parent.isConnected
+                            sourceComponent: deviceCardComponent
+                        }
+                    }
+                }
+
+                Item {
+                    visible: page.hasConnected && page.hasAvailable
+                    width: parent.width
+                    height: 6
+                }
+
+                Text {
+                    visible: page.hasAvailable
+                    width: parent.width
+                    text: "AVAILABLE DEVICES"
+                    color: Theme.textDim
+                    font.family: Theme.monoFont
+                    font.pixelSize: 10
+                    font.bold: true
+                    font.letterSpacing: 0
+                }
+
+                Repeater {
+                    id: availableRepeater
+                    model: page.adapter && page.powered ? page.adapter.devices : null
+                    delegate: Item {
+                        required property BluetoothDevice modelData
+                        readonly property bool isConnected: modelData.connected || modelData.state === BluetoothDeviceState.Connected
+                        visible: !isConnected
+                        width: list.width
+                        height: !isConnected ? 52 : 0
+
+                        Loader {
+                            anchors.fill: parent
+                            property BluetoothDevice deviceModel: modelData
+                            active: !parent.isConnected
+                            sourceComponent: deviceCardComponent
                         }
                     }
                 }

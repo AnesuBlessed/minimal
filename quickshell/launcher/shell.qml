@@ -108,7 +108,7 @@ ShellRoot {
             anchors.fill: parent
             topLeftRadius: theme.panelRadius
             topRightRadius: theme.panelRadius
-            color: theme.panel
+            color: theme.reading
             border.width: 1
             border.color: theme.border
 

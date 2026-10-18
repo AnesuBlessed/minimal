@@ -51,7 +51,7 @@ hl.layer_rule({
     ignore_alpha = 0.5,
 })
 
--- Launcher slides in from the bottom edge.
+-- Launcher & bottom trays slide in from the bottom edge.
 hl.layer_rule({
     name  = "launcher_bottom",
     match = {
@@ -62,14 +62,23 @@ hl.layer_rule({
     ignore_alpha = 0.5,
 })
 
+-- Quickshell Popups & Overlays (Control Center, Cheat Sheet, Monitor Switcher, Transfer)
+hl.layer_rule({
+    name  = "quickshell_popups",
+    match = {
+        namespace = "^(minimal-control-center|minimal-keybinds|minimal-monitors|minimal-bt-transfer)$",
+    },
+    blur         = false,
+    ignore_alpha = 0.5,
+})
+
 -- Quickshell Settings Window
 hl.window_rule({
     name  = "quickshell_settings",
     match = {
-        title = "^(Settings)$",
+        title = "^(Minimal Settings)$",
     },
     float  = true,
     center = true,
-    size   = "1020 660",
 })
 

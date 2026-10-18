@@ -106,6 +106,8 @@ def describe_action(action_expr: str, comment: str = ""):
         }
         cat, icon, title, sub = tab_map.get(tab, ("System", "󰒓", "Control Center", "Open unified control center"))
         return (cat, icon, comment or title, sub, [str(ROOT / "scripts/control-center.sh"), tab])
+    if 'paths.script("settings.sh")' in a:
+        return ("System", "󰒓", comment or "Minimal Settings", "Open full system settings (Display, Sound, Network, BT, Power, Storage)", [str(ROOT / "scripts/settings.sh"), "toggle"])
     if 'paths.script("keybinds.sh")' in a:
         return ("Apps", "󰌌", comment or "Keybind Cheat-Sheet", "Toggle this interactive shortcut reference", [])
     if "hyprctl reload" in a and "waybar.sh" in a:

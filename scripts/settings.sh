@@ -26,23 +26,22 @@ if [[ ! -f "$CONFIG/shell.qml" ]]; then
     exit 1
 fi
 
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "$MINIMAL_RUNTIME"
+exec 9>"$MINIMAL_RUNTIME/settings.lock"
+flock -w 5 9 || exit 1
 
 call_ipc() {
     quickshell -p "$CONFIG" ipc call "$IPC_TARGET" "$1"
 }
 
 case "$ACTION" in
-    start)
-        exec quickshell -n -p "$CONFIG" >>"$LOG_FILE" 2>&1
-        ;;
-    stop)
-        quickshell kill -p "$CONFIG"
-        ;;
+    start) ACTION=show ;;
     restart)
         quickshell kill -p "$CONFIG" >/dev/null 2>&1 || true
-        exec quickshell -n -p "$CONFIG" >>"$LOG_FILE" 2>&1
-        ;;
+        ACTION=show ;;
+esac
+case "$ACTION" in
+    stop) quickshell kill -p "$CONFIG"; ;;
     log)
         tail -n 100 "$LOG_FILE"
         ;;
@@ -55,7 +54,7 @@ case "$ACTION" in
             exit 0
         fi
 
-        quickshell -n -p "$CONFIG" >>"$LOG_FILE" 2>&1 &
+        quickshell -n -p "$CONFIG" >>"$LOG_FILE" 2>&1 9>&- &
         SHELL_PID=$!
 
         for _ in {1..50}; do

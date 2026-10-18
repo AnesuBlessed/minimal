@@ -7,7 +7,7 @@ A lightweight, zero-bloat Hyprland desktop environment for Arch Linux.
 - **Native Hyprland Lua (`hypr/`):** Configured directly in Lua (`hyprland.lua`) with modular files for hardware, monitors, keybindings, window rules, and appearance.
 - **Hardware-Aware Startup (`scripts/hardware-detect.sh`):** Detects your GPU (Intel, AMD, NVIDIA, hybrid, or VM) at login and configures VA-API/VDPAU drivers, VFR, and rendering flags automatically.
 - **Scoped Session Lifecycle (`scripts/session-start.sh`):** Core services (Waybar, Hyprpaper, Mako, Hypridle, Foot server, native C automounter, and session guard) run as isolated `systemd --user` units tied to the active display.
-- **On-Demand Quickshell Popups (`quickshell/`):** Application launcher, clipboard manager, wallpaper picker, keybind cheat-sheet, Dynamic Notch (media + 3-day weather), unified Control Center (Wi-Fi, Bluetooth, Audio, Display), and Monitor Switcher launch on demand and exit on close (0 MB idle RAM).
+- **On-Demand Quickshell Popups (`quickshell/`):** Application launcher, clipboard manager, wallpaper picker, keybind cheat-sheet, unified Control Center & Settings Hub (Display, Sound, Network, Bluetooth, Power, Maintenance), and Monitor Switcher launch on demand and exit on close (0 MB idle RAM).
 - **Dynamic Palette & Live Keybinds:** Changing wallpapers (`Super + W` or `Super + Shift + W`) extracts a new accent color and updates Waybar, Foot, Fuzzel, Mako, Wlogout, Hyprland, Hyprlock, Quickshell, and GTK-3/4/libadwaita (`assets/gtk-accent.css`) transactionally. Editing `hypr/keybinds.lua` automatically updates the `Super + /` cheat-sheet and Waybar tooltip.
 
 ## Install
@@ -50,8 +50,7 @@ rm -rf ~/Projects/minimal
 | Shortcut | Action |
 | --- | --- |
 | `Super + A` | Application Launcher |
-| `Super + S` | Unified Control Center (Quick Toggles, Wi-Fi, Bluetooth, Audio, Display) |
-| `Super + I` | Dynamic Notch Popup (MPRIS Media Player & 3-Day Weather Forecast) |
+| `Super + S` | Settings & System Hub / Control Center |
 | `Super + P` | Display & Monitor Switcher (Multi-Monitor Presets, Refresh Rate, Scale, VRR) |
 | `Super + T` | Terminal (Foot) |
 | `Super + B` / `Super + F` | Web Browser |
@@ -68,7 +67,7 @@ rm -rf ~/Projects/minimal
 | `Super + Shift + Arrows` | Resize Window |
 | `Super + 1–9` / `Super + Shift + 1–9` | Switch Workspace / Move Window to Workspace |
 | `Super + BackSpace` | Toggle Scratchpad (`pocket`) |
-| `Super + N` / `Super + Shift + B` / `Super + V` | Control Center: Wi-Fi / Bluetooth / Audio Tabs |
+| `Super + N` / `Super + Shift + B` / `Super + V` | Settings: Wi-Fi / Bluetooth / Audio Tabs |
 | `Print` / `Shift + Print` / `Super + Print` | Region / Annotated / Full Screenshot |
 | `Super + Shift + R` | Toggle Region MP4 Screen Recording |
 | `Super + Shift + O` | Instant Region OCR to Clipboard |
@@ -78,8 +77,8 @@ rm -rf ~/Projects/minimal
 ## Layout
 
 - `hypr/` — Hyprland Lua configuration, Hyprlock, and Hypridle
-- `waybar/` — Modular status bar configuration and styles (including reactive center Dynamic Notch)
-- `quickshell/` — Launcher, Clipboard, Wallpaper Picker, Keybinds, Control Center, Dynamic Notch, Monitors, and shared palette
+- `waybar/` — Modular status bar configuration and styles
+- `quickshell/` — Launcher, Clipboard, Wallpaper Picker, Keybinds, Control Center, Settings Hub, Monitors, and shared palette
 - `foot/`, `fuzzel/`, `mako/`, `wlogout/`, `fastfetch/` — Component configs
 - `scripts/` — Session management, hardware detection, theme sync, and native C helpers
 - `theme.json` — Single source of truth for colors, radii, opacity, and typography

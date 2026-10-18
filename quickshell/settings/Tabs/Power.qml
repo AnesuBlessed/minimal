@@ -8,7 +8,7 @@ Item {
     id: page
 
     property real marginLeft: 0
-    property real marginRight: 55
+    property real marginRight: 12
     property real marginTop: 0
     property real marginBottom: 0
 
@@ -18,7 +18,7 @@ Item {
     property bool isCharging: false
     property bool caffeineActive: false
     property string activePowerProfile: "balanced"
-    property int idleBlankSec: 300
+    property int idleBlankSec: 330
     property int idleSleepSec: 1800
 
     function refresh() {
@@ -29,6 +29,7 @@ Item {
     }
 
     function toggleCaffeine() {
+        page.caffeineActive = !page.caffeineActive;
         pCaffeineToggle.running = true;
     }
 
@@ -170,23 +171,8 @@ Item {
 
         Column {
             id: content
-            width: flick.width
+            width: Math.max(0, flick.width - 10)
             spacing: 14
-
-            Text {
-                text: "POWER & SLEEP"
-                color: Theme.text
-                font.family: Theme.fontFamily
-                font.pixelSize: 19
-                font.letterSpacing: 3
-                font.weight: Font.Bold
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: Theme.border
-            }
 
             // Power Supply / Battery Card
             Rectangle {
@@ -225,7 +211,7 @@ Item {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 14
                                 font.weight: Font.Bold
-                                font.letterSpacing: 1.5
+                                font.letterSpacing: 0
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 
@@ -241,12 +227,12 @@ Item {
                                 Text {
                                     id: statusLabel
                                     anchors.centerIn: parent
-                                    text: page.hasBattery ? page.batteryStatus.toUpperCase() : "CONNECTED"
+                                    text: page.hasBattery ? page.batteryStatus : "CONNECTED"
                                     color: page.isCharging ? Theme.accent : Theme.textDim
                                     font.family: Theme.monoFont
-                                    font.pixelSize: 10
+                                    font.pixelSize: Theme.fontSecondary
                                     font.weight: Font.Bold
-                                    font.letterSpacing: 0.8
+                                    font.letterSpacing: 0
                                 }
                             }
                         }
@@ -284,20 +270,20 @@ Item {
                         text: page.hasBattery ? (page.isCharging ? "Battery is charging from AC power" : "Running on battery power") : "Workstation running on continuous AC power"
                         color: Theme.textDim
                         font.family: Theme.fontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.fontSecondary
                     }
                 }
             }
 
             // Power Profile Selector
             Text {
-                text: "POWER PROFILE"
+                text: "Power profile"
                 color: Theme.text
                 topPadding: 4
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 font.bold: true
-                font.letterSpacing: 2
+                font.letterSpacing: 0
             }
 
             Row {
@@ -319,7 +305,7 @@ Item {
                         radius: Theme.radius
                         color: active ? Theme.alpha(Theme.accent, 0.12) : Theme.tint("#ffffff", 0.03)
                         border.width: 1
-                        border.color: active ? Theme.accent : Theme.border
+                        border.color: active ? Theme.borderAccent : Theme.border
 
                         Column {
                             anchors.centerIn: parent
@@ -341,24 +327,24 @@ Item {
                                     text: modelData.label
                                     color: active ? Theme.accent : Theme.text
                                     font.family: Theme.monoFont
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.fontSecondary
                                     font.bold: true
-                                    font.letterSpacing: 1
+                                    font.letterSpacing: 0
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: active ? "ACTIVE" : ""
+                                text: active ? "Active" : ""
                                 color: Theme.accent
                                 font.family: Theme.monoFont
-                                font.pixelSize: 9
+                                font.pixelSize: Theme.fontSecondary
                                 font.bold: true
                             }
                         }
 
-                        MouseArea {
+                        ControlArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: page.setPowerProfile(modelData.id)
@@ -369,13 +355,13 @@ Item {
 
             // Screen Blanking / Idle Timeout
             Text {
-                text: "SCREEN BLANK TIMEOUT"
+                text: "Screen blank timeout"
                 color: Theme.text
                 topPadding: 4
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 font.bold: true
-                font.letterSpacing: 2
+                font.letterSpacing: 0
             }
 
             Row {
@@ -400,18 +386,18 @@ Item {
                         radius: Theme.radiusSm
                         color: active ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
                         border.width: 1
-                        border.color: active ? Theme.accent : Theme.border
+                        border.color: active ? Theme.borderAccent : Theme.border
 
                         Text {
                             anchors.centerIn: parent
                             text: modelData.label
                             color: active ? Theme.accent : Theme.textDim
                             font.family: Theme.monoFont
-                            font.pixelSize: 10
+                            font.pixelSize: Theme.fontSecondary
                             font.bold: true
                         }
 
-                        MouseArea {
+                        ControlArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: page.setBlankTimeout(modelData.sec)
@@ -422,13 +408,13 @@ Item {
 
             // System Sleep Timeout
             Text {
-                text: "SYSTEM SLEEP TIMEOUT"
+                text: "System sleep timeout"
                 color: Theme.text
                 topPadding: 4
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 font.bold: true
-                font.letterSpacing: 2
+                font.letterSpacing: 0
             }
 
             Row {
@@ -452,18 +438,18 @@ Item {
                         radius: Theme.radiusSm
                         color: active ? Theme.alpha(Theme.accent, 0.15) : Theme.tint("#ffffff", 0.04)
                         border.width: 1
-                        border.color: active ? Theme.accent : Theme.border
+                        border.color: active ? Theme.borderAccent : Theme.border
 
                         Text {
                             anchors.centerIn: parent
                             text: modelData.label
                             color: active ? Theme.accent : Theme.textDim
                             font.family: Theme.monoFont
-                            font.pixelSize: 10
+                            font.pixelSize: Theme.fontSecondary
                             font.bold: true
                         }
 
-                        MouseArea {
+                        ControlArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: page.setSleepTimeout(modelData.sec)
@@ -480,7 +466,7 @@ Item {
                 radius: Theme.radius
                 color: page.caffeineActive ? Theme.tint(Theme.accent, 0.08) : Theme.tint("#ffffff", 0.03)
                 border.width: 1
-                border.color: page.caffeineActive ? Theme.accent : Theme.border
+                border.color: page.caffeineActive ? Theme.borderAccent : Theme.border
 
                 Behavior on color {
                     ColorAnimation { duration: Theme.animFast }
@@ -500,7 +486,7 @@ Item {
                         radius: Theme.radiusSm
                         color: page.caffeineActive ? Theme.tint(Theme.accent, 0.2) : Theme.tint("#ffffff", 0.06)
                         border.width: 1
-                        border.color: page.caffeineActive ? Theme.accent : Theme.border
+                        border.color: page.caffeineActive ? Theme.borderAccent : Theme.border
                         anchors.verticalCenter: parent.verticalCenter
 
                         Text {
@@ -528,7 +514,7 @@ Item {
                             text: page.caffeineActive ? "Screen lock and idle sleep inhibited" : "Screen follows normal timeout and sleep rules"
                             color: Theme.textDim
                             font.family: Theme.fontFamily
-                            font.pixelSize: 11
+                            font.pixelSize: Theme.fontSecondary
                         }
                     }
                 }
@@ -544,7 +530,7 @@ Item {
                     radius: 12
                     color: page.caffeineActive ? Theme.accent : Theme.tint("#ffffff", 0.1)
                     border.width: 1
-                    border.color: page.caffeineActive ? Theme.accent : Theme.borderStrong
+                    border.color: page.caffeineActive ? Theme.borderAccent : Theme.borderStrong
 
                     Behavior on color {
                         ColorAnimation { duration: Theme.animFast }
@@ -565,7 +551,7 @@ Item {
                     }
                 }
 
-                MouseArea {
+                ControlArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
@@ -581,13 +567,13 @@ Item {
 
             // Quick Modes
             Text {
-                text: "MODES & PERFORMANCE"
+                text: "Modes & performance"
                 color: Theme.text
                 topPadding: 4
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 font.bold: true
-                font.letterSpacing: 2
+                font.letterSpacing: 0
             }
 
             Repeater {
@@ -616,39 +602,48 @@ Item {
                     border.width: 1
                     border.color: Theme.border
 
-                    Row {
+                    Item {
                         anchors.left: parent.left
                         anchors.leftMargin: 14
                         anchors.right: modePill.left
                         anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 12
+                        height: 36
 
                         Text {
+                            id: modeIcon
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modeRoot.modelData.icon
                             color: Theme.accent
                             font.family: Theme.iconFont
                             font.pixelSize: 17
-                            anchors.verticalCenter: parent.verticalCenter
                         }
 
                         Column {
+                            anchors.left: modeIcon.right
+                            anchors.leftMargin: 12
+                            anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
 
                             Text {
+                                width: parent.width
                                 text: modeRoot.modelData.label
                                 color: Theme.text
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
+                                elide: Text.ElideRight
                             }
 
                             Text {
+                                width: parent.width
                                 text: modeRoot.modelData.desc
                                 color: Theme.textFaint
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: Theme.fontSecondary
+                                elide: Text.ElideRight
                             }
                         }
                     }
@@ -670,13 +665,13 @@ Item {
                             text: modeRoot.modelData.action
                             color: Theme.accent
                             font.family: Theme.monoFont
-                            font.pixelSize: 10
+                            font.pixelSize: Theme.fontSecondary
                             font.bold: true
-                            font.letterSpacing: 0.8
+                            font.letterSpacing: 0
                         }
                     }
 
-                    MouseArea {
+                    ControlArea {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
@@ -694,10 +689,6 @@ Item {
             }
         }
 
-        ScrollBar.vertical: ScrollBar {
-            id: scrollBar
-            background: Rectangle { color: "transparent"; radius: width / 2 }
-            contentItem: Rectangle { color: Theme.accent; radius: width / 2 }
-        }
+        ScrollBar.vertical: SettingsScrollBar {}
     }
 }

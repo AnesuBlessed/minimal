@@ -1,5 +1,6 @@
 import "../"
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 Item {
@@ -7,6 +8,22 @@ Item {
 
     property bool wifiEnabled: true
     property var networks: []
+    readonly property var connectedNetworks: {
+        var res = [];
+        for (var i = 0; i < page.networks.length; i++) {
+            if (page.networks[i].connected)
+                res.push(page.networks[i]);
+        }
+        return res;
+    }
+    readonly property var availableNetworks: {
+        var res = [];
+        for (var i = 0; i < page.networks.length; i++) {
+            if (!page.networks[i].connected)
+                res.push(page.networks[i]);
+        }
+        return res;
+    }
     property string pendingSsid: ""
     property var ethernet: ({
         "device": "",
@@ -20,7 +37,7 @@ Item {
     property real lastTx: -1
     property real lastTs: 0
     property real marginLeft: 0
-    property real marginRight: 55
+    property real marginRight: 12
     property real marginTop: 0
     property real marginBottom: 0
     readonly property string icDown: "\uf019"
@@ -64,7 +81,7 @@ Item {
     }
 
     function disconnect(ssid) {
-        pConnect.command = ["nmcli", "device", "disconnect", ssid];
+        pConnect.command = ["python3", Quickshell.shellDir + "/../../scripts/network-action.py", "disconnect", ssid];
         pConnect.running = true;
     }
 
@@ -336,10 +353,6 @@ Item {
         }
     }
 
-    Process {
-        id: pPortalCheck
-        command: ["sh", "-c", "res=$(nmcli networking connectivity check 2>/dev/null || echo 'unknown'); if [ \"$res\" = 'portal' ]; then xdg-open 'http://connectivitycheck.gstatic.com/generate_204'; notify-send 'Network' 'Captive Portal detected - opening browser login'; elif [ \"$res\" = 'full' ]; then notify-send 'Network' 'Internet connection is fully active'; else xdg-open 'http://connectivitycheck.gstatic.com/generate_204'; notify-send 'Network' \"Connectivity check: $res\"; fi"]
-    }
 
     Column {
         anchors.fill: parent
@@ -349,99 +362,36 @@ Item {
         anchors.bottomMargin: page.marginBottom
         spacing: 14
 
-        Text {
-            text: "NETWORK"
-            color: Theme.text
-            font.family: page.monoFont
-            font.pixelSize: 19
-            font.letterSpacing: 3
-        }
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.border
-        }
-
         Column {
             id: statsRow
 
             width: parent.width
             spacing: 9
 
-            Row {
+            Rectangle {
+                id: wifiToggle
+
                 width: parent.width
-                spacing: 9
+                height: 36
+                radius: Theme.radius
+                color: page.wifiEnabled ? Theme.alpha(Theme.accent, 0.1) : Theme.alpha(Theme.textFaint, 0.15)
+                border.width: 1
+                border.color: page.wifiEnabled ? Theme.accent : Theme.textFaint
 
-                Rectangle {
-                    id: wifiToggle
-
-                    width: (parent.width - 9) / 2
-                    height: 36
-                    radius: Theme.radius
-                    color: page.wifiEnabled ? Theme.alpha(Theme.accent, 0.1) : Theme.alpha(Theme.textFaint, 0.15)
-                    border.width: 1
-                    border.color: page.wifiEnabled ? Theme.accent : Theme.textFaint
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: page.wifiEnabled ? "WI-FI ON" : "WI-FI OFF"
-                        color: page.wifiEnabled ? Theme.accent : Theme.textFaint
-                        font.family: page.monoFont
-                        font.pixelSize: 10
-                        font.bold: true
-                        font.letterSpacing: 1
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: page.setWifiEnabled(!page.wifiEnabled)
-                    }
-
+                Text {
+                    anchors.centerIn: parent
+                    text: page.wifiEnabled ? "WI-FI ON" : "WI-FI OFF"
+                    color: page.wifiEnabled ? Theme.accent : Theme.textFaint
+                    font.family: page.monoFont
+                    font.pixelSize: Theme.fontSecondary
+                    font.bold: true
+                    font.letterSpacing: 0
                 }
 
-                Rectangle {
-                    id: portalButton
-
-                    width: (parent.width - 9) / 2
-                    height: 36
-                    radius: Theme.radius
-                    color: Theme.tint(Theme.accent, 0.08)
-                    border.width: 1
-                    border.color: Theme.tint(Theme.accent, 0.25)
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        Text {
-                            text: "󰖟"
-                            font.family: Theme.iconFont
-                            font.pixelSize: 13
-                            color: Theme.accent
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: "TEST INTERNET / PORTAL"
-                            color: Theme.accent
-                            font.family: page.monoFont
-                            font.pixelSize: 10
-                            font.bold: true
-                            font.letterSpacing: 1
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        hoverEnabled: true
-                        onEntered: parent.color = Theme.tint(Theme.accent, 0.15)
-                        onExited: parent.color = Theme.tint(Theme.accent, 0.08)
-                        onClicked: pPortalCheck.running = true
-                    }
+                ControlArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: page.setWifiEnabled(!page.wifiEnabled)
                 }
             }
 
@@ -495,7 +445,7 @@ Item {
                             color: Theme.textDim
                             font.family: page.monoFont
                             font.pixelSize: 12
-                            font.letterSpacing: 1.5
+                            font.letterSpacing: 0
                         }
 
                         Text {
@@ -555,7 +505,7 @@ Item {
                         text: page.ethernet.state === "connected" ? (page.ethernet.connection || page.ethernet.device) : "Disconnected"
                         color: Theme.textDim
                         font.family: page.monoFont
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.fontSecondary
                     }
 
                 }
@@ -569,8 +519,8 @@ Item {
                 text: page.ethernet.state === "connected" ? "CONNECTED" : "DISCONNECTED"
                 color: page.ethernet.state === "connected" ? Theme.accent2 : Theme.textDim
                 font.family: page.monoFont
-                font.pixelSize: 10
-                font.letterSpacing: 1
+                font.pixelSize: Theme.fontSecondary
+                font.letterSpacing: 0
             }
 
         }
@@ -579,7 +529,7 @@ Item {
             id: listContainer
 
             width: parent.width
-            height: Math.max(160, page.height - y - page.marginBottom)
+            height: Math.max(0, page.height - y - page.marginBottom)
 
             Flickable {
                 anchors.fill: parent
@@ -613,10 +563,10 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                     }
 
-                    Repeater {
-                        model: page.networks
+                    Component {
+                        id: wifiCardDelegate
 
-                        delegate: Column {
+                        Column {
                             required property var modelData
 
                             width: list.width
@@ -626,24 +576,72 @@ Item {
                                 width: parent.width
                                 height: 46
                                 radius: Theme.radius
-                                color: modelData.connected ? Theme.alpha(Theme.accent, 0.1) : "#00000000"
+                                color: modelData.connected ? Theme.alpha(Theme.accent, 0.1) : Theme.tint("#ffffff", 0.02)
                                 border.width: 1
-                                border.color: modelData.connected ? Theme.accent : Theme.border
+                                border.color: modelData.connected ? Theme.borderAccent : Theme.border
 
-                                Text {
-                                    id: connectBtn
-
+                                Row {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 14
+                                    anchors.right: connectBtnPill.left
+                                    anchors.rightMargin: 12
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 84
-                                    text: modelData.connected ? "DISCONNECT" : "CONNECT"
-                                    color: modelData.connected ? Theme.danger : Theme.accent
-                                    font.family: page.monoFont
-                                    font.pixelSize: 10
+                                    spacing: 9
 
-                                    MouseArea {
+                                    Text {
+                                        text: page.icWifi
+                                        color: modelData.connected ? Theme.accent : Theme.textDim
+                                        font.family: Theme.iconFont
+                                        font.pixelSize: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        visible: modelData.secured
+                                        text: page.icLock
+                                        color: Theme.textFaint
+                                        font.family: Theme.iconFont
+                                        font.pixelSize: Theme.fontSecondary
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.ssid
+                                        color: Theme.text
+                                        font.family: page.monoFont
+                                        font.pixelSize: 12
+                                        font.bold: modelData.connected
+                                        elide: Text.ElideRight
+                                        width: parent.width - 40
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: connectBtnPill
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: Math.max(76, connectBtnLabel.implicitWidth + 20)
+                                    height: 28
+                                    radius: Theme.radiusSm
+                                    color: modelData.connected ? Theme.tint(Theme.danger, 0.12) : Theme.tint(Theme.accent, 0.12)
+                                    border.width: 1
+                                    border.color: modelData.connected ? Theme.tint(Theme.danger, 0.3) : Theme.tint(Theme.accent, 0.3)
+
+                                    Text {
+                                        id: connectBtnLabel
+                                        anchors.centerIn: parent
+                                        text: modelData.connected ? "Disconnect" : "Connect"
+                                        color: modelData.connected ? Theme.danger : Theme.accent
+                                        font.family: page.monoFont
+                                        font.pixelSize: Theme.fontSecondary
+                                        font.bold: true
+                                    }
+
+                                    ControlArea {
                                         anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
                                         onClicked: {
                                             if (modelData.connected)
                                                 page.disconnect(modelData.ssid);
@@ -653,42 +651,23 @@ Item {
                                                 page.connectOpen(modelData.ssid);
                                         }
                                     }
-
                                 }
 
-                                Row {
-                                    anchors.left: connectBtn.right
-                                    anchors.leftMargin: 10
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 9
-
-                                    Text {
-                                        text: page.icWifi
-                                        color: modelData.connected ? Theme.accent : Theme.textDim
-                                        font.family: Theme.iconFont
-                                        font.pixelSize: 14
+                                ControlArea {
+                                    anchors.left: parent.left
+                                    anchors.right: connectBtnPill.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (modelData.connected)
+                                            page.disconnect(modelData.ssid);
+                                        else if (modelData.secured)
+                                            page.pendingSsid = page.pendingSsid === modelData.ssid ? "" : modelData.ssid;
+                                        else
+                                            page.connectOpen(modelData.ssid);
                                     }
-
-                                    Text {
-                                        visible: modelData.secured
-                                        text: page.icLock
-                                        color: Theme.textFaint
-                                        font.family: Theme.iconFont
-                                        font.pixelSize: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: modelData.ssid
-                                        color: Theme.text
-                                        font.family: page.monoFont
-                                        font.pixelSize: 12
-                                        elide: Text.ElideRight
-                                        width: Math.min(implicitWidth, list.width - 190)
-                                    }
-
                                 }
-
                             }
 
                             Row {
@@ -698,8 +677,8 @@ Item {
                                 spacing: 10
 
                                 Rectangle {
-                                    width: 220
-                                    height: 32
+                                    width: Math.min(260, parent.width - 100)
+                                    height: 34
                                     color: Theme.bgCard
                                     border.color: Theme.accent
                                     border.width: 1
@@ -716,28 +695,81 @@ Item {
                                         echoMode: TextInput.Password
                                         focus: page.pendingSsid === modelData.ssid
                                         Keys.onReturnPressed: page.connectSecured(modelData.ssid, text)
-                                    }
 
+                                        Text {
+                                            visible: !pwField.text && !pwField.activeFocus
+                                            anchors.fill: parent
+                                            text: "Enter password…"
+                                            color: Theme.textDim
+                                            font.family: page.monoFont
+                                            font.pixelSize: 12
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
                                 }
 
-                                Text {
-                                    text: "CONNECT"
-                                    color: Theme.accent2
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 11
+                                Rectangle {
+                                    width: 80
+                                    height: 34
+                                    radius: Theme.radius
+                                    color: Theme.accent
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: page.connectSecured(modelData.ssid, pwField.text)
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Join"
+                                        color: Theme.bg
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 12
+                                        font.bold: true
                                     }
 
+                                    ControlArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: page.connectSecured(modelData.ssid, pwField.text)
+                                    }
                                 }
-
                             }
-
                         }
+                    }
 
+                    Text {
+                        visible: page.wifiEnabled && page.connectedNetworks.length > 0
+                        width: parent.width
+                        text: "CONNECTED NETWORK"
+                        color: Theme.accent
+                        font.family: page.monoFont
+                        font.pixelSize: 10
+                        font.bold: true
+                        font.letterSpacing: 0
+                    }
+
+                    Repeater {
+                        model: page.connectedNetworks
+                        delegate: wifiCardDelegate
+                    }
+
+                    Item {
+                        visible: page.wifiEnabled && page.connectedNetworks.length > 0 && page.availableNetworks.length > 0
+                        width: parent.width
+                        height: 6
+                    }
+
+                    Text {
+                        visible: page.wifiEnabled && page.availableNetworks.length > 0
+                        width: parent.width
+                        text: "AVAILABLE NETWORKS"
+                        color: Theme.textDim
+                        font.family: page.monoFont
+                        font.pixelSize: 10
+                        font.bold: true
+                        font.letterSpacing: 0
+                    }
+
+                    Repeater {
+                        model: page.availableNetworks
+                        delegate: wifiCardDelegate
                     }
 
                 }

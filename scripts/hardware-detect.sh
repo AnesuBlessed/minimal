@@ -19,6 +19,7 @@ ENV_FILE="$MINIMAL_CACHE/hardware.env"
 ACTION="write"
 for arg in "$@"; do
     case "$arg" in
+        --packages) ACTION="packages" ;;
         --print)
             ACTION="print"
             ;;
@@ -248,6 +249,30 @@ is_intel_i965_legacy() {
 
     return 1
 }
+
+# Use exactly the same device classification for bootstrap and runtime.
+if [[ $ACTION == packages ]]; then
+    packages=(mesa)
+    for entry in "${DETECTED_GPUS[@]}"; do
+        IFS='|' read -r slot vendor device driver model <<< "$entry"
+        case "$vendor" in
+            8086)
+                packages+=(vulkan-intel)
+                if is_intel_i965_legacy "$device" "$model"; then
+                    packages+=(libva-intel-driver)
+                else packages+=(intel-media-driver); fi ;;
+            1002) packages+=(vulkan-radeon libva-mesa-driver) ;;
+            10de)
+                if [[ $driver == nvidia* ]]; then packages+=(nvidia-utils libva-nvidia-driver)
+                else
+                    packages+=(vulkan-nouveau libva-mesa-driver)
+                    [[ -n $driver ]] || printf 'NVIDIA: configure a kernel driver appropriate to your GPU and kernel before starting Hyprland.\n' >&2
+                fi ;;
+        esac
+    done
+    printf '%s\n' "${packages[@]}" | sort -u
+    exit 0
+fi
 
 analyze_gpus() {
     if [[ ${#DETECTED_GPUS[@]} -eq 0 ]]; then

@@ -33,10 +33,15 @@ Item {
 
     function setFromRatio(v) {
         const clamped = Math.max(0, Math.min(1, v));
-        root.value = clamped;
         root.moved(clamped);
+        return clamped;
     }
 
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Slider
+    Accessible.name: label || "Level"
+    Keys.onLeftPressed: { const next = setFromRatio(value - 0.05); committed(next); }
+    Keys.onRightPressed: { const next = setFromRatio(value + 0.05); committed(next); }
     implicitHeight: 38
 
     Rectangle {
@@ -65,8 +70,8 @@ Item {
             enabled: root.resettable
             cursorShape: root.resettable ? Qt.PointingHandCursor : Qt.ArrowCursor
             onClicked: {
-                root.setFromRatio(root.resetValue);
-                root.committed(root.value);
+                const next = root.setFromRatio(root.resetValue);
+                root.committed(next);
             }
         }
 
@@ -83,8 +88,8 @@ Item {
         text: root.label
         color: root.accentColor
         font.family: Theme.fontFamily
-        font.pixelSize: 13
-        font.letterSpacing: 2
+        font.pixelSize: Theme.fontBody
+        font.letterSpacing: 0
     }
 
     Text {
@@ -98,7 +103,7 @@ Item {
         text: root.displayText
         color: Theme.textDim
         font.family: Theme.fontFamily
-        font.pixelSize: 10
+        font.pixelSize: Theme.fontSecondary
     }
 
     Item {
@@ -119,7 +124,7 @@ Item {
             radius: 2
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.trackBg
-            border.color: Theme.border
+            border.color: root.activeFocus ? Theme.accent : Theme.border
             border.width: 1
 
             Rectangle {
@@ -129,15 +134,6 @@ Item {
                 height: parent.height
                 radius: 2
                 color: root.accentColor
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: -2
-                    radius: 4
-                    color: "transparent"
-                    border.width: 2
-                    border.color: Theme.alpha(root.accentColor, 0.35)
-                }
 
                 Behavior on width {
                     enabled: !dragArea.pressed
@@ -193,7 +189,7 @@ Item {
                     text: Math.round(root.value * 100) + "%"
                     color: Theme.text
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSecondary
                     font.bold: true
                 }
 
@@ -204,18 +200,19 @@ Item {
         MouseArea {
             id: dragArea
 
+            property real currentRatio: root.value
             anchors.fill: parent
             anchors.margins: -6
             preventStealing: true
             onPressed: (mouse) => {
-                return root.setFromRatio(mouse.x / track.width);
+                currentRatio = root.setFromRatio(dragArea.mapToItem(track, mouse.x, mouse.y).x / track.width);
             }
             onPositionChanged: (mouse) => {
                 if (pressed)
-                    root.setFromRatio(mouse.x / track.width);
+                    currentRatio = root.setFromRatio(dragArea.mapToItem(track, mouse.x, mouse.y).x / track.width);
 
             }
-            onReleased: root.committed(root.value)
+            onReleased: root.committed(currentRatio)
         }
 
     }

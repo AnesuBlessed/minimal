@@ -149,7 +149,24 @@ if ! fc-match "JetBrainsMono Nerd Font" -f "%{family}" 2>/dev/null | grep -Fq "J
 fi
 
 # Install feature dependencies too, including on already-deployed systems.
+# The persistent Bluetooth agent must fail visibly if either Python binding is absent.
+for binding in dbus gi; do
+    if ! python3 -c "import $binding" >/dev/null 2>&1; then
+        case "$binding" in dbus) packages_to_install+=(python-dbus);; gi) packages_to_install+=(python-gobject);; esac
+    fi
+done
+if command -v pacman >/dev/null 2>&1 && ! pacman -Q bluez-obex >/dev/null 2>&1; then
+    packages_to_install+=(bluez-obex)
+fi
 declare -A OPTIONAL_FEATURES=(
+    [zenity]="Bluetooth pairing and file selection|zenity"
+    [bluetoothctl]="Bluetooth adapter controls|bluez-utils"
+    [nmcli]="network controls|networkmanager"
+    [pactl]="audio port selection|libpulse"
+    [powerprofilesctl]="power profiles|power-profiles-daemon"
+    [wf-recorder]="screen recording|wf-recorder"
+    [tesseract]="screen text recognition|tesseract"
+    [xdg-user-dir]="received file destination|xdg-user-dirs"
     [mpvpaper]="video wallpaper|mpvpaper"
     [hyprsunset]="night light|hyprsunset"
     [gnome-keyring-daemon]="secret storage|gnome-keyring"

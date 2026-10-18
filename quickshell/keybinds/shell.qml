@@ -47,6 +47,7 @@ ShellRoot {
         { category: "System", icon: "󰌾", title: "Lock Screen", subtitle: "Lock session immediately with Hyprlock", keys: ["Super", "L"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/lock.sh\""] },
         { category: "System", icon: "󰐥", title: "Power Menu", subtitle: "Open wlogout session power menu", keys: ["Super", "Esc"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/powermenu.sh\""] },
         { category: "System", icon: "󰑓", title: "Reload Desktop & Bar", subtitle: "Reload Hyprland config and Waybar in place", keys: ["Super", "R"], cmd: ["bash", "-c", "hyprctl reload && \"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/waybar.sh\" --reload"] },
+        { category: "System", icon: "󰒓", title: "Minimal Settings & System Hub", subtitle: "Open full settings window (Display, Sound, Network, BT, Power, Storage)", keys: ["Super", "I"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/settings.sh\" toggle"] },
         { category: "System", icon: "󰒓", title: "Control Center", subtitle: "Open unified quick settings (Wi-Fi, BT, Audio, Display)", keys: ["Super", "S"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center.sh\""] },
         { category: "System", icon: "󰍹", title: "Display & Monitor Switcher", subtitle: "Configure multi-monitor layout, refresh rate, and scale", keys: ["Super", "P"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/monitors.sh\""] },
         { category: "System", icon: "󰖩", title: "Wi-Fi Manager", subtitle: "Scan, connect, hotspot, and manage saved networks", keys: ["Super", "N"], cmd: ["bash", "-c", "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center.sh\" wifi"] },
@@ -140,7 +141,7 @@ ShellRoot {
             anchors.fill: parent
             topLeftRadius: theme.panelRadius
             topRightRadius: theme.panelRadius
-            color: theme.panel
+            color: theme.reading
             border.width: 1
             border.color: theme.border
 

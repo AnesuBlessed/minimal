@@ -1,0 +1,10 @@
+{
+  "custom/recording": {
+    "return-type": "json",
+    "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/screenshot.sh\" status",
+    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/screenshot.sh\" record",
+    "interval": 2,
+    "signal": 10,
+    "format": "{}"
+  }
+}

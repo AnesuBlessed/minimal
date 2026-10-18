@@ -51,7 +51,10 @@ if [[ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]] && ! pgrep -u "$(id -u)" -x
 fi
 # Lock/suspend integration must not depend on optional native helper compilation.
 start_service mako mako --config "$MINIMAL_ROOT/mako/config"
-start_service hypridle hypridle --config "$MINIMAL_ROOT/hypr/hypridle.conf"
+"$MINIMAL_ROOT/scripts/idle-config.sh" generate
+start_service hypridle hypridle --config "$MINIMAL_STATE/hypridle.conf"
+start_service bt-agent "$MINIMAL_ROOT/scripts/bluetooth-agent.py"
+systemctl --user start obex.service >>"$MINIMAL_CACHE/session.log" 2>&1 || true
 if "$MINIMAL_ROOT/scripts/build-native.sh"; then
     compositor_pid=$(hyprctl -j instances | jq -r --arg instance "${HYPRLAND_INSTANCE_SIGNATURE:-}" '.[] | select(.instance == $instance) | .pid')
     if [[ $compositor_pid =~ ^[0-9]+$ ]]; then

@@ -10,7 +10,7 @@ import sys
 
 ROOT = Path(os.environ.get("MINIMAL_ROOT") or Path(__file__).resolve().parent.parent)
 CACHE = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")) / "minimal"
-RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR") or CACHE) / "minimal"
+RUNTIME = Path(os.environ.get("MINIMAL_RUNTIME") or (Path(os.environ.get("XDG_RUNTIME_DIR") or CACHE) / "minimal"))
 SERVICE_PREFIX = os.environ.get("MINIMAL_SERVICE_PREFIX", "minimal-default")
 
 
@@ -157,7 +157,10 @@ def get_bluetooth_state():
     powered = "Powered: yes" in show_out
     discoverable = "Discoverable: yes" in show_out
     alias_match = re.search(r"Alias:\s*(.+)", show_out)
-    controller = alias_match.group(1).strip() if alias_match else "Bluetooth"
+    name_match = re.search(r"Name:\s*(.+)", show_out)
+    ctrl_match = re.search(r"Controller\s+([0-9A-Fa-f:]{17})", show_out)
+    controller = alias_match.group(1).strip() if alias_match else (name_match.group(1).strip() if name_match else "Bluetooth")
+    address = ctrl_match.group(1).strip() if ctrl_match else ""
 
     _, paired_out, _ = run_cmd(["bluetoothctl", "devices", "Paired"], timeout=2.0)
     paired_macs = {line.split()[1] for line in paired_out.splitlines() if line.startswith("Device ") and len(line.split()) >= 2}
@@ -186,9 +189,20 @@ def get_bluetooth_state():
             b_match = re.search(r"Battery Percentage:.*\((\d+)\)", info_out)
             if b_match:
                 battery = b_match.group(1) + "%"
+        display_name = name or mac
+        if not name or re.match(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$", display_name) or display_name.startswith("dev_"):
+            info_text = info_out if is_conn else run_cmd(["bluetoothctl", "info", mac], timeout=1.0)[1]
+            alias_m = re.search(r"^\s*Alias:\s*(.+)$", info_text, re.MULTILINE)
+            name_m = re.search(r"^\s*Name:\s*(.+)$", info_text, re.MULTILINE)
+            resolved = (alias_m.group(1).strip() if alias_m else "") or (name_m.group(1).strip() if name_m else "")
+            if resolved and not re.match(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$", resolved):
+                display_name = resolved
+            else:
+                display_name = "Bluetooth Device"
+
         devices.append({
             "mac": mac,
-            "name": name or mac,
+            "name": display_name,
             "connected": is_conn,
             "paired": is_paired,
             "trusted": is_trusted,
@@ -200,6 +214,8 @@ def get_bluetooth_state():
         "powered": powered,
         "discoverable": discoverable,
         "controller": controller,
+        "name": controller,
+        "address": address,
         "devices": devices,
     }
 
@@ -344,7 +360,7 @@ def handle_action(args):
     elif act == "wifi-disconnect":
         ssid = args[1] if len(args) > 1 else ""
         if ssid:
-            run_cmd(["nmcli", "connection", "down", "id", ssid], timeout=6.0)
+            subprocess.run([sys.executable, str(ROOT / "scripts/network-action.py"), "disconnect", ssid], check=True, timeout=30)
             notify("Wi-Fi Disconnected", ssid)
     elif act == "wifi-forget":
         ssid = args[1] if len(args) > 1 else ""
@@ -379,6 +395,9 @@ def handle_action(args):
                 time.sleep(0.15)
             run_cmd(["nmcli", "radio", "all", "on"])
             run_cmd(["bluetoothctl", "power", "on"])
+            run_cmd(["bluetoothctl", "discoverable-timeout", "0"], timeout=2.0)
+            run_cmd(["bluetoothctl", "pairable", "on"], timeout=2.0)
+            run_cmd(["bluetoothctl", "discoverable", "on"], timeout=2.0)
             notify("Airplane Mode Disabled", "Wireless radios restored")
     elif act == "bt-toggle":
         bt = get_bluetooth_state()
@@ -394,11 +413,19 @@ def handle_action(args):
                         break
                     time.sleep(0.05)
             run_cmd(["bluetoothctl", "power", "on"], timeout=3.0)
+            run_cmd(["bluetoothctl", "discoverable-timeout", "0"], timeout=2.0)
+            run_cmd(["bluetoothctl", "pairable", "on"], timeout=2.0)
+            run_cmd(["bluetoothctl", "discoverable", "on"], timeout=2.0)
     elif act == "bt-discoverable":
         bt = get_bluetooth_state()
         target = "off" if bt["discoverable"] else "on"
-        run_cmd(["bluetoothctl", "discoverable", target])
-        run_cmd(["bluetoothctl", "pairable", target])
+        run_cmd(["bluetoothctl", "discoverable-timeout", "0"], timeout=2.0)
+        run_cmd(["bluetoothctl", "pairable", "on"], timeout=2.0)
+        run_cmd(["bluetoothctl", "discoverable", target], timeout=2.0)
+        if target == "on":
+            notify("Bluetooth", "Device is now always discoverable", "low")
+        else:
+            notify("Bluetooth", "Device is now hidden from discovery", "low")
     elif act == "bt-scan":
         run_cmd(["bluetoothctl", "--timeout", "4", "scan", "on"], timeout=6.0)
     elif act == "bt-connect":
@@ -429,10 +456,17 @@ def handle_action(args):
         if mac:
             run_cmd(["bluetoothctl", "remove", mac], timeout=5.0)
             notify("Bluetooth Device Removed", mac)
+    elif act == "bt-send":
+        mac = args[1] if len(args) > 1 else ""
+        send_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bluetooth-send.py")
+        cmd = ["python3", send_script]
+        if mac:
+            cmd.append(mac)
+        subprocess.Popen(cmd)
     elif act == "audio-volume":
-        pct = max(0, min(150, int(float(args[1])))) if len(args) > 1 else 50
+        pct = max(0, min(100, int(float(args[1])))) if len(args) > 1 else 50
         run_cmd(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"])
-        run_cmd(["wpctl", "set-volume", "-l", "1.5", "@DEFAULT_AUDIO_SINK@", f"{pct}%"])
+        run_cmd(["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", f"{pct}%"])
     elif act == "audio-mute":
         run_cmd(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
     elif act == "mic-volume":
@@ -451,7 +485,7 @@ def handle_action(args):
         pct = max(1, min(100, int(float(args[1])))) if len(args) > 1 else 50
         run_cmd(["brightnessctl", "--class=backlight", "set", f"{pct}%"])
     elif act == "caffeine-toggle":
-        subprocess.run([str(ROOT / "scripts/caffeine.sh")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run([str(ROOT / "scripts/caffeine.sh"), "toggle"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     elif act == "nightlight-toggle":
         subprocess.run([str(ROOT / "scripts/night-light.sh")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     elif act == "dnd-toggle":

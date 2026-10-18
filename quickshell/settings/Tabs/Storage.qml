@@ -7,6 +7,7 @@ Item {
     id: page
 
     property var drives: []
+    property var deviceOwners: ({})
     property var filesystems: []
     property var cleanupInfo: ({
         "yay": 0,
@@ -19,7 +20,7 @@ Item {
     })
     property var sdaUsageData: null
     property real marginLeft: 0
-    property real marginRight: 55
+    property real marginRight: 12
     property real marginTop: 0
     property real marginBottom: 0
     property string pendingAction: ""
@@ -73,7 +74,7 @@ Item {
         if (isNaN(n))
             return 0;
 
-        return n * (m[2] ? (sizeUnits[m[2].toUpperCase()] || 1) : 1);
+        return n * (m[2] ? (sizeUnits[m[2]] || 1) : 1);
     }
 
     function usageColor(p) {
@@ -125,8 +126,16 @@ Item {
             if (!obj.blockdevices)
                 return disks;
 
+            var owners = {};
+            function collect(node, disk) {
+                var path = node.path || ("/dev/" + node.name);
+                if (!owners[path]) owners[path] = [];
+                if (owners[path].indexOf(disk) < 0) owners[path].push(disk);
+                for (var child of (node.children || [])) collect(child, disk);
+            }
             for (var i = 0; i < obj.blockdevices.length; ++i) {
                 var d = obj.blockdevices[i];
+                collect(d, d.name);
                 if (d.type === "disk" && d.name.indexOf("loop") !== 0 && d.name.indexOf("zram") !== 0)
                     disks.push({
                     "name": d.name || "",
@@ -140,6 +149,7 @@ Item {
         } catch (e) {
             console.warn("[Storage] lsblk JSON error:", e);
         }
+        page.deviceOwners = owners || {};
         return disks;
     }
 
@@ -152,7 +162,8 @@ Item {
         var seenDevices = {};
         for (var i = 0; i < filesystems.length; ++i) {
             var fs = filesystems[i];
-            if (fs.filesystem && (fs.filesystem.indexOf("/dev/" + driveName) === 0)) {
+            var owners = page.deviceOwners[(fs.filesystem || "").split("[")[0]] || [];
+            if (owners.length === 1 && owners[0] === driveName) {
                 if (!seenDevices[fs.filesystem]) {
                     seenDevices[fs.filesystem] = true;
                     used += fs.used;
@@ -199,7 +210,7 @@ Item {
     Process {
         id: pDrives
 
-        command: ["sh", "-c", "lsblk -J -b -d -o NAME,MODEL,SIZE,TYPE,TRAN 2>/dev/null"]
+        command: ["sh", "-c", "lsblk -J -b -o NAME,MODEL,SIZE,TYPE,TRAN,PATH 2>/dev/null"]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -396,20 +407,6 @@ Item {
         anchors.bottomMargin: page.marginBottom
         spacing: 14
 
-        Text {
-            text: "STORAGE"
-            color: Theme.text
-            font.family: Theme.fontFamily
-            font.pixelSize: 19
-            font.letterSpacing: 3
-        }
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.border
-        }
-
         Item {
             width: parent.width
             height: Math.max(0, parent.height - y)
@@ -426,16 +423,16 @@ Item {
                 Column {
                     id: list
 
-                    width: flick.width
+                    width: Math.max(0, flick.width - 10)
                     spacing: 10
 
                     Text {
-                        text: "DRIVES"
+                        text: "Drives"
                         color: Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
-                        font.letterSpacing: 2
+                        font.letterSpacing: 0
                     }
 
                     Repeater {
@@ -511,24 +508,24 @@ Item {
                                     spacing: 14
 
                                     Text {
-                                        text: hasUsage ? page.formatBytes(usageData.used) + " USED" : "-- USED"
+                                        text: hasUsage ? page.formatBytes(usageData.used) + " mounted data" : "Usage unavailable"
                                         color: Theme.textDim
                                         font.family: Theme.monoFont
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                     Text {
-                                        text: hasUsage ? page.formatBytes(Math.max(0, modelData.size - usageData.used)) + " FREE" : "-- FREE"
+                                        text: ""
                                         color: Theme.textDim
                                         font.family: Theme.monoFont
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                     Text {
-                                        text: page.formatBytes(modelData.size) + " TOTAL"
+                                        text: page.formatBytes(modelData.size) + " capacity"
                                         color: Theme.textDim
                                         font.family: Theme.monoFont
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                 }
@@ -540,13 +537,13 @@ Item {
                     }
 
                     Text {
-                        text: "FILESYSTEM"
+                        text: "Filesystem"
                         color: Theme.text
                         topPadding: 4
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
-                        font.letterSpacing: 2
+                        font.letterSpacing: 0
                     }
 
                     Repeater {
@@ -622,21 +619,21 @@ Item {
                                         text: page.formatBytes(modelData.used) + " USED"
                                         color: Theme.textDim
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                     Text {
                                         text: page.formatBytes(modelData.available) + " FREE"
                                         color: Theme.textDim
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                     Text {
                                         text: page.formatBytes(modelData.total) + " TOTAL"
                                         color: Theme.textDim
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: 11
+                                        font.pixelSize: Theme.fontSecondary
                                     }
 
                                 }
@@ -648,13 +645,13 @@ Item {
                     }
 
                     Text {
-                        text: "SYSTEM RESCUE & QUICK TOOLS"
+                        text: "System rescue & quick tools"
                         color: Theme.text
                         topPadding: 6
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
-                        font.letterSpacing: 2
+                        font.letterSpacing: 0
                     }
 
                     Repeater {
@@ -662,14 +659,14 @@ Item {
                             "icon": "󰅙",
                             "label": "Kill Frozen Window",
                             "desc": "Click any stuck or unresponsive window to immediately terminate it",
-                            "action": "ARM KILLER",
+                            "action": "Arm",
                             "command": "hyprctl kill"
                         }, {
                             "icon": "⏏",
                             "label": "Safely Eject USB Drives",
                             "desc": "Unmount external flash drives or removable media safely",
                             "action": "EJECT",
-                            "command": "bash -c 'if [ -x \"$MINIMAL_ROOT/scripts/usb-menu.sh\" ]; then \"$MINIMAL_ROOT/scripts/usb-menu.sh\"; elif command -v udiskie-umount >/dev/null; then udiskie-umount -a; notify-send \"USB\" \"Removable drives unmounted\"; else notify-send \"USB\" \"No eject tool available\"; fi'"
+                            "command": "bash -c 'if [ -x \"$MINIMAL_ROOT/scripts/usb-menu.sh\" ]; then \"$MINIMAL_ROOT/scripts/usb-menu.sh\"; elif command -v udiskie-umount >/dev/null; then udiskie-umount -a && notify-send \"USB\" \"Removable drives unmounted\"; else notify-send \"USB\" \"No eject tool available\"; fi'"
                         }, {
                             "icon": "󰓃",
                             "label": "Restart Audio Stack",
@@ -691,13 +688,13 @@ Item {
                     }
 
                     Text {
-                        text: "CLEANUP"
+                        text: "Cleanup"
                         color: Theme.text
                         topPadding: 6
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.bold: true
-                        font.letterSpacing: 2
+                        font.letterSpacing: 0
                     }
 
                     Repeater {
@@ -707,42 +704,42 @@ Item {
                             "action": "EMPTY",
                             "title": "EMPTY TRASH?",
                             "message": "Permanently deletes the contents of your trash.",
-                            "command": "rm -rf \"$HOME/.local/share/Trash/files/\"* \"$HOME/.local/share/Trash/info/\"* 2>/dev/null; trash-empty 2>/dev/null || true; notify-send 'Maintenance' 'Trash emptied'"
+                            "command": "python3 \"$MINIMAL_ROOT/scripts/maintenance.py\" trash"
                         }, {
                             "key": "cliphist",
                             "label": "CLIPHIST",
                             "action": "WIPE",
                             "title": "WIPE CLIPBOARD HISTORY?",
                             "message": "Clears the clipboard history.",
-                            "command": "cliphist wipe; notify-send 'Maintenance' 'Clipboard history cleared'"
+                            "command": "python3 \"$MINIMAL_ROOT/scripts/maintenance.py\" clipboard"
                         }, {
                             "key": "thumbs",
                             "label": "THUMBNAILS & CACHE",
                             "action": "CLEAR",
                             "title": "CLEAR THUMBNAIL CACHES?",
                             "message": "Clears system and Quickshell image and thumbnail caches.",
-                            "command": "rm -rf \"$HOME/.cache/thumbnails/\"* \"$HOME/.cache/quickshell/thumbs/\"* 2>/dev/null; notify-send 'Maintenance' 'Thumbnail caches cleared'"
+                            "command": "python3 \"$MINIMAL_ROOT/scripts/maintenance.py\" thumbnails"
                         }, {
                             "key": "journal",
                             "label": "JOURNAL LOGS",
                             "action": "VACUUM",
                             "title": "VACUUM JOURNAL LOGS?",
                             "message": "Trims system and user systemd journals down to 10MB.",
-                            "command": "journalctl --user --vacuum-size=10M 2>/dev/null; journalctl --vacuum-size=10M 2>/dev/null; notify-send 'Maintenance' 'Journals trimmed down to 10MB'"
+                            "command": "journalctl --user --vacuum-size=10M && notify-send 'Maintenance' 'User journals trimmed to 10MB'"
                         }, {
                             "key": "pacman",
                             "label": "PACMAN CACHE",
                             "action": "CLEAN",
                             "title": "CLEAN PACMAN CACHE?",
                             "message": "Removes outdated package tarballs from pacman cache keeping the latest version.",
-                            "command": "pkexec paccache -rk1 2>/dev/null || pkexec pacman -Sc --noconfirm 2>/dev/null || true; notify-send 'Maintenance' 'Pacman cache cleaned'"
+                            "command": "pkexec paccache -rk1 && notify-send 'Maintenance' 'Pacman cache cleaned'"
                         }, {
                             "key": "flatpak",
                             "label": "FLATPAK UNUSED",
                             "action": "CLEAN",
                             "title": "REMOVE UNUSED FLATPAKS?",
                             "message": "Removes unused Flatpak runtimes and packages.",
-                            "command": "flatpak uninstall --unused --assumeyes 2>/dev/null || true; notify-send 'Maintenance' 'Unused Flatpaks removed'"
+                            "command": "flatpak uninstall --unused --assumeyes && notify-send 'Maintenance' 'Unused Flatpaks removed'"
                         }]
 
                         delegate: CleanupButton {
@@ -759,19 +756,7 @@ Item {
 
                 }
 
-                ScrollBar.vertical: ScrollBar {
-
-                    background: Rectangle {
-                        color: Theme.alpha(Theme.border, 0)
-                        radius: width / 2
-                    }
-
-                    contentItem: Rectangle {
-                        color: Theme.accent
-                        radius: width / 2
-                    }
-
-                }
+                ScrollBar.vertical: SettingsScrollBar {}
 
             }
 
@@ -796,12 +781,12 @@ Item {
             text: parent.label
             color: parent.accent ? Theme.accent : Theme.textDim
             font.family: Theme.fontFamily
-            font.pixelSize: 11
+            font.pixelSize: Theme.fontSecondary
             font.bold: true
-            font.letterSpacing: 0.5
+            font.letterSpacing: 0
         }
 
-        MouseArea {
+        ControlArea {
             anchors.fill: parent
             hoverEnabled: true
             onEntered: {
@@ -842,7 +827,7 @@ Item {
             font.family: Theme.fontFamily
             font.pixelSize: 13
             font.bold: true
-            font.letterSpacing: 2
+            font.letterSpacing: 0
         }
 
         Row {
@@ -865,13 +850,13 @@ Item {
                 font.family: Theme.monoFont
                 font.pixelSize: 12
                 font.bold: true
-                font.letterSpacing: 1
+                font.letterSpacing: 0
                 anchors.verticalCenter: parent.verticalCenter
             }
 
         }
 
-        MouseArea {
+        ControlArea {
             anchors.fill: parent
             hoverEnabled: true
             onEntered: {
@@ -904,40 +889,42 @@ Item {
         border.width: 1
         border.color: Theme.border
 
-        Row {
+        Text {
+            id: toolIcon
             anchors.left: parent.left
             anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            text: toolRoot.icon
+            color: Theme.accent
+            font.family: Theme.iconFont
+            font.pixelSize: 18
+        }
+
+        Column {
+            anchors.left: toolIcon.right
+            anchors.leftMargin: 12
             anchors.right: actionPill.left
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 12
+            spacing: 2
 
             Text {
-                text: toolRoot.icon
-                color: Theme.accent
-                font.family: Theme.iconFont
-                font.pixelSize: 18
-                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                text: toolRoot.label
+                color: Theme.text
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+                font.weight: Font.Medium
+                elide: Text.ElideRight
             }
 
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
-
-                Text {
-                    text: toolRoot.label
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 13
-                    font.weight: Font.Medium
-                }
-
-                Text {
-                    text: toolRoot.desc
-                    color: Theme.textFaint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 11
-                }
+            Text {
+                width: parent.width
+                text: toolRoot.desc
+                color: Theme.textFaint
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSecondary
+                elide: Text.ElideRight
             }
         }
 
@@ -961,13 +948,13 @@ Item {
                 text: toolRoot.actionText
                 color: Theme.accent
                 font.family: Theme.monoFont
-                font.pixelSize: 10
+                font.pixelSize: Theme.fontSecondary
                 font.weight: Font.Bold
-                font.letterSpacing: 0.8
+                font.letterSpacing: 0
             }
         }
 
-        MouseArea {
+        ControlArea {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor

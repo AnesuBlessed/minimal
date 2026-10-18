@@ -19,6 +19,7 @@
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/privacy.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/pulseaudio#microphone.jsonc",
         "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/pulseaudio.jsonc",
-        "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/tray.jsonc"
+        "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/tray.jsonc",
+        "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}\"/waybar/modules/custom-recording.jsonc"
     ]
 }

@@ -1346,7 +1346,9 @@ ShellRoot {
         cfg = json.loads((self.repo / 'waybar/config.jsonc').read_text())
         center_modules = cfg['group/pill#center']['modules']
         self.assertNotIn('custom/notch', center_modules)
-        self.assertIn('hyprland/workspaces', center_modules)
+        self.assertEqual(center_modules, ['clock'])
+        self.assertIn('hyprland/workspaces', cfg['group/pill#left1']['modules'])
+        self.assertEqual(cfg['group/pill#left2']['modules'], ['cpu', 'memory'])
 
         # Verify Theme.qml in settings exists and references Minimal tokens
         theme_qml = (self.repo / 'quickshell/settings/Theme.qml').read_text()
@@ -1357,6 +1359,16 @@ ShellRoot {
         for tab in ['Network.qml', 'Bluetooth.qml', 'Sound.qml']:
             tab_file = self.repo / f'quickshell/settings/Tabs/{tab}'
             self.assertTrue(tab_file.is_file(), f'Tabs/{tab} must exist')
+
+        # Verify Settings lifecycle (exits on hide / closed) and unloads pages when hidden
+        settings_qml = (self.repo / 'quickshell/settings/Settings.qml').read_text()
+        self.assertIn('Qt.quit()', settings_qml)
+        self.assertIn('active: root.showing', settings_qml)
+
+        # Verify Bluetooth does not auto-power radio simply by browsing
+        bt_qml = (self.repo / 'quickshell/settings/Tabs/Bluetooth.qml').read_text()
+        self.assertNotIn('tryAutoPower', bt_qml)
+        self.assertIn('page.visible && page.powered', bt_qml)
 
 
     def test_control_center_wifi_bluetooth_audio_and_qml(self):
@@ -1388,6 +1400,8 @@ elif sys.argv[1] == "status": print("Audio\\n ├─ Sinks:\\n │  * 42. Built-
         self.assertEqual(len(state['wifi']['networks']), 2)
         self.assertEqual(state['wifi']['networks'][1]['ssid'], 'Cafe:5G')
         self.assertEqual(state['bluetooth']['devices'][0]['battery'], '85%')
+        self.assertEqual(state['bluetooth']['name'], 'MinimalBT')
+        self.assertEqual(state['bluetooth']['address'], 'AA:BB:CC:DD:EE:FF')
         self.assertEqual(state['audio']['volume'], 65)
 
         source = (self.repo / 'quickshell/control-center/shell.qml').read_text()
@@ -1426,6 +1440,32 @@ if "-j" in sys.argv:
         self.assertTrue((self.base / 'state/minimal/monitors.lua').is_file())
         self.assertTrue(any(e[:3] == ['hyprctl', 'keyword', 'monitor'] for e in self.events()))
 
+    def test_monitors_configure_complete_geometry(self):
+        self.mock('hyprctl', '''
+if "-j" in sys.argv:
+    print(json.dumps([
+        {"name":"eDP-1","description":"Laptop","width":1920,"height":1080,"refreshRate":60,"scale":1.0,"x":0,"y":0,"vrr":False,"disabled":False,"focused":True,"availableModes":["1920x1080@60.00Hz"]},
+        {"name":"HDMI-A-1","description":"External","width":2560,"height":1440,"refreshRate":144,"scale":1.25,"x":1920,"y":0,"vrr":True,"disabled":False,"focused":False,"availableModes":["2560x1440@144.00Hz","2560x1440@60.00Hz"]}
+    ]))
+''')
+        self.mock('notify-send', '')
+        cfg_arg = json.dumps({
+            "name": "HDMI-A-1",
+            "mode": "2560x1440@144.00Hz",
+            "position": "1920x0",
+            "scale": 1.25,
+            "vrr": 1,
+            "disabled": False
+        })
+        res = self.run_script('scripts/monitors.py', '--configure', cfg_arg)
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        saved = json.loads((self.base / 'state/minimal/monitors.json').read_text())
+        self.assertIn('HDMI-A-1', saved)
+        self.assertEqual(saved['HDMI-A-1']['position'], '1920x0')
+        self.assertEqual(saved['HDMI-A-1']['scale'], 1.25)
+        self.assertEqual(saved['HDMI-A-1']['vrr'], 1)
+        self.assertTrue(any(e == ['hyprctl', 'keyword', 'monitor', 'HDMI-A-1,2560x1440@144.00Hz,1920x0,1.25,vrr,1'] for e in self.events()))
+
     def test_screen_recording_toggle_and_region_ocr(self):
         self.mock('slurp', 'print("10,10 200x100")')
         self.mock('grim', 'open(sys.argv[-1], "wb").write(b"PNG")')
@@ -1439,6 +1479,35 @@ if "-j" in sys.argv:
         res = self.run_script('bootstrap.sh', '--check')
         self.assertIn('Minimal Bootstrap Check', res.stdout)
         self.assertEqual(list(self.config.iterdir()), [])
+
+    def test_bluetooth_device_info_and_file_transfer(self):
+        send_script = self.repo / 'scripts/bluetooth-send.py'
+        self.assertTrue(send_script.is_file())
+        self.assertTrue(os.access(send_script, os.X_OK))
+
+        agent_script = self.repo / 'scripts/bluetooth-agent.py'
+        self.assertTrue(agent_script.is_file())
+        agent_content = agent_script.read_text()
+        self.assertIn('org.bluez.obex.Transfer1', agent_content)
+        self.assertIn('org.bluez.obex.Agent1', agent_content)
+        self.assertIn('AuthorizePush', agent_content)
+
+        transfer_qml = self.repo / 'quickshell/transfer/shell.qml'
+        self.assertTrue(transfer_qml.is_file())
+        self.assertIn('progress', transfer_qml.read_text())
+
+        ui_script = self.repo / 'scripts/bluetooth-transfer-ui.sh'
+        self.assertTrue(ui_script.is_file())
+        self.assertTrue(os.access(ui_script, os.X_OK))
+
+        bt_qml = (self.repo / 'quickshell/settings/Tabs/Bluetooth.qml').read_text()
+        self.assertIn('localAddress', bt_qml)
+        self.assertIn('localName', bt_qml)
+        self.assertIn('Send File', bt_qml)
+
+        cc_qml = (self.repo / 'quickshell/control-center/shell.qml').read_text()
+        self.assertIn('root.stateData.bluetooth.address', cc_qml)
+        self.assertIn('bt-send', cc_qml)
 
 
 if __name__ == '__main__':

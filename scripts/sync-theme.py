@@ -124,6 +124,40 @@ button {{ border-radius: {r['panel']}px; transition-duration: {seconds:g}s; }}
 @define-color warning_color #{c['warning']};
 @define-color error_color #{c['critical']};
 ''')
+    update_gtk_config(ROOT / 'assets/gtk-accent.css')
+
+
+def update_gtk_config(accent_css):
+    import os
+    config_dir = Path(os.environ.get('XDG_CONFIG_HOME') or (Path.home() / '.config'))
+    marker_start = '/* Minimal theme accent */'
+    marker_end = '/* End Minimal theme accent */'
+    import_line = f'@import "{accent_css.resolve()}";'
+    block = f'{marker_start}\n{import_line}\n{marker_end}\n'
+
+    for version in ('gtk-3.0', 'gtk-4.0'):
+        vdir = config_dir / version
+        try:
+            if not vdir.exists() and not vdir.is_symlink():
+                continue
+            css_file = vdir / 'gtk.css'
+            if css_file.is_file():
+                content = css_file.read_text()
+                if marker_start in content:
+                    new_content = re.sub(
+                        rf'{re.escape(marker_start)}.*?{re.escape(marker_end)}\n?',
+                        block,
+                        content,
+                        flags=re.DOTALL
+                    )
+                else:
+                    new_content = block + content
+                atomic_write(css_file, new_content)
+            elif not css_file.exists():
+                atomic_write(css_file, block)
+        except OSError:
+            pass
+
 
 if __name__ == '__main__':
     sync()

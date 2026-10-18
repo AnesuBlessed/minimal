@@ -32,6 +32,42 @@ ShellRoot {
         system: { brightness: 80, caffeine: false, nightLight: false, dnd: false, airplane: false }
     })
 
+    readonly property var connectedWifiNetworks: {
+        var res = [];
+        var nets = (root.stateData && root.stateData.wifi && root.stateData.wifi.networks) ? root.stateData.wifi.networks : [];
+        for (var i = 0; i < nets.length; i++) {
+            if (nets[i].inUse) res.push(nets[i]);
+        }
+        return res;
+    }
+
+    readonly property var availableWifiNetworks: {
+        var res = [];
+        var nets = (root.stateData && root.stateData.wifi && root.stateData.wifi.networks) ? root.stateData.wifi.networks : [];
+        for (var i = 0; i < nets.length; i++) {
+            if (!nets[i].inUse) res.push(nets[i]);
+        }
+        return res;
+    }
+
+    readonly property var connectedBtDevices: {
+        var res = [];
+        var devs = (root.stateData && root.stateData.bluetooth && root.stateData.bluetooth.devices) ? root.stateData.bluetooth.devices : [];
+        for (var i = 0; i < devs.length; i++) {
+            if (devs[i].connected) res.push(devs[i]);
+        }
+        return res;
+    }
+
+    readonly property var availableBtDevices: {
+        var res = [];
+        var devs = (root.stateData && root.stateData.bluetooth && root.stateData.bluetooth.devices) ? root.stateData.bluetooth.devices : [];
+        for (var i = 0; i < devs.length; i++) {
+            if (!devs[i].connected) res.push(devs[i]);
+        }
+        return res;
+    }
+
     function applyJson(raw) {
         if (!raw || raw.trim() === "") return;
         try {
@@ -129,7 +165,7 @@ ShellRoot {
                 anchors.fill: parent
                 topLeftRadius: theme.panelRadius
                 topRightRadius: theme.panelRadius
-                color: theme.panel
+                color: theme.reading
                 border.width: 1
                 border.color: theme.border
 
@@ -671,19 +707,12 @@ ShellRoot {
                     }
 
                     // Wi-Fi Network List
-                    ListView {
-                        id: wifiList
-                        y: passBox.visible ? 94 : 48
-                        width: parent.width; height: parent.height - y
-                        model: root.stateData.wifi.networks
-                        clip: true
-                        spacing: 4
-                        boundsBehavior: Flickable.StopAtBounds
-                        ScrollBar.vertical: ScrollBar { width: 3; policy: ScrollBar.AsNeeded }
+                    Component {
+                        id: wifiCardDelegate
 
-                        delegate: Rectangle {
+                        Rectangle {
                             required property var modelData
-                            width: wifiList.width; height: 42
+                            width: wifiCol.width; height: 42
                             radius: theme.controlRadius
                             color: modelData.inUse ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.16) : theme.control
                             border.width: 1
@@ -773,6 +802,63 @@ ShellRoot {
                             }
                         }
                     }
+
+                    Flickable {
+                        id: wifiFlick
+                        y: passBox.visible ? 94 : 48
+                        width: parent.width; height: parent.height - y
+                        contentWidth: width
+                        contentHeight: wifiCol.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        ScrollBar.vertical: ScrollBar { width: 3; policy: ScrollBar.AsNeeded }
+
+                        Column {
+                            id: wifiCol
+                            width: parent.width
+                            spacing: 6
+
+                            Text {
+                                visible: root.connectedWifiNetworks.length > 0
+                                width: parent.width
+                                text: "CONNECTED"
+                                color: theme.accent
+                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                            }
+
+                            Repeater {
+                                model: root.connectedWifiNetworks
+                                delegate: wifiCardDelegate
+                            }
+
+                            Item {
+                                visible: root.connectedWifiNetworks.length > 0 && root.availableWifiNetworks.length > 0
+                                width: parent.width; height: 4
+                            }
+
+                            Text {
+                                visible: root.availableWifiNetworks.length > 0
+                                width: parent.width
+                                text: "AVAILABLE NETWORKS"
+                                color: theme.muted
+                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                            }
+
+                            Repeater {
+                                model: root.availableWifiNetworks
+                                delegate: wifiCardDelegate
+                            }
+
+                            Text {
+                                visible: root.stateData.wifi.enabled && root.connectedWifiNetworks.length === 0 && root.availableWifiNetworks.length === 0
+                                width: parent.width
+                                text: "No Wi-Fi networks found"
+                                font.family: theme.fontFamily; font.pixelSize: theme.fontBody
+                                color: theme.muted
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                        }
+                    }
                 }
 
                 // =============================================================
@@ -803,12 +889,16 @@ ShellRoot {
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
                                 Text {
-                                    text: root.stateData.bluetooth.controller + (root.stateData.bluetooth.powered ? " · Powered" : " · Off")
+                                    text: {
+                                        var cName = root.stateData.bluetooth.name || root.stateData.bluetooth.controller || "Bluetooth";
+                                        var cAddr = root.stateData.bluetooth.address || "";
+                                        return cName + (cAddr ? (" · " + cAddr) : "") + (root.stateData.bluetooth.powered ? " · Powered" : " · Off");
+                                    }
                                     font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
                                     color: theme.text
                                 }
                                 Text {
-                                    text: root.stateData.bluetooth.discoverable ? "Visible to nearby devices" : "Hidden from discovery"
+                                    text: root.stateData.bluetooth.discoverable ? "Always visible to nearby devices" : "Hidden from discovery"
                                     font.family: theme.fontFamily; font.pixelSize: 10
                                     color: theme.muted
                                 }
@@ -821,13 +911,13 @@ ShellRoot {
                             spacing: 6
 
                             Rectangle {
-                                width: 82; height: 26
+                                width: 92; height: 26
                                 radius: Math.max(4, theme.controlRadius - 1)
                                 color: root.stateData.bluetooth.discoverable ? theme.accent : theme.reading
                                 border.width: 1; border.color: theme.border
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.stateData.bluetooth.discoverable ? "Discoverable" : "Pairable"
+                                    text: root.stateData.bluetooth.discoverable ? "Discoverable" : "Hidden"
                                     font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
                                     color: root.stateData.bluetooth.discoverable ? theme.base : theme.text
                                 }
@@ -873,19 +963,12 @@ ShellRoot {
                         }
                     }
 
-                    ListView {
-                        id: btList
-                        y: 48
-                        width: parent.width; height: parent.height - 48
-                        model: root.stateData.bluetooth.devices
-                        clip: true
-                        spacing: 4
-                        boundsBehavior: Flickable.StopAtBounds
-                        ScrollBar.vertical: ScrollBar { width: 3; policy: ScrollBar.AsNeeded }
+                    Component {
+                        id: btCardDelegate
 
-                        delegate: Rectangle {
+                        Rectangle {
                             required property var modelData
-                            width: btList.width; height: 42
+                            width: btCol.width; height: 42
                             radius: theme.controlRadius
                             color: modelData.connected ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.16) : theme.control
                             border.width: 1
@@ -908,14 +991,20 @@ ShellRoot {
                                     anchors.verticalCenter: parent.verticalCenter
                                     Text {
                                         width: parent.width
-                                        text: modelData.name
+                                        text: {
+                                            var candidate = (modelData.name || "").trim();
+                                            var isCode = !candidate ||
+                                                         /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(candidate) ||
+                                                         /^dev_[0-9A-Za-z_]+$/.test(candidate) ||
+                                                         /^[0-9A-Fa-f]{12}$/.test(candidate);
+                                            return isCode ? "Bluetooth Device" : candidate;
+                                        }
                                         elide: Text.ElideRight
                                         font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: modelData.connected
                                         color: theme.text
                                     }
                                     Text {
-                                        text: modelData.mac
-                                            + (modelData.connected ? " · Connected" : (modelData.paired ? " · Paired" : " · Available"))
+                                        text: (modelData.connected ? "Connected" : (modelData.paired ? "Paired" : "Available"))
                                             + (modelData.trusted ? " · Trusted" : "")
                                             + (modelData.battery ? (" · 󰁹 " + modelData.battery) : "")
                                         font.family: theme.fontFamily; font.pixelSize: 10
@@ -943,6 +1032,23 @@ ShellRoot {
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                         onClicked: root.runAction([modelData.connected ? "bt-disconnect" : "bt-connect", modelData.mac])
+                                    }
+                                }
+
+                                Rectangle {
+                                    visible: modelData.paired || modelData.connected
+                                    width: 28; height: 26
+                                    radius: Math.max(4, theme.controlRadius - 1)
+                                    color: theme.reading
+                                    border.width: 1; border.color: theme.border
+                                    Text {
+                                        anchors.centerIn: parent; text: "󰈔"
+                                        font.family: theme.fontFamily; font.pixelSize: 13
+                                        color: theme.accent
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.runAction(["bt-send", modelData.mac])
                                     }
                                 }
 
@@ -978,6 +1084,63 @@ ShellRoot {
                                         onClicked: root.runAction(["bt-forget", modelData.mac])
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    Flickable {
+                        id: btFlick
+                        y: 48
+                        width: parent.width; height: parent.height - 48
+                        contentWidth: width
+                        contentHeight: btCol.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        ScrollBar.vertical: ScrollBar { width: 3; policy: ScrollBar.AsNeeded }
+
+                        Column {
+                            id: btCol
+                            width: parent.width
+                            spacing: 6
+
+                            Text {
+                                visible: root.connectedBtDevices.length > 0
+                                width: parent.width
+                                text: "CONNECTED DEVICES"
+                                color: theme.accent
+                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                            }
+
+                            Repeater {
+                                model: root.connectedBtDevices
+                                delegate: btCardDelegate
+                            }
+
+                            Item {
+                                visible: root.connectedBtDevices.length > 0 && root.availableBtDevices.length > 0
+                                width: parent.width; height: 4
+                            }
+
+                            Text {
+                                visible: root.availableBtDevices.length > 0
+                                width: parent.width
+                                text: "AVAILABLE DEVICES"
+                                color: theme.muted
+                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                            }
+
+                            Repeater {
+                                model: root.availableBtDevices
+                                delegate: btCardDelegate
+                            }
+
+                            Text {
+                                visible: root.stateData.bluetooth.powered && root.connectedBtDevices.length === 0 && root.availableBtDevices.length === 0
+                                width: parent.width
+                                text: "No Bluetooth devices found"
+                                font.family: theme.fontFamily; font.pixelSize: theme.fontBody
+                                color: theme.muted
+                                horizontalAlignment: Text.AlignHCenter
                             }
                         }
                     }
