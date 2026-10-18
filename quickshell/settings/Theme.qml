@@ -34,10 +34,10 @@ QtObject {
     readonly property int animSlow: animFast + 160
 
     readonly property color glass: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.reading ?? 0.98))
-    readonly property color bg: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.85)
-    readonly property color bgPanel: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.40)
-    readonly property color bgCard: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.55)
-    readonly property color bgElev: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.70)
+    readonly property color bg: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.reading ?? 0.98))
+    readonly property color bgPanel: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.panel ?? 0.80))
+    readonly property color bgCard: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.control ?? 0.85))
+    readonly property color bgElev: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.control ?? 0.85))
     readonly property color bgHover: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.16)
     readonly property color bgActive: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.28)
 
@@ -54,9 +54,9 @@ QtObject {
 
     readonly property color ringOuter: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.18)
     readonly property color ringInner: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.08)
-    readonly property color border: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, (opacities.border ?? 0.30) * 0.55)
-    readonly property color borderStrong: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.25)
-    readonly property color borderAccent: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.45)
+    readonly property color border: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, (opacities.border ?? 0.30))
+    readonly property color borderStrong: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, Math.min(1.0, (opacities.border ?? 0.30) * 1.5))
+    readonly property color borderAccent: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, Math.min(1.0, (opacities.border ?? 0.30) * 2.0))
 
     readonly property color danger: "#" + (colors.critical || "e06c75")
     readonly property color ok: "#" + (colors.success || "98c379")

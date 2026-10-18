@@ -288,7 +288,7 @@ Item {
 
         topLeftRadius: theme.panelRadius
         topRightRadius: theme.panelRadius
-        color: theme.panel
+        color: theme.reading
         border.color: window.surface1
         border.width: 1
         clip: true

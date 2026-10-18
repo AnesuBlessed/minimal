@@ -1,6 +1,6 @@
 /* Generated from theme.json by scripts/sync-theme.py. */
 @define-color bg-glass alpha(#171c1e, 0.8);
-@define-color bg-reading alpha(#171c1e, 0.94);
+@define-color bg-reading alpha(#171c1e, 0.98);
 @define-color bg-glass-hover alpha(#343b3e, 0.85);
 @define-color border-glass alpha(#bdbed0, 0.3);
 @define-color text-main #eef0f0;

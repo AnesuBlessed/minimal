@@ -6,7 +6,7 @@
 # =============================================================================
 
 font=JetBrainsMono Nerd Font 12
-background-color=#171c1ef0
+background-color=#171c1efa
 text-color=#eef0f0
 width=320
 height=110
@@ -36,7 +36,7 @@ default-timeout=0
 
 # Replacement-tagged OSDs stay separate from normal notification history.
 [app-name=minimal-osd]
-font=JetBrainsMono Nerd Font 10
+font=JetBrainsMono Nerd Font 11
 anchor=bottom-center
 margin=0,0,64,0
 width=200
@@ -44,7 +44,7 @@ height=32
 padding=6,10
 border-size=1
 border-radius=6
-background-color=#171c1ef0
+background-color=#171c1efa
 text-color=#eef0f0
 border-color=#bdbed04c
 progress-color=over #bdbed066

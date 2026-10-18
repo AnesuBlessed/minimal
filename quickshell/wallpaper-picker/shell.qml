@@ -27,7 +27,7 @@ ShellRoot {
         Rectangle {
             anchors.fill: parent
             topLeftRadius: theme.panelRadius; topRightRadius: theme.panelRadius
-            color: theme.panel; border.width: 1; border.color: theme.border
+            color: theme.reading; border.width: 1; border.color: theme.border
             Rectangle {
                 y: 9; width: 32; height: 3; radius: 1.5
                 anchors.horizontalCenter: parent.horizontalCenter
