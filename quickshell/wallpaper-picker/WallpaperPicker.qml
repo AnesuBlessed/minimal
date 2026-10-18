@@ -385,10 +385,10 @@ Item {
     }
 
     readonly property real itemWidth: window.s(400)
-    readonly property real itemHeight: window.s(360)
-    readonly property real borderWidth: window.s(2)
-    readonly property real spacing: window.s(16)
-    readonly property real skewFactor: 0.0
+    readonly property real itemHeight: window.s(420)
+    readonly property real borderWidth: window.s(3)
+    readonly property real spacing: window.s(10)
+    readonly property real skewFactor: -0.35
 
     Timer {
         id: scrollThrottle
@@ -840,8 +840,8 @@ Item {
         cacheBuffer: Math.max(0, Math.min(width, 800))
 
         highlightRangeMode: ListView.StrictlyEnforceRange
-        preferredHighlightBegin: (width - window.itemWidth) / 2
-        preferredHighlightEnd: (width + window.itemWidth) / 2
+        preferredHighlightBegin: (width / 2) - ((window.itemWidth * 1.5 + window.spacing) / 2)
+        preferredHighlightEnd: (width / 2) + ((window.itemWidth * 1.5 + window.spacing) / 2)
 
         highlightMoveDuration: window.initialFocusSet ? 120 : 0
         focus: true
@@ -867,7 +867,7 @@ Item {
             enabled: window.allowAddAnimation
             ParallelAnimation {
                 NumberAnimation { property: "opacity"; from: 0; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
-                NumberAnimation { property: "scale"; from: 0.8; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "scale"; from: 0.5; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
             }
         }
         addDisplaced: Transition {
@@ -875,8 +875,8 @@ Item {
             NumberAnimation { property: "x"; duration: _theme.duration; easing.type: Easing.OutCubic }
         }
 
-        header: Item { width: Math.max(0, (view.width - window.itemWidth) / 2) }
-        footer: Item { width: Math.max(0, (view.width - window.itemWidth) / 2) }
+        header: Item { width: Math.max(0, (view.width / 2) - ((window.itemWidth * 1.5) / 2)) }
+        footer: Item { width: Math.max(0, (view.width / 2) - ((window.itemWidth * 1.5) / 2)) }
 
         model: window.activeModel
 
@@ -923,6 +923,9 @@ Item {
             readonly property bool isVideo: safeFileName.startsWith("000_")
             readonly property bool matchesFilter: window.checkItemMatchesFilter(safeFileName, isVideo, window.cacheVersion, window.currentFilter)
 
+            readonly property real targetWidth: isVisuallyEnlarged ? (window.itemWidth * 1.5) : (window.itemWidth * 0.5)
+            readonly property real targetHeight: isVisuallyEnlarged ? (window.itemHeight + window.s(30)) : window.itemHeight
+
             property bool isPlayingVideo: false
 
             Timer {
@@ -943,92 +946,125 @@ Item {
                 }
             }
 
-            width: matchesFilter ? (window.itemWidth + window.spacing) : 0
-            height: parent ? parent.height : (window.itemHeight + window.s(40))
+            width: matchesFilter ? (targetWidth + window.spacing) : 0
             visible: width > 0.1 || opacity > 0.01
+            opacity: matchesFilter ? (isVisuallyEnlarged ? 1.0 : 0.6) : 0.0
 
-            Rectangle {
-                id: card
+            scale: matchesFilter ? 1.0 : 0.5
+
+            height: matchesFilter ? targetHeight : 0
+            anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+            anchors.verticalCenterOffset: window.s(15)
+
+            z: isVisuallyEnlarged ? 10 : 1
+
+            Behavior on scale { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
+            Behavior on width { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
+            Behavior on height { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
+            Behavior on opacity { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
+
+            Item {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: window.s(15)
-                width: window.itemWidth
-                height: isVisuallyEnlarged ? (window.itemHeight + window.s(20)) : window.itemHeight
-                radius: _theme.panelRadius
-                color: _theme.reading
-                border.color: isVisuallyEnlarged ? _theme.accent : _theme.border
-                border.width: isVisuallyEnlarged ? window.s(2) : 1
-                clip: true
+                anchors.horizontalCenterOffset: ((window.itemHeight - height) / 2) * window.skewFactor
 
-                scale: isVisuallyEnlarged ? 1.04 : 0.94
-                opacity: delegateRoot.matchesFilter ? (isVisuallyEnlarged ? 1.0 : 0.65) : 0.0
-                z: isVisuallyEnlarged ? 10 : 1
+                width: parent.width > 0 ? parent.width * (targetWidth / (targetWidth + window.spacing)) : 0
+                height: parent.height
 
-                Behavior on scale { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
-                Behavior on height { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
-                Behavior on opacity { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
-                Behavior on border.color { ColorAnimation { duration: _theme.duration } }
-
-                Image {
-                    anchors.fill: parent
-                    anchors.margins: card.border.width
-                    fillMode: Image.PreserveAspectCrop
-                    source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
-                    asynchronous: true
-                    cache: true
-                }
-
-                Loader {
-                    id: videoLoader
-                    anchors.fill: parent
-                    anchors.margins: card.border.width
-                    active: delegateRoot.isVideo && delegateRoot.isPlayingVideo
-                    sourceComponent: Item {
-                        anchors.fill: parent
-                        MediaPlayer {
-                            id: previewPlayer
-                            source: "file://" + window.srcDir + "/" + window.getCleanName(delegateRoot.safeFileName)
-                            audioOutput: AudioOutput { muted: true }
-                            videoOutput: previewOutput
-                            loops: MediaPlayer.Infinite
-                            Component.onCompleted: play()
-                        }
-                        VideoOutput {
-                            id: previewOutput
-                            anchors.fill: parent
-                            fillMode: VideoOutput.PreserveAspectCrop
-                        }
-                    }
-                }
-
-                Rectangle {
-                    visible: delegateRoot.isVideo && !delegateRoot.isPlayingVideo
-                    anchors.top: parent.top
-                    anchors.right: parent.right
-                    anchors.margins: window.s(12)
-                    width: window.s(32)
-                    height: window.s(32)
-                    radius: window.s(16)
-                    color: Qt.rgba(_theme.base.r, _theme.base.g, _theme.base.b, 0.75)
-                    border.color: _theme.border
-                    border.width: 1
-
-                    Text {
-                        anchors.centerIn: parent
-                        anchors.horizontalCenterOffset: 1
-                        text: "󰐊"
-                        font.family: _theme.fontFamily
-                        font.pixelSize: window.s(14)
-                        color: _theme.text
-                    }
+                transform: Matrix4x4 {
+                    property real s: window.skewFactor
+                    matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
                 }
 
                 MouseArea {
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
                     enabled: delegateRoot.matchesFilter && !window.isScrollingBlocked && !window.isApplying
                     onClicked: {
                         view.currentIndex = index
                         window.applyWallpaper(delegateRoot.safeFileName, delegateRoot.isVideo)
+                    }
+                }
+
+                Image {
+                    anchors.fill: parent
+                    source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
+                    sourceSize: Qt.size(16, 16)
+                    fillMode: Image.Stretch
+                    visible: true
+                    asynchronous: true
+                }
+
+                Item {
+                    anchors.fill: parent
+                    anchors.margins: window.borderWidth
+                    Rectangle { anchors.fill: parent; color: _theme.base }
+                    clip: true
+
+                    Image {
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: window.s(-50)
+                        width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
+                        height: window.itemHeight + window.s(30)
+                        sourceSize.height: 420
+                        fillMode: Image.PreserveAspectCrop
+                        source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
+                        asynchronous: true
+
+                        transform: Matrix4x4 {
+                            property real s: -window.skewFactor
+                            matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+                        }
+                    }
+
+                    Loader {
+                        id: videoLoader
+                        anchors.fill: parent
+                        active: delegateRoot.isVideo && delegateRoot.isPlayingVideo
+                        sourceComponent: Item {
+                            anchors.fill: parent
+                            MediaPlayer {
+                                id: previewPlayer
+                                source: "file://" + window.srcDir + "/" + window.getCleanName(delegateRoot.safeFileName)
+                                audioOutput: AudioOutput { muted: true }
+                                videoOutput: previewOutput
+                                loops: MediaPlayer.Infinite
+                                Component.onCompleted: play()
+                            }
+                            VideoOutput {
+                                id: previewOutput
+                                anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: window.s(-50)
+                                width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
+                                height: window.itemHeight + window.s(30)
+                                fillMode: VideoOutput.PreserveAspectCrop
+                                transform: Matrix4x4 {
+                                    property real s: -window.skewFactor
+                                    matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        visible: delegateRoot.isVideo && !delegateRoot.isPlayingVideo
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: window.s(10)
+                        width: window.s(32)
+                        height: window.s(32)
+                        radius: window.s(6)
+                        color: Qt.rgba(_theme.base.r, _theme.base.g, _theme.base.b, 0.6)
+                        transform: Matrix4x4 {
+                            property real s: -window.skewFactor
+                            matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰐊"
+                            font.family: _theme.fontFamily
+                            font.pixelSize: window.s(16)
+                            color: _theme.text
+                        }
                     }
                 }
             }
