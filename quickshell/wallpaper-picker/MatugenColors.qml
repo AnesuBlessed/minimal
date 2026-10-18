@@ -4,8 +4,11 @@ import "."
 Item {
     id: root
     property color panel: GlobalTheme.panel
+    property color reading: GlobalTheme.reading
     property color control: GlobalTheme.control
     property color border: GlobalTheme.border
+    property color accent: GlobalTheme.accent
+    property color muted: GlobalTheme.muted
     property int panelRadius: GlobalTheme.panelRadius
     property int controlRadius: GlobalTheme.controlRadius
     property int duration: GlobalTheme.duration

@@ -18,13 +18,19 @@ Item {
 
     Palette { id: theme }
     readonly property color base: theme.base
-    readonly property color crust: theme.crust
     readonly property color text: theme.text
-    readonly property color subtext0: theme.muted
-    readonly property color surface0: theme.selection
-    readonly property color surface1: theme.border
-    readonly property color surface2: Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.35)
-    readonly property color mauve: theme.accent
+    readonly property color muted: theme.muted
+    readonly property color selection: theme.selection
+    readonly property color border: theme.border
+    readonly property color accent: theme.accent
+    readonly property color accentSubtle: Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.20)
+    // Backward compatibility aliases
+    readonly property color crust: theme.crust
+    readonly property color subtext0: muted
+    readonly property color surface0: selection
+    readonly property color surface1: border
+    readonly property color surface2: accentSubtle
+    readonly property color mauve: accent
 
     property var allClips: []
     property string requestedQuery: ""
@@ -289,7 +295,7 @@ Item {
         topLeftRadius: theme.panelRadius
         topRightRadius: theme.panelRadius
         color: theme.reading
-        border.color: window.surface1
+        border.color: theme.border
         border.width: 1
         clip: true
 
@@ -332,7 +338,7 @@ Item {
                         text: "󰅌"
                         font.family: theme.fontFamily
                         font.pixelSize: window.s(18)
-                        color: searchInput.activeFocus ? window.mauve : window.subtext0
+                        color: searchInput.activeFocus ? theme.accent : theme.muted
 
                         opacity: !window.previewMode ? 1 : 0
                         scale: !window.previewMode ? 1 : 0.5
@@ -349,7 +355,7 @@ Item {
                         text: "󰈈"
                         font.family: theme.fontFamily
                         font.pixelSize: window.s(18)
-                        color: window.mauve
+                        color: theme.accent
 
                         opacity: window.previewMode ? 1 : 0
                         scale: window.previewMode ? 1 : 0.5
@@ -371,7 +377,7 @@ Item {
                     font.pixelSize: theme.fontBody
 
                     placeholderText: "Search clipboard"
-                    placeholderTextColor: window.subtext0
+                    placeholderTextColor: theme.muted
 
                     verticalAlignment: TextInput.AlignVCenter
                     focus: true
@@ -471,14 +477,14 @@ Item {
                     width: window.s(32)
                     height: window.s(32)
                     radius: window.s(8)
-                    color: clearMa.containsMouse ? window.mauve : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.4)
+                    color: clearMa.containsMouse ? theme.accent : Qt.rgba(theme.selection.r, theme.selection.g, theme.selection.b, 0.4)
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰃢"
                         font.family: theme.fontFamily
                         font.pixelSize: theme.fontBody
-                        color: clearMa.containsMouse ? window.crust : window.text
+                        color: clearMa.containsMouse ? theme.base : window.text
                     }
                     MouseArea {
                         id: clearMa
@@ -500,7 +506,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: mainBg.separatorHeight
-            color: Qt.rgba(window.surface1.r, window.surface1.g, window.surface1.b, 0.5)
+            color: Qt.rgba(theme.border.r, theme.border.g, theme.border.b, 0.5)
         }
 
         GridView {
@@ -572,7 +578,7 @@ Item {
                 contentItem: Rectangle {
                     implicitWidth: window.s(4)
                     radius: window.s(2)
-                    color: window.surface2
+                    color: window.accentSubtle
                     opacity: 0.5
                 }
             }
@@ -584,8 +590,8 @@ Item {
                     width: clipList.cellWidth - window.s(10)
                     height: clipList.cellHeight - window.s(10)
                     radius: window.s(8)
-                    color: window.surface0
-                    border.color: window.surface2
+                    color: theme.selection
+                    border.color: window.accentSubtle
                     border.width: 1
 
                     property int curIdx: clipList.currentIndex
@@ -629,7 +635,7 @@ Item {
                         height: window.s(22)
                         radius: window.s(6)
 
-                        color: index === clipList.currentIndex ? window.crust : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.85)
+                        color: index === clipList.currentIndex ? theme.base : Qt.rgba(theme.selection.r, theme.selection.g, theme.selection.b, 0.85)
 
                         Text {
                             anchors.centerIn: parent
@@ -637,7 +643,7 @@ Item {
                             font.family: theme.fontFamily
                             font.pixelSize: window.s(11)
                             font.weight: Font.Bold
-                            color: index === clipList.currentIndex ? window.mauve : window.text
+                            color: index === clipList.currentIndex ? theme.accent : window.text
                         }
                     }
 
@@ -649,14 +655,14 @@ Item {
                         width: window.s(22)
                         height: window.s(22)
                         radius: window.s(6)
-                        color: deleteMa.containsMouse ? window.mauve : Qt.rgba(window.surface0.r, window.surface0.g, window.surface0.b, 0.7)
+                        color: deleteMa.containsMouse ? theme.accent : Qt.rgba(theme.selection.r, theme.selection.g, theme.selection.b, 0.7)
 
                         Text {
                             anchors.centerIn: parent
                             text: "󰅖"
                             font.family: theme.fontFamily
                             font.pixelSize: window.s(12)
-                            color: deleteMa.containsMouse ? window.crust : window.text
+                            color: deleteMa.containsMouse ? theme.base : window.text
                         }
                         MouseArea {
                             id: deleteMa
@@ -743,7 +749,7 @@ Item {
             anchors.centerIn: clipList
             visible: clipModel.count === 0
             text: window.isLoading ? "Loading clipboard…" : (searchInput.text.length ? "No matching entries" : "Your clipboard history is empty")
-            color: window.subtext0
+            color: theme.muted
             font.family: theme.fontFamily
             font.pixelSize: 13
         }
@@ -757,14 +763,14 @@ Item {
             height: mainBg.footerHeight
             Text {
                 text: "Enter  Copy    Tab  Preview    Esc  Close"
-                color: window.subtext0
+                color: theme.muted
                 font.family: theme.fontFamily
                 font.pixelSize: 10
                 Layout.fillWidth: true
             }
             Text {
                 text: clipModel.count + (window.hasMore ? "+" : "") + " items"
-                color: window.subtext0
+                color: theme.muted
                 font.family: theme.fontFamily
                 font.pixelSize: 10
             }
@@ -788,8 +794,8 @@ Item {
             property real startW: clipList.cellWidth - window.s(10)
             property real startH: clipList.cellHeight - window.s(10)
 
-            color: window.crust
-            border.color: window.mauve
+            color: theme.base
+            border.color: theme.accent
             border.width: window.previewMode ? 1 : 0
             Behavior on border.width { NumberAnimation { duration: theme.duration } }
             clip: true
@@ -854,8 +860,8 @@ Item {
                     wrapMode: TextEdit.Wrap
                     readOnly: true
                     selectByMouse: true
-                    selectionColor: window.surface2
-                    selectedTextColor: window.mauve
+                    selectionColor: window.accentSubtle
+                    selectedTextColor: theme.accent
                 }
             }
 

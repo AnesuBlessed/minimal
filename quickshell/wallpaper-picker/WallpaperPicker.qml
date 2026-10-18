@@ -385,10 +385,10 @@ Item {
     }
 
     readonly property real itemWidth: window.s(400)
-    readonly property real itemHeight: window.s(420)
-    readonly property real borderWidth: window.s(3)
-    readonly property real spacing: window.s(10)
-    readonly property real skewFactor: -0.35
+    readonly property real itemHeight: window.s(360)
+    readonly property real borderWidth: window.s(2)
+    readonly property real spacing: window.s(16)
+    readonly property real skewFactor: 0.0
 
     Timer {
         id: scrollThrottle
@@ -655,13 +655,23 @@ Item {
     }
 
     Shortcut {
-        sequence: "Left";
-        enabled: !window.isScrollingBlocked && !window.isApplying
+        sequence: "Left"
+        enabled: !searchInput.activeFocus && !window.isScrollingBlocked && !window.isApplying
         onActivated: window.stepToNextValidIndex(-1)
     }
     Shortcut {
-        sequence: "Right";
-        enabled: !window.isScrollingBlocked && !window.isApplying
+        sequence: "Right"
+        enabled: !searchInput.activeFocus && !window.isScrollingBlocked && !window.isApplying
+        onActivated: window.stepToNextValidIndex(1)
+    }
+    Shortcut {
+        sequence: "H"
+        enabled: !searchInput.activeFocus && !window.isScrollingBlocked && !window.isApplying
+        onActivated: window.stepToNextValidIndex(-1)
+    }
+    Shortcut {
+        sequence: "L"
+        enabled: !searchInput.activeFocus && !window.isScrollingBlocked && !window.isApplying
         onActivated: window.stepToNextValidIndex(1)
     }
 
@@ -684,7 +694,10 @@ Item {
         sequence: "Escape"
         enabled: !window.isApplying
         onActivated: {
-            if (window.currentFilter === "Search") {
+            if (searchInput.activeFocus) {
+                searchInput.focus = false;
+                view.forceActiveFocus();
+            } else if (window.currentFilter === "Search") {
                 window.currentFilter = "All";
             } else {
                 Qt.quit();
@@ -827,8 +840,8 @@ Item {
         cacheBuffer: Math.max(0, Math.min(width, 800))
 
         highlightRangeMode: ListView.StrictlyEnforceRange
-        preferredHighlightBegin: (width / 2) - ((window.itemWidth * 1.5 + window.spacing) / 2)
-        preferredHighlightEnd: (width / 2) + ((window.itemWidth * 1.5 + window.spacing) / 2)
+        preferredHighlightBegin: (width - window.itemWidth) / 2
+        preferredHighlightEnd: (width + window.itemWidth) / 2
 
         highlightMoveDuration: window.initialFocusSet ? 120 : 0
         focus: true
@@ -854,7 +867,7 @@ Item {
             enabled: window.allowAddAnimation
             ParallelAnimation {
                 NumberAnimation { property: "opacity"; from: 0; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
-                NumberAnimation { property: "scale"; from: 0.5; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "scale"; from: 0.8; to: 1; duration: _theme.duration; easing.type: Easing.OutCubic }
             }
         }
         addDisplaced: Transition {
@@ -862,8 +875,8 @@ Item {
             NumberAnimation { property: "x"; duration: _theme.duration; easing.type: Easing.OutCubic }
         }
 
-        header: Item { width: Math.max(0, (view.width / 2) - ((window.itemWidth * 1.5) / 2)) }
-        footer: Item { width: Math.max(0, (view.width / 2) - ((window.itemWidth * 1.5) / 2)) }
+        header: Item { width: Math.max(0, (view.width - window.itemWidth) / 2) }
+        footer: Item { width: Math.max(0, (view.width - window.itemWidth) / 2) }
 
         model: window.activeModel
 
@@ -910,9 +923,6 @@ Item {
             readonly property bool isVideo: safeFileName.startsWith("000_")
             readonly property bool matchesFilter: window.checkItemMatchesFilter(safeFileName, isVideo, window.cacheVersion, window.currentFilter)
 
-            readonly property real targetWidth: isVisuallyEnlarged ? (window.itemWidth * 1.5) : (window.itemWidth * 0.5)
-            readonly property real targetHeight: isVisuallyEnlarged ? (window.itemHeight + window.s(30)) : window.itemHeight
-
             property bool isPlayingVideo: false
 
             Timer {
@@ -933,136 +943,92 @@ Item {
                 }
             }
 
-            width: matchesFilter ? (targetWidth + window.spacing) : 0
+            width: matchesFilter ? (window.itemWidth + window.spacing) : 0
+            height: parent ? parent.height : (window.itemHeight + window.s(40))
             visible: width > 0.1 || opacity > 0.01
-            opacity: matchesFilter ? (isVisuallyEnlarged ? 1.0 : 0.6) : 0.0
 
-            scale: matchesFilter ? 1.0 : 0.5
-
-            height: matchesFilter ? targetHeight : 0
-            anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-            anchors.verticalCenterOffset: window.s(15)
-
-            z: isVisuallyEnlarged ? 10 : 1
-
-            Behavior on scale { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
-            Behavior on width { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
-            Behavior on height { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
-            Behavior on opacity { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.InOutQuad } }
-
-            Item {
+            Rectangle {
+                id: card
                 anchors.centerIn: parent
-                anchors.horizontalCenterOffset: ((window.itemHeight - height) / 2) * window.skewFactor
+                anchors.verticalCenterOffset: window.s(15)
+                width: window.itemWidth
+                height: isVisuallyEnlarged ? (window.itemHeight + window.s(20)) : window.itemHeight
+                radius: _theme.panelRadius
+                color: _theme.reading
+                border.color: isVisuallyEnlarged ? _theme.accent : _theme.border
+                border.width: isVisuallyEnlarged ? window.s(2) : 1
+                clip: true
 
-                width: parent.width > 0 ? parent.width * (targetWidth / (targetWidth + window.spacing)) : 0
-                height: parent.height
+                scale: isVisuallyEnlarged ? 1.04 : 0.94
+                opacity: delegateRoot.matchesFilter ? (isVisuallyEnlarged ? 1.0 : 0.65) : 0.0
+                z: isVisuallyEnlarged ? 10 : 1
 
-                transform: Matrix4x4 {
-                    property real s: window.skewFactor
-                    matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+                Behavior on scale { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
+                Behavior on height { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
+                Behavior on opacity { enabled: window.initialFocusSet; NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: _theme.duration } }
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: card.border.width
+                    fillMode: Image.PreserveAspectCrop
+                    source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
+                    asynchronous: true
+                    cache: true
+                }
+
+                Loader {
+                    id: videoLoader
+                    anchors.fill: parent
+                    anchors.margins: card.border.width
+                    active: delegateRoot.isVideo && delegateRoot.isPlayingVideo
+                    sourceComponent: Item {
+                        anchors.fill: parent
+                        MediaPlayer {
+                            id: previewPlayer
+                            source: "file://" + window.srcDir + "/" + window.getCleanName(delegateRoot.safeFileName)
+                            audioOutput: AudioOutput { muted: true }
+                            videoOutput: previewOutput
+                            loops: MediaPlayer.Infinite
+                            Component.onCompleted: play()
+                        }
+                        VideoOutput {
+                            id: previewOutput
+                            anchors.fill: parent
+                            fillMode: VideoOutput.PreserveAspectCrop
+                        }
+                    }
+                }
+
+                Rectangle {
+                    visible: delegateRoot.isVideo && !delegateRoot.isPlayingVideo
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: window.s(12)
+                    width: window.s(32)
+                    height: window.s(32)
+                    radius: window.s(16)
+                    color: Qt.rgba(_theme.base.r, _theme.base.g, _theme.base.b, 0.75)
+                    border.color: _theme.border
+                    border.width: 1
+
+                    Text {
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: 1
+                        text: "󰐊"
+                        font.family: _theme.fontFamily
+                        font.pixelSize: window.s(14)
+                        color: _theme.text
+                    }
                 }
 
                 MouseArea {
                     anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
                     enabled: delegateRoot.matchesFilter && !window.isScrollingBlocked && !window.isApplying
                     onClicked: {
                         view.currentIndex = index
                         window.applyWallpaper(delegateRoot.safeFileName, delegateRoot.isVideo)
-                    }
-                }
-
-                Image {
-                    anchors.fill: parent
-                    source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
-                    sourceSize: Qt.size(16, 16)
-                    fillMode: Image.Stretch
-                    visible: true
-                    asynchronous: true
-                }
-
-                Item {
-                    anchors.fill: parent
-                    anchors.margins: window.borderWidth
-                    Rectangle { anchors.fill: parent; color: _theme.base }
-                    clip: true
-
-                    Image {
-                        anchors.centerIn: parent
-                        anchors.horizontalCenterOffset: window.s(-50)
-                        width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
-                        height: window.itemHeight + window.s(30)
-                        sourceSize.height: 420
-                        fillMode: Image.PreserveAspectCrop
-                        source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
-                        asynchronous: true
-
-                        transform: Matrix4x4 {
-                            property real s: -window.skewFactor
-                            matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-                        }
-                    }
-
-                    Loader {
-                        id: videoLoader
-                        anchors.fill: parent
-                        active: delegateRoot.isVideo && delegateRoot.isPlayingVideo
-                        sourceComponent: Item {
-                            anchors.fill: parent
-                            MediaPlayer {
-                                id: previewPlayer
-                                source: "file://" + window.srcDir + "/" + window.getCleanName(delegateRoot.safeFileName)
-                                audioOutput: AudioOutput { muted: true }
-                                videoOutput: previewOutput
-                                loops: MediaPlayer.Infinite
-                                Component.onCompleted: play()
-                            }
-                            VideoOutput {
-                                id: previewOutput
-                                anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: window.s(-50)
-                                width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
-                                height: window.itemHeight + window.s(30)
-                                fillMode: VideoOutput.PreserveAspectCrop
-                                transform: Matrix4x4 {
-                                    property real s: -window.skewFactor
-                                    matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        visible: delegateRoot.isVideo && !delegateRoot.isPlayingVideo
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.margins: window.s(10)
-                        width: window.s(32)
-                        height: window.s(32)
-                        radius: window.s(6)
-                        color: Qt.rgba(_theme.base.r, _theme.base.g, _theme.base.b, 0.6)
-                        transform: Matrix4x4 {
-                            property real s: -window.skewFactor
-                            matrix: Qt.matrix4x4(1, s, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-                        }
-
-                        Canvas {
-                            anchors.fill: parent
-                            anchors.margins: window.s(8)
-                            property real scaleTrigger: window.s(1)
-                            onScaleTriggerChanged: requestPaint()
-                            onPaint: {
-                                var ctx = getContext("2d");
-                                var s = window.s;
-                                ctx.reset();
-                                ctx.fillStyle = Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.93);
-                                ctx.beginPath();
-                                ctx.moveTo(s(4), 0);
-                                ctx.lineTo(s(14), s(8));
-                                ctx.lineTo(s(4), s(16));
-                                ctx.closePath();
-                                ctx.fill();
-                            }
-                        }
                     }
                 }
             }
@@ -1085,7 +1051,7 @@ Item {
         radius: _theme.panelRadius
 
         color: _theme.panel
-        border.color: _theme.surface2
+        border.color: _theme.border
         border.width: 1
 
         Row {
@@ -1104,8 +1070,8 @@ Item {
                 clip: true
                 anchors.verticalCenter: parent.verticalCenter
 
-                color: window.showNotification ? _theme.surface2 : "transparent"
-                border.color: window.showNotification ? _theme.surface1 : "transparent"
+                color: window.showNotification ? _theme.control : "transparent"
+                border.color: window.showNotification ? _theme.border : "transparent"
                 border.width: 1
 
                 Behavior on width {
@@ -1114,42 +1080,22 @@ Item {
                 Behavior on color { ColorAnimation { duration: _theme.duration } }
                 Behavior on border.color { ColorAnimation { duration: _theme.duration } }
 
-                Item {
+                Text {
+                    id: notifSpinner
                     visible: window.showSpinner
-                    width: window.s(44)
-                    height: window.s(44)
                     anchors.left: parent.left
+                    anchors.leftMargin: window.s(14)
                     anchors.verticalCenter: parent.verticalCenter
+                    text: "󰑐"
+                    font.family: _theme.fontFamily
+                    font.pixelSize: window.s(16)
+                    color: _theme.accent
 
-                    Canvas {
-                        id: notifSpinner
-                        width: window.s(14)
-                        height: window.s(14)
-                        anchors.centerIn: parent
-                        property real scaleTrigger: window.s(1)
-                        onScaleTriggerChanged: requestPaint()
-
-                        onPaint: {
-                            var ctx = getContext("2d");
-                            var s = window.s;
-                            ctx.reset();
-                            ctx.lineWidth = s(2);
-                            ctx.strokeStyle = Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.3);
-                            ctx.beginPath();
-                            ctx.arc(s(7), s(7), s(5), 0, Math.PI * 2);
-                            ctx.stroke();
-
-                            ctx.strokeStyle = Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.9);
-                            ctx.beginPath();
-                            ctx.arc(s(7), s(7), s(5), 0, Math.PI * 0.5);
-                            ctx.stroke();
-                        }
-                        RotationAnimation on rotation {
-                            loops: Animation.Infinite
-                            from: 0; to: 360
-                            duration: _theme.duration
-                            running: window.showSpinner && window.showNotification
-                        }
+                    RotationAnimation on rotation {
+                        loops: Animation.Infinite
+                        from: 0; to: 360
+                        duration: 900
+                        running: window.showSpinner && window.showNotification
                     }
                 }
 
@@ -1163,11 +1109,11 @@ Item {
 
                     color: _theme.text
                     font.family: _theme.fontFamily
-                    font.pixelSize: window.s(14)
+                    font.pixelSize: window.s(12)
                     font.bold: true
                     elide: Text.ElideRight
 
-                    opacity: window.showNotification ? 0.9 : 0.0
+                    opacity: window.showNotification ? 0.95 : 0.0
                     Behavior on opacity { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutQuad } }
                     Behavior on anchors.leftMargin {
                         NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic }
@@ -1187,9 +1133,9 @@ Item {
                 clip: true
                 anchors.verticalCenter: parent.verticalCenter
 
-                color: window.isMonitorSelectorOpen ? _theme.surface2 : "transparent"
-                border.color: window.isMonitorSelectorOpen ? _theme.text : _theme.surface1
-                border.width: window.isMonitorSelectorOpen ? window.s(2) : 1
+                color: window.isMonitorSelectorOpen ? _theme.control : "transparent"
+                border.color: window.isMonitorSelectorOpen ? _theme.accent : _theme.border
+                border.width: 1
 
                 Behavior on width { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
                 Behavior on color { ColorAnimation { duration: _theme.duration } }
@@ -1207,36 +1153,13 @@ Item {
                     onClicked: window.isMonitorSelectorOpen = !window.isMonitorSelectorOpen
                 }
 
-                Canvas {
+                Text {
                     id: monitorIcon
-                    width: window.s(18)
-                    height: window.s(18)
                     anchors.centerIn: monitorIconMouse
-                    property string activeColor: window.isMonitorSelectorOpen ? _theme.text : (monitorIconMouse.containsMouse ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7))
-                    onActiveColorChanged: requestPaint()
-                    property real scaleTrigger: window.s(1)
-                    onScaleTriggerChanged: requestPaint()
-
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        var s = window.s;
-                        ctx.reset();
-                        ctx.lineWidth = s(2);
-                        ctx.strokeStyle = activeColor;
-                        ctx.lineJoin = "round";
-                        ctx.lineCap = "round";
-
-                        ctx.beginPath();
-                        ctx.rect(s(2), s(3), s(14), s(9));
-                        ctx.stroke();
-
-                        ctx.beginPath();
-                        ctx.moveTo(s(9), s(12));
-                        ctx.lineTo(s(9), s(16));
-                        ctx.moveTo(s(5), s(16));
-                        ctx.lineTo(s(13), s(16));
-                        ctx.stroke();
-                    }
+                    text: "󰍹"
+                    font.family: _theme.fontFamily
+                    font.pixelSize: window.s(16)
+                    color: window.isMonitorSelectorOpen ? _theme.accent : (monitorIconMouse.containsMouse ? _theme.text : _theme.muted)
                 }
 
                 Row {
@@ -1257,9 +1180,9 @@ Item {
 
                             Rectangle {
                                 anchors.fill: parent
-                                radius: window.s(6)
-                                color: model.selected ? _theme.text : _theme.surface1
-                                border.color: model.selected ? _theme.text : _theme.surface2
+                                radius: _theme.controlRadius
+                                color: model.selected ? _theme.accent : _theme.control
+                                border.color: model.selected ? _theme.accent : _theme.border
                                 border.width: 1
 
                                 Behavior on color { ColorAnimation { duration: _theme.duration } }
@@ -1271,7 +1194,7 @@ Item {
                                     anchors.centerIn: parent
                                     color: model.selected ? _theme.base : _theme.text
                                     font.family: _theme.fontFamily
-                                    font.pixelSize: window.s(12)
+                                    font.pixelSize: window.s(11)
                                     font.bold: model.selected
                                     Behavior on color { ColorAnimation { duration: _theme.duration } }
                                 }
@@ -1312,14 +1235,14 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        radius: _theme.controlRadius
+                        radius: modelData.hex === "" ? _theme.controlRadius : (width / 2)
                         color: modelData.hex === ""
-                                ? (window.currentFilter === modelData.name ? _theme.surface2 : "transparent")
+                                ? (window.currentFilter === modelData.name ? _theme.control : "transparent")
                                 : modelData.hex
 
-                        border.color: window.currentFilter === modelData.name ? _theme.text : _theme.surface1
-                        border.width: window.currentFilter === modelData.name ? window.s(2) : 1
-                        scale: window.currentFilter === modelData.name ? 1.15 : (filterMouse.containsMouse ? 1.08 : 1.0)
+                        border.color: window.currentFilter === modelData.name ? _theme.accent : (modelData.hex === "" ? _theme.border : "transparent")
+                        border.width: window.currentFilter === modelData.name ? window.s(2) : (modelData.hex === "" ? 1 : 0)
+                        scale: window.currentFilter === modelData.name ? 1.12 : (filterMouse.containsMouse ? 1.06 : 1.0)
 
                         Behavior on scale { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
                         Behavior on border.color { ColorAnimation { duration: _theme.duration } }
@@ -1329,56 +1252,30 @@ Item {
                             visible: modelData.hex === "" && modelData.name !== "Video" && modelData.name !== "All"
                             text: modelData.label
                             anchors.centerIn: parent
-                            color: window.currentFilter === modelData.name ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7)
+                            color: window.currentFilter === modelData.name ? _theme.text : _theme.muted
                             font.family: _theme.fontFamily
-                            font.pixelSize: window.s(14)
+                            font.pixelSize: window.s(12)
                             font.bold: window.currentFilter === modelData.name
                             Behavior on color { ColorAnimation { duration: _theme.duration; easing.type: Easing.OutQuart } }
                         }
 
-                        Canvas {
+                        Text {
                             visible: modelData.name === "Video"
-                            width: window.s(14); height: window.s(16)
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: window.s(2)
-                            property string activeColor: window.currentFilter === modelData.name ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7)
-                            onActiveColorChanged: requestPaint()
-                            property real scaleTrigger: window.s(1)
-                            onScaleTriggerChanged: requestPaint()
-
-                            onPaint: {
-                                var ctx = getContext("2d");
-                                var s = window.s;
-                                ctx.reset();
-                                ctx.fillStyle = activeColor;
-                                ctx.beginPath();
-                                ctx.moveTo(0, 0);
-                                ctx.lineTo(s(14), s(8));
-                                ctx.lineTo(0, s(16));
-                                ctx.closePath();
-                                ctx.fill();
-                            }
+                            anchors.horizontalCenterOffset: 1
+                            text: "󰐊"
+                            font.family: _theme.fontFamily
+                            font.pixelSize: window.s(14)
+                            color: window.currentFilter === "Video" ? _theme.accent : (filterMouse.containsMouse ? _theme.text : _theme.muted)
                         }
 
-                        Canvas {
+                        Text {
                             visible: modelData.name === "All"
-                            width: window.s(14); height: window.s(14)
                             anchors.centerIn: parent
-                            property string activeColor: window.currentFilter === modelData.name ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7)
-                            onActiveColorChanged: requestPaint()
-                            property real scaleTrigger: window.s(1)
-                            onScaleTriggerChanged: requestPaint()
-
-                            onPaint: {
-                                var ctx = getContext("2d");
-                                var s = window.s;
-                                ctx.reset();
-                                ctx.fillStyle = activeColor;
-                                ctx.fillRect(0, 0, s(6), s(6));
-                                ctx.fillRect(s(8), 0, s(6), s(6));
-                                ctx.fillRect(0, s(8), s(6), s(6));
-                                ctx.fillRect(s(8), s(8), s(6), s(6));
-                            }
+                            text: "󰕰"
+                            font.family: _theme.fontFamily
+                            font.pixelSize: window.s(14)
+                            color: window.currentFilter === "All" ? _theme.accent : (filterMouse.containsMouse ? _theme.text : _theme.muted)
                         }
                     }
 
@@ -1401,9 +1298,9 @@ Item {
                 radius: _theme.controlRadius
                 clip: true
                 anchors.verticalCenter: parent.verticalCenter
-                color: window.isSearchPaused ? _theme.surface2 : "transparent"
-                border.color: window.isSearchPaused ? _theme.text : _theme.surface1
-                border.width: window.isSearchPaused ? window.s(2) : 1
+                color: window.isSearchPaused ? _theme.control : "transparent"
+                border.color: window.isSearchPaused ? _theme.accent : _theme.border
+                border.width: 1
 
                 Behavior on width { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
                 Behavior on color { ColorAnimation { duration: _theme.duration; easing.type: Easing.OutQuart } }
@@ -1417,33 +1314,12 @@ Item {
                     onClicked: window.isSearchPaused = !window.isSearchPaused
                 }
 
-                Canvas {
-                    width: window.s(44); height: window.s(44)
+                Text {
                     anchors.centerIn: parent
-                    property bool paused: window.isSearchPaused
-                    property string activeColor: paused ? _theme.text : (scMouse.containsMouse ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7))
-                    onActiveColorChanged: requestPaint()
-                    onPausedChanged: requestPaint()
-                    property real scaleTrigger: window.s(1)
-                    onScaleTriggerChanged: requestPaint()
-
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        var s = window.s;
-                        ctx.reset();
-                        ctx.fillStyle = activeColor;
-                        if (!paused) {
-                            ctx.fillRect(s(15), s(14), s(4), s(16));
-                            ctx.fillRect(s(25), s(14), s(4), s(16));
-                        } else {
-                            ctx.beginPath();
-                            ctx.moveTo(s(16), s(12));
-                            ctx.lineTo(s(32), s(22));
-                            ctx.lineTo(s(16), s(32));
-                            ctx.closePath();
-                            ctx.fill();
-                        }
-                    }
+                    text: window.isSearchPaused ? "󰐊" : "󰏤"
+                    font.family: _theme.fontFamily
+                    font.pixelSize: window.s(16)
+                    color: window.isSearchPaused ? _theme.accent : (scMouse.containsMouse ? _theme.text : _theme.muted)
                 }
             }
 
@@ -1456,68 +1332,58 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
 
                 color: window.currentFilter === "Search" ? _theme.control : "transparent"
-                border.color: window.currentFilter === "Search" ? _theme.mauve : _theme.border
+                border.color: window.currentFilter === "Search" ? _theme.accent : _theme.border
                 border.width: 1
 
                 Behavior on width { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
                 Behavior on color { ColorAnimation { duration: _theme.duration; easing.type: Easing.OutQuart } }
                 Behavior on border.color { ColorAnimation { duration: _theme.duration } }
 
-                MouseArea {
-                    id: searchMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    enabled: !window.isApplying
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (window.currentFilter !== "Search") {
-                            window.currentFilter = "Search"
-                        } else {
-                            window.currentFilter = "All"
-                        }
-                    }
-                }
-
-                Canvas {
-                    id: searchIcon
+                Item {
+                    id: searchIconBox
                     width: window.s(44)
                     height: window.s(44)
                     anchors.left: parent.left
-                    anchors.leftMargin: window.currentFilter === "Search" ? window.s(5) : 0
                     anchors.verticalCenter: parent.verticalCenter
-                    Behavior on anchors.leftMargin { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutExpo } }
-                    property string activeColor: window.currentFilter === "Search" ? _theme.text : (searchMouseArea.containsMouse ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7))
-                    onActiveColorChanged: requestPaint()
-                    property real scaleTrigger: window.s(1)
-                    onScaleTriggerChanged: requestPaint()
 
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        var s = window.s;
-                        ctx.reset();
-                        ctx.lineWidth = s(3);
-                        ctx.strokeStyle = activeColor;
-                        ctx.beginPath();
-                        ctx.arc(s(18), s(18), s(7), 0, Math.PI * 2);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(s(23), s(23));
-                        ctx.lineTo(s(31), s(31));
-                        ctx.stroke();
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰍉"
+                        font.family: _theme.fontFamily
+                        font.pixelSize: window.s(16)
+                        color: window.currentFilter === "Search" ? _theme.accent : (searchIconMouse.containsMouse ? _theme.text : _theme.muted)
+                    }
+
+                    MouseArea {
+                        id: searchIconMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: !window.isApplying
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (window.currentFilter !== "Search") {
+                                window.currentFilter = "Search";
+                                searchInput.forceActiveFocus();
+                            } else {
+                                window.currentFilter = "All";
+                            }
+                        }
                     }
                 }
 
                 TextInput {
                     id: searchInput
-                    anchors.left: searchIcon.right
+                    anchors.left: searchIconBox.right
                     anchors.right: submitBtn.left
+                    anchors.leftMargin: window.s(2)
                     anchors.rightMargin: window.s(8)
                     anchors.verticalCenter: parent.verticalCenter
 
                     opacity: window.currentFilter === "Search" ? 1.0 : 0.0
                     visible: opacity > 0
-                    Behavior on opacity { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutQuad } }
-
+                    selectByMouse: true
+                    selectionColor: _theme.accent
+                    selectedTextColor: _theme.base
                     color: _theme.text
                     font.family: _theme.fontFamily
                     font.pixelSize: _theme.fontBody
@@ -1539,19 +1405,27 @@ Item {
                     id: submitBtn
                     width: window.s(32)
                     height: window.s(32)
-                    radius: window.s(8)
+                    radius: _theme.controlRadius
                     anchors.right: parent.right
-                    anchors.rightMargin: window.s(8)
+                    anchors.rightMargin: window.s(6)
                     anchors.verticalCenter: parent.verticalCenter
 
                     opacity: window.currentFilter === "Search" ? 1.0 : 0.0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutQuad } }
 
-                    color: submitMouseArea.containsMouse ? _theme.surface1 : "transparent"
-                    border.color: submitMouseArea.containsMouse ? _theme.text : _theme.surface2
+                    color: submitMouseArea.containsMouse ? _theme.border : "transparent"
+                    border.color: submitMouseArea.containsMouse ? _theme.accent : _theme.border
                     border.width: 1
                     Behavior on color { ColorAnimation { duration: _theme.duration } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰅂"
+                        font.family: _theme.fontFamily
+                        font.pixelSize: window.s(16)
+                        color: submitMouseArea.containsMouse ? _theme.accent : _theme.muted
+                    }
 
                     MouseArea {
                         id: submitMouseArea
@@ -1559,37 +1433,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         enabled: !window.isApplying
-                        onClicked: {
-                            window.triggerOnlineSearch();
-                        }
-                    }
-
-                    Canvas {
-                        width: window.s(16)
-                        height: window.s(16)
-                        anchors.centerIn: parent
-                        property string activeColor: submitMouseArea.containsMouse ? _theme.text : Qt.rgba(_theme.text.r, _theme.text.g, _theme.text.b, 0.7)
-                        onActiveColorChanged: requestPaint()
-                        property real scaleTrigger: window.s(1)
-                        onScaleTriggerChanged: requestPaint()
-
-                        onPaint: {
-                            var ctx = getContext("2d");
-                            var s = window.s;
-                            ctx.reset();
-                            ctx.lineWidth = s(2);
-                            ctx.lineCap = "round";
-                            ctx.lineJoin = "round";
-                            ctx.strokeStyle = activeColor;
-
-                            ctx.beginPath();
-                            ctx.moveTo(s(2), s(8));
-                            ctx.lineTo(s(14), s(8));
-                            ctx.moveTo(s(9), s(3));
-                            ctx.lineTo(s(14), s(8));
-                            ctx.lineTo(s(9), s(13));
-                            ctx.stroke();
-                        }
+                        onClicked: window.triggerOnlineSearch()
                     }
                 }
             }
