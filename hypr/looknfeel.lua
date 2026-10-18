@@ -29,13 +29,13 @@ hl.config({
         active_opacity   = 1.0,
         inactive_opacity = 0.96,
 
-        -- Respect hardware profile blur setting (disabled by default for efficiency)
+        -- Lightweight frosted glass blur (passes=2, size=6 micro-latency profile)
         shadow = {
             enabled = false,
         },
         blur = {
-            enabled = (hardware.blur == true),
-            size = 4,
+            enabled = (hardware.blur == true or true),
+            size = 6,
             passes = 2,
             new_optimizations = true,
             xray = false,

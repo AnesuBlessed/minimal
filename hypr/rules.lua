@@ -38,7 +38,7 @@ hl.layer_rule({
     match = {
         namespace = "waybar",
     },
-    blur         = false,
+    blur         = true,
     ignore_alpha = 0.5,
 })
 
@@ -58,7 +58,7 @@ hl.layer_rule({
         namespace = "^(launcher|fuzzel|minimal-launcher|qs-clipboard|qs-wallpaper-picker)$",
     },
     animation    = "slide bottom",
-    blur         = false,
+    blur         = true,
     ignore_alpha = 0.5,
 })
 
@@ -68,7 +68,7 @@ hl.layer_rule({
     match = {
         namespace = "^(minimal-control-center|minimal-keybinds|minimal-monitors|minimal-bt-transfer)$",
     },
-    blur         = false,
+    blur         = true,
     ignore_alpha = 0.5,
 })
 

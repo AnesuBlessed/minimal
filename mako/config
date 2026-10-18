@@ -6,7 +6,7 @@
 # =============================================================================
 
 font=JetBrainsMono Nerd Font 12
-background-color=#171c1efa
+background-color=#171c1ee0
 text-color=#eef0f0
 width=320
 height=110
@@ -44,7 +44,7 @@ height=32
 padding=6,10
 border-size=1
 border-radius=6
-background-color=#171c1efa
+background-color=#171c1ee0
 text-color=#eef0f0
 border-color=#bdbed04c
 progress-color=over #bdbed066

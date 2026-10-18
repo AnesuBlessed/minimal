@@ -17,7 +17,7 @@ QtObject {
     readonly property color muted: "#" + (colors.muted || "adb4b6")
     readonly property color border: Qt.rgba(accent.r, accent.g, accent.b, (tokens.opacity || {}).border ?? 0.30)
     readonly property real panelOpacity: (tokens.opacity || {}).panel ?? 0.80
-    readonly property real readingOpacity: (tokens.opacity || {}).reading ?? 0.98
+    readonly property real readingOpacity: (tokens.opacity || {}).reading ?? 0.88
     readonly property color panel: Qt.rgba(base.r, base.g, base.b, panelOpacity)
     readonly property color reading: Qt.rgba(base.r, base.g, base.b, readingOpacity)
     readonly property color control: Qt.rgba(selection.r, selection.g, selection.b, (tokens.opacity || {}).control ?? 0.85)
