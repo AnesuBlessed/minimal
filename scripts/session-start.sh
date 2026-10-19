@@ -78,4 +78,5 @@ start_service hyprpaper hyprpaper --config "$MINIMAL_ROOT/hypr/hyprpaper.conf"
 "$MINIMAL_ROOT/scripts/restore-wallpapers.sh" >>"$MINIMAL_CACHE/session.log" 2>&1 &
 start_service clipboard-text wl-paste --type text --watch cliphist store
 start_service clipboard-image wl-paste --type image --watch cliphist store
+python3 "$MINIMAL_ROOT/scripts/control-center-backend.py" --state >>"$MINIMAL_CACHE/session.log" 2>&1 &
 exit 0
