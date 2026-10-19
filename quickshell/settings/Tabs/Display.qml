@@ -71,7 +71,9 @@ Item {
     }
 
     function resetToConfig() {
-        pReset.command = ["sh", "-c", "rm -f \"$MINIMAL_STATE/monitors.json\" \"$MINIMAL_STATE/monitors.lua\"; hyprctl reload; python3 \"$MINIMAL_ROOT/scripts/monitors.py\" --preset extend-right 2>/dev/null || true"];
+        if (pReset.running) return;
+        page.actionError = "";
+        pReset.command = ["python3", Quickshell.shellDir + "/../../scripts/monitors.py", "--reset"];
         pReset.running = true;
     }
 
@@ -379,6 +381,7 @@ Item {
 
     Process {
         id: pReset
+        stderr: StdioCollector { onStreamFinished: { if (text.trim()) page.actionError = text.trim(); } }
         onExited: (exitCode) => {
             if (exitCode !== 0 && !page.actionError) page.actionError = "Could not apply display settings.";
             refreshTimer.restart();

@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "."
+import "../shared" as Shared
 
 ShellRoot {
     id: root
@@ -36,11 +37,13 @@ ShellRoot {
     }
 
     function runPreset(presetId) {
+        if (proc.running) return;
         proc.command = ["python3", root.minimalRoot + "/scripts/monitors.py", "--preset", presetId];
         proc.running = true;
     }
 
     function applyMonitor(mon, mode, scale, vrr) {
+        if (proc.running) return;
         proc.command = [
             "python3", root.minimalRoot + "/scripts/monitors.py",
             "--apply", mon.name, mode, String(scale), vrr ? "1" : "0"
@@ -50,6 +53,8 @@ ShellRoot {
 
     Process {
         id: proc
+        stderr: StdioCollector { id: actionError }
+        onExited: code => { if (code !== 0) Quickshell.execDetached(["notify-send", "Display change failed", actionError.text.trim() || "Could not apply display settings"]); }
         stdout: SplitParser {
             onRead: data => root.applyJson(data)
         }
@@ -69,10 +74,8 @@ ShellRoot {
         id: panel
         screen: Quickshell.screens.find(s => s.name === Quickshell.env("MINIMAL_POPUP_OUTPUT")) || Quickshell.screens[0]
         anchors.bottom: true
-        width: Math.min(560, (screen ? screen.width : 1366) - 24)
-        height: Math.min(390, (screen ? screen.height : 768) - 48)
-        implicitWidth: width
-        implicitHeight: height
+        implicitWidth: Math.min(560, (screen ? screen.width : 1366) - 24)
+        implicitHeight: Math.min(98 + Math.max(1, root.monitors.length) * 140, (screen ? screen.height : 768) - 48)
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "minimal-monitors"
@@ -138,8 +141,10 @@ ShellRoot {
                                 color: isApplicable ? theme.text : theme.muted
                             }
 
-                            MouseArea {
+                            Shared.ActionArea {
+                                focusColor: theme.accent
                                 id: presetMa
+                                label: modelData.label
                                 anchors.fill: parent
                                 cursorShape: isApplicable ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 hoverEnabled: true
@@ -208,8 +213,10 @@ ShellRoot {
                                         font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
                                         color: modelData.vrr ? theme.base : theme.muted
                                     }
-                                    MouseArea {
+                                    Shared.ActionArea {
+                                        focusColor: theme.accent
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        label: "Toggle variable refresh rate"
                                         onClicked: root.applyMonitor(monitorCard.modelData, "preferred", monitorCard.modelData.scale, !monitorCard.modelData.vrr)
                                     }
                                 }
@@ -226,7 +233,9 @@ ShellRoot {
                                     color: theme.muted
                                 }
                                 Repeater {
-                                    model: root.scales
+                                    model: root.scales.filter(function(scale) {
+                                        return Math.abs(monitorCard.modelData.width / scale - Math.round(monitorCard.modelData.width / scale)) < 0.01 && Math.abs(monitorCard.modelData.height / scale - Math.round(monitorCard.modelData.height / scale)) < 0.01;
+                                    })
                                     delegate: Rectangle {
                                         required property real modelData
                                         readonly property bool isCur: Math.abs(monitorCard.modelData.scale - modelData) < 0.05
@@ -240,8 +249,10 @@ ShellRoot {
                                             font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: isCur
                                             color: isCur ? theme.base : theme.text
                                         }
-                                        MouseArea {
+                                        Shared.ActionArea {
+                                            focusColor: theme.accent
                                             id: scaleMa
+                                            label: "Scale " + modelData + " times"
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                             hoverEnabled: true
                                             onClicked: {
@@ -277,8 +288,10 @@ ShellRoot {
                                             font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
                                             color: theme.accent
                                         }
-                                        MouseArea {
+                                        Shared.ActionArea {
+                                            focusColor: theme.accent
                                             id: modeMa
+                                            label: "Display mode " + modelData
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                             hoverEnabled: true
                                             onClicked: {

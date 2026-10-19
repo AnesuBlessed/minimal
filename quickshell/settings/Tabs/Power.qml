@@ -103,12 +103,12 @@ Item {
 
     Process {
         id: pIdleGet
-        command: ["sh", "-c", "if [ -x \"$MINIMAL_ROOT/scripts/idle-config.sh\" ]; then \"$MINIMAL_ROOT/scripts/idle-config.sh\" status; else echo '{\"blank\":300,\"sleep\":1800}'; fi"]
+        command: ["sh", "-c", "if [ -x \"$MINIMAL_ROOT/scripts/idle-config.sh\" ]; then \"$MINIMAL_ROOT/scripts/idle-config.sh\" status; else echo '{\"blank\":330,\"sleep\":1800}'; fi"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     var obj = JSON.parse(text.trim());
-                    page.idleBlankSec = obj.blank !== undefined ? obj.blank : 300;
+                    page.idleBlankSec = obj.blank !== undefined ? obj.blank : 330;
                     page.idleSleepSec = obj.sleep !== undefined ? obj.sleep : 1800;
                 } catch(e) {}
             }
@@ -355,7 +355,7 @@ Item {
 
             // Screen Blanking / Idle Timeout
             Text {
-                text: "Screen blank timeout"
+                text: "Screen blank timeout · " + (page.idleBlankSec === 0 ? "Never" : Math.floor(page.idleBlankSec / 60) + "m" + (page.idleBlankSec % 60 ? " " + (page.idleBlankSec % 60) + "s" : ""))
                 color: Theme.text
                 topPadding: 4
                 font.family: Theme.fontFamily

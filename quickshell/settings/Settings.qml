@@ -26,27 +26,39 @@ FloatingWindow {
         "icon": "\uf028",
         "page": "Sound"
     }, {
+        "group": "HARDWARE",
+        "name": "Input",
+        "short": "3",
+        "icon": "󰍽",
+        "page": "Input"
+    }, {
         "group": "CONNECTIVITY",
         "name": "Network",
-        "short": "3",
+        "short": "4",
         "icon": "\uf1eb",
         "page": "Network"
     }, {
         "group": "CONNECTIVITY",
         "name": "Bluetooth",
-        "short": "4",
+        "short": "5",
         "icon": "󰂯",
         "page": "Bluetooth"
     }, {
         "group": "SYSTEM",
         "name": "Power & Sleep",
-        "short": "5",
+        "short": "6",
         "icon": "󰐥",
         "page": "Power"
     }, {
         "group": "SYSTEM",
+        "name": "Effects",
+        "short": "7",
+        "icon": "󰔎",
+        "page": "Effects"
+    }, {
+        "group": "SYSTEM",
         "name": "Maintenance",
-        "short": "6",
+        "short": "8",
         "icon": "󰋊",
         "page": "Storage"
     }]
@@ -86,6 +98,8 @@ FloatingWindow {
     Shortcut { sequence: "Alt+4"; onActivated: root.selectedIndex = 3 }
     Shortcut { sequence: "Alt+5"; onActivated: root.selectedIndex = 4 }
     Shortcut { sequence: "Alt+6"; onActivated: root.selectedIndex = 5 }
+    Shortcut { sequence: "Alt+7"; onActivated: root.selectedIndex = 6 }
+    Shortcut { sequence: "Alt+8"; onActivated: root.selectedIndex = 7 }
     IpcHandler {
         target: "settings"
         function toggle() { root.toggle(); }
@@ -93,10 +107,12 @@ FloatingWindow {
         function hide() { root.hide(); }
         function display() { root.selectedIndex = 0; root.show(); }
         function sound() { root.selectedIndex = 1; root.show(); }
-        function network() { root.selectedIndex = 2; root.show(); }
-        function bluetooth() { root.selectedIndex = 3; root.show(); }
-        function power() { root.selectedIndex = 4; root.show(); }
-        function storage() { root.selectedIndex = 5; root.show(); }
+        function input() { root.selectedIndex = 2; root.show(); }
+        function network() { root.selectedIndex = 3; root.show(); }
+        function bluetooth() { root.selectedIndex = 4; root.show(); }
+        function power() { root.selectedIndex = 5; root.show(); }
+        function effects() { root.selectedIndex = 6; root.show(); }
+        function storage() { root.selectedIndex = 7; root.show(); }
     }
     Rectangle {
         anchors.fill: parent
@@ -160,7 +176,7 @@ FloatingWindow {
             x: 28
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 20
-            text: "Alt + 1–6 to switch"
+            text: "Alt + 1–8 to switch"
             color: Theme.textDim
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSecondary

@@ -13,7 +13,7 @@ IPC_LOG="$LOG_DIR/ipc.log"
 ACTION="${1:-toggle}"
 
 usage() {
-    echo "Usage: settings.sh [start|stop|restart|toggle|show|hide|display|sound|network|bluetooth|power|storage|log]" >&2
+    echo "Usage: settings.sh [start|stop|restart|toggle|show|hide|display|sound|input|network|bluetooth|power|effects|storage|log]" >&2
 }
 
 if ! command -v quickshell >/dev/null 2>&1; then
@@ -45,7 +45,7 @@ case "$ACTION" in
     log)
         tail -n 100 "$LOG_FILE"
         ;;
-    toggle|show|hide|display|sound|network|bluetooth|power|storage)
+    toggle|show|hide|display|sound|input|network|bluetooth|power|effects|storage)
         if call_ipc "$ACTION" >"$IPC_LOG" 2>&1; then
             exit 0
         fi
@@ -54,6 +54,12 @@ case "$ACTION" in
             exit 0
         fi
 
+        # Qt 6.12's Wayland text-input path warns on non-text focus changes.
+        # Use Qt's Compose context for this window when no IME was selected.
+        # Keep explicit Qt/XIM choices (including ibus/fcitx) untouched.
+        if [[ -z ${QT_IM_MODULE:-} && -z ${XMODIFIERS:-} ]]; then
+            export QT_IM_MODULE=compose
+        fi
         quickshell -n -p "$CONFIG" >>"$LOG_FILE" 2>&1 9>&- &
         SHELL_PID=$!
 

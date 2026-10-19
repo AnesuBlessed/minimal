@@ -44,6 +44,15 @@ hl.config({
     },
 })
 
+-- Load persistent user input overrides if saved by Settings
+local state_dir = os.getenv("MINIMAL_STATE") or ((os.getenv("XDG_STATE_HOME") or ((os.getenv("HOME") or "") .. "/.local/state")) .. "/minimal")
+local saved_input = state_dir .. "/input.lua"
+local f_in = io.open(saved_input, "r")
+if f_in then
+    f_in:close()
+    pcall(dofile, saved_input)
+end
+
 -- The session helper starts native daemons once and exits.
 hl.on("hyprland.start", function ()
     hl.exec_cmd(paths.script("session-start.sh"))

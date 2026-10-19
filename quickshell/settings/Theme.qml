@@ -33,8 +33,8 @@ QtObject {
     readonly property int animMed: animFast + 60
     readonly property int animSlow: animFast + 160
 
-    readonly property color glass: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.reading ?? 0.88))
-    readonly property color bg: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.reading ?? 0.88))
+    readonly property color glass: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.settings ?? 0.98))
+    readonly property color bg: Qt.rgba(baseColor.r, baseColor.g, baseColor.b, (opacities.settings ?? 0.98))
     readonly property color bgPanel: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.panel ?? 0.80))
     readonly property color bgCard: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.control ?? 0.85))
     readonly property color bgElev: Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, (opacities.control ?? 0.85))

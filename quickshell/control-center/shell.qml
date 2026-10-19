@@ -17,6 +17,7 @@ ShellRoot {
     property bool busy: false
     property string pendingSsid: ""
     property string wifiPassword: ""
+    property bool showWifiPassword: false
 
     readonly property var tabs: [
         { id: "quick", icon: "󰒓", label: "Quick" },
@@ -657,10 +658,10 @@ ShellRoot {
                         TextInput {
                             id: passInput
                             anchors.left: passPrompt.right; anchors.leftMargin: 8
-                            anchors.right: passConnectBtn.left; anchors.rightMargin: 8
+                            anchors.right: passEyeBtn.left; anchors.rightMargin: 6
                             height: parent.height
                             verticalAlignment: TextInput.AlignVCenter
-                            echoMode: TextInput.Password
+                            echoMode: root.showWifiPassword ? TextInput.Normal : TextInput.Password
                             font.family: theme.fontFamily; font.pixelSize: theme.fontBody
                             color: theme.text; selectionColor: theme.selection
                             clip: true
@@ -670,13 +671,36 @@ ShellRoot {
                                 const pw = root.wifiPassword;
                                 root.pendingSsid = "";
                                 root.wifiPassword = "";
+                                root.showWifiPassword = false;
                                 passInput.text = "";
                                 root.runAction(["wifi-connect", target, pw]);
                             }
                             Keys.onEscapePressed: {
                                 root.pendingSsid = "";
                                 root.wifiPassword = "";
+                                root.showWifiPassword = false;
                                 passInput.text = "";
+                            }
+                        }
+
+                        Rectangle {
+                            id: passEyeBtn
+                            anchors.right: passConnectBtn.left; anchors.rightMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 26; height: 26
+                            radius: Math.max(4, theme.controlRadius - 2)
+                            color: passEyeArea.containsMouse ? theme.selection : "transparent"
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.showWifiPassword ? "󰈉" : "󰈈"
+                                font.family: theme.fontFamily; font.pixelSize: 13
+                                color: root.showWifiPassword ? theme.accent : theme.muted
+                            }
+                            MouseArea {
+                                id: passEyeArea
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true
+                                onClicked: root.showWifiPassword = !root.showWifiPassword
                             }
                         }
 
@@ -699,6 +723,7 @@ ShellRoot {
                                     const pw = root.wifiPassword;
                                     root.pendingSsid = "";
                                     root.wifiPassword = "";
+                                    root.showWifiPassword = false;
                                     passInput.text = "";
                                     root.runAction(["wifi-connect", target, pw]);
                                 }

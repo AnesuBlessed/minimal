@@ -82,3 +82,10 @@ rm -rf ~/Projects/minimal
 - `foot/`, `fuzzel/`, `mako/`, `wlogout/`, `fastfetch/` — Component configs
 - `scripts/` — Session management, hardware detection, theme sync, and native C helpers
 - `theme.json` — Single source of truth for colors, radii, opacity, and typography
+
+Settings uses `opacity.settings` in `theme.json` (default `0.98`) for readability,
+independently of translucent bars and popups. Its launcher uses Qt's Compose
+input context when neither `QT_IM_MODULE` nor `XMODIFIERS` is configured; this
+avoids the text-input focus warnings observed with the installed Qt Wayland
+backend. Explicit input-method selections are preserved. For an IME, launch
+with its normal `QT_IM_MODULE` setting (for example, `ibus` or `fcitx`).

@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "."
+import "../shared" as Shared
 
 ShellRoot {
     id: root
@@ -307,7 +308,7 @@ ShellRoot {
                         width: (parent.width - 8) / 2
                         height: 32
                         radius: theme.controlRadius
-                        color: declineArea.containsPress ? theme.surfaceAlt : (declineArea.containsMouse ? theme.control : (theme.reading || "transparent"))
+                        color: declineArea.containsPress ? theme.selection : (declineArea.containsMouse ? theme.control : (theme.reading || "transparent"))
                         border.width: 1
                         border.color: theme.border
 
@@ -320,8 +321,10 @@ ShellRoot {
                             color: theme.muted
                         }
 
-                        MouseArea {
+                        Shared.ActionArea {
+                            focusColor: theme.accent
                             id: declineArea
+                            label: "Decline incoming file"
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -345,8 +348,10 @@ ShellRoot {
                             color: theme.base
                         }
 
-                        MouseArea {
+                        Shared.ActionArea {
+                            focusColor: theme.accent
                             id: acceptArea
+                            label: "Accept incoming file"
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -362,7 +367,7 @@ ShellRoot {
                     height: 28
                     visible: root.transferData.status === "transferring"
                     radius: theme.controlRadius
-                    color: cancelArea.containsPress ? theme.surfaceAlt : (cancelArea.containsMouse ? theme.control : "transparent")
+                    color: cancelArea.containsPress ? theme.selection : (cancelArea.containsMouse ? theme.control : "transparent")
                     border.width: 1
                     border.color: theme.border
 
@@ -375,8 +380,10 @@ ShellRoot {
                         color: theme.muted
                     }
 
-                    MouseArea {
+                    Shared.ActionArea {
+                        focusColor: theme.accent
                         id: cancelArea
+                        label: "Cancel transfer"
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor

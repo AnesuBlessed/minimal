@@ -34,7 +34,7 @@ hl.config({
             enabled = false,
         },
         blur = {
-            enabled = (hardware.blur == true or true),
+            enabled = (hardware.blur == true),
             size = 6,
             passes = 2,
             new_optimizations = true,
@@ -74,3 +74,12 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 1.2, bezier = "micro
 
 -- Keep popup entrance and exit transitions brief.
 hl.animation({ leaf = "layers", enabled = true, speed = 1.2, bezier = "microSnap", style = "fade" })
+
+-- Load persistent user visual effects overrides if saved by Settings
+local state_dir = os.getenv("MINIMAL_STATE") or ((os.getenv("XDG_STATE_HOME") or ((os.getenv("HOME") or "") .. "/.local/state")) .. "/minimal")
+local saved_effects = state_dir .. "/effects.lua"
+local f_eff = io.open(saved_effects, "r")
+if f_eff then
+    f_eff:close()
+    pcall(dofile, saved_effects)
+end
