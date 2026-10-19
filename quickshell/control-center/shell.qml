@@ -100,20 +100,18 @@ ShellRoot {
             return;
         }
         busy = true;
-        actionProc.command = ["python3", root.minimalRoot + "/scripts/control-center-backend.py", "--action"].concat(args);
+        actionProc.command = [root.minimalRoot + "/scripts/control-center-actions.sh"].concat(args);
         actionProc.running = true;
     }
 
     Process {
         id: actionProc
-        stdout: SplitParser {
-            onRead: data => root.applyJson(data)
-        }
         onExited: {
             root.busy = false;
             root.connectingWifiSsid = "";
             root.connectingBtMac = "";
             root.connectingBtAction = "";
+            pollProc.running = true;
             if (root.actionQueue.length > 0) {
                 const nextArgs = root.actionQueue.shift();
                 root.runAction(nextArgs);
