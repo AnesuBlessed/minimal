@@ -6,100 +6,144 @@ mkdir -p "$MINIMAL_STATE" "$MINIMAL_RUNTIME"
 exec 9>"$MINIMAL_STATE/input.lock"
 flock -w 5 9 || exit 1
 
-python3 - "$MINIMAL_STATE" "${1:-get}" "${2:-}" "${3:-}" <<'PY'
-import json, os, sys, subprocess, tempfile, math
-from pathlib import Path
+action="${1:-get}"
+key="${2:-}"
+value="${3:-}"
 
-def report_error(kind, error, traceback):
-    print("Could not apply setting: " + str(error), file=sys.stderr)
+if [[ "$action" != "get" && "$action" != "set" ]]; then
+    echo "Expected get or set" >&2
+    exit 1
+fi
 
-sys.excepthook = report_error
+if [[ "$action" == "set" ]]; then
+    case "$key" in
+        tap_to_click|natural_scroll|disable_while_typing|left_handed)
+            val_lower="${value,,}"
+            case "$val_lower" in
+                true|false|1|0|yes|no) ;;
+                *) echo "Expected a boolean value" >&2; exit 1 ;;
+            esac
+            ;;
+        sensitivity)
+            val_lower="${value,,}"
+            if [[ "$val_lower" == "nan" || "$val_lower" == "inf" || "$val_lower" == "-inf" ]]; then
+                echo "Sensitivity must be between -1 and 1" >&2
+                exit 1
+            fi
+            if ! [[ "$value" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+                echo "Sensitivity must be a number" >&2
+                exit 1
+            fi
+            valid=$(awk -v v="$value" 'BEGIN { if (v >= -1.0 && v <= 1.0) print "1"; else print "0" }')
+            if [[ "$valid" != "1" ]]; then
+                echo "Sensitivity must be between -1 and 1" >&2
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Unknown setting: $key" >&2
+            exit 1
+            ;;
+    esac
+fi
 
-state_dir, action, key, value = sys.argv[1:5]
-state = Path(state_dir)
-json_file = state / "input.json"
-lua_file = state / "input.lua"
+json_file="$MINIMAL_STATE/input.json"
+lua_file="$MINIMAL_STATE/input.lua"
 
-def get_defaults():
-    return {
-        "tap_to_click": True,
-        "natural_scroll": True,
-        "disable_while_typing": True,
-        "sensitivity": 0.0,
-        "left_handed": False
-    }
+# Defaults
+tap_to_click=true
+natural_scroll=true
+disable_while_typing=true
+sensitivity="0.0"
+left_handed=false
 
-def read_state():
-    try:
-        data = json.loads(json_file.read_text())
-        defaults = get_defaults()
-        for k, v in defaults.items():
-            if k not in data:
-                data[k] = v
-        return data
-    except Exception:
-        return get_defaults()
+if [[ -f "$json_file" ]]; then
+    parsed=$(jq -r '
+        [
+            (if .tap_to_click != null then .tap_to_click else true end),
+            (if .natural_scroll != null then .natural_scroll else true end),
+            (if .disable_while_typing != null then .disable_while_typing else true end),
+            (if .sensitivity != null then .sensitivity else 0.0 end),
+            (if .left_handed != null then .left_handed else false end)
+        ] | @tsv' "$json_file" 2>/dev/null || true)
+    if [[ -n "$parsed" ]]; then
+        read -r tap_to_click natural_scroll disable_while_typing sensitivity left_handed <<< "$parsed"
+    fi
+fi
 
-def write_atomic(path, text):
-    fd, tmp = tempfile.mkstemp(dir=state)
-    try:
-        with os.fdopen(fd, 'w') as f:
-            f.write(text)
-        os.replace(tmp, path)
-    finally:
-        Path(tmp).unlink(missing_ok=True)
+if [[ "$action" == "get" ]]; then
+    # Output JSON representation
+    jq -n \
+        --argjson tap "$tap_to_click" \
+        --argjson nat "$natural_scroll" \
+        --argjson dwt "$disable_while_typing" \
+        --argjson sens "$sensitivity" \
+        --argjson lh "$left_handed" \
+        '{"tap_to_click": $tap, "natural_scroll": $nat, "disable_while_typing": $dwt, "sensitivity": $sens, "left_handed": $lh}'
+    exit 0
+fi
 
-if action not in ("get", "set"):
-    sys.exit("Expected get or set")
-if action == "set":
-    if key not in ('tap_to_click', 'natural_scroll', 'disable_while_typing', 'left_handed', 'sensitivity'): sys.exit("Unknown setting: " + key)
-    if key in ('tap_to_click', 'natural_scroll', 'disable_while_typing', 'left_handed') and value.lower() not in ("true", "false", "1", "0", "yes", "no"): sys.exit("Expected a boolean value")
-    if key == "sensitivity":
-        try: number = float(value)
-        except ValueError: sys.exit("Sensitivity must be a number")
-        if not math.isfinite(number) or not -1 <= number <= 1: sys.exit("Sensitivity must be between -1 and 1")
+if [[ "$action" == "set" ]]; then
+    case "$key" in
+        tap_to_click)
+            val_lower="${value,,}"
+            [[ "$val_lower" =~ ^(true|1|yes)$ ]] && tap_to_click=true || tap_to_click=false
+            ;;
+        natural_scroll)
+            val_lower="${value,,}"
+            [[ "$val_lower" =~ ^(true|1|yes)$ ]] && natural_scroll=true || natural_scroll=false
+            ;;
+        disable_while_typing)
+            val_lower="${value,,}"
+            [[ "$val_lower" =~ ^(true|1|yes)$ ]] && disable_while_typing=true || disable_while_typing=false
+            ;;
+        left_handed)
+            val_lower="${value,,}"
+            [[ "$val_lower" =~ ^(true|1|yes)$ ]] && left_handed=true || left_handed=false
+            ;;
+        sensitivity)
+            # round to 2 decimal places and clamp between -1.0 and 1.0
+            sensitivity=$(awk -v v="$value" 'BEGIN {
+                val = v + 0;
+                if (val < -1.0) val = -1.0;
+                if (val > 1.0) val = 1.0;
+                printf "%.2f", val
+            }')
+            ;;
+    esac
 
-data = read_state()
+    sens_formatted=$(awk -v v="$sensitivity" 'BEGIN { printf "%.2f", v + 0 }')
 
-if action == "get":
-    print(json.dumps(data))
-    sys.exit(0)
+    lua_content="-- Generated by Minimal input-config.sh
+hl.config({
+    input = {
+        sensitivity = ${sens_formatted},
+        left_handed = ${left_handed},
+        touchpad = {
+            tap_to_click = ${tap_to_click},
+            natural_scroll = ${natural_scroll},
+            disable_while_typing = ${disable_while_typing},
+        },
+    },
+})
+"
+    eval_cmd="hl.config({ input = { sensitivity = ${sens_formatted}, left_handed = ${left_handed}, touchpad = { tap_to_click = ${tap_to_click}, natural_scroll = ${natural_scroll}, disable_while_typing = ${disable_while_typing} } } })"
 
-if action == "set":
-    if key in ("tap_to_click", "natural_scroll", "disable_while_typing", "left_handed"):
-        data[key] = (value.lower() in ("true", "1", "yes"))
-    elif key == "sensitivity":
-        try:
-            val = float(value)
-            data[key] = max(-1.0, min(1.0, round(val, 2)))
-        except ValueError:
-            pass
+    hyprctl eval "$eval_cmd" >/dev/null
 
-    # Generate Lua file
-    tap_str = "true" if data["tap_to_click"] else "false"
-    nat_str = "true" if data["natural_scroll"] else "false"
-    dwt_str = "true" if data["disable_while_typing"] else "false"
-    lh_str = "true" if data["left_handed"] else "false"
-    sens_str = f"{data['sensitivity']:.2f}"
+    tmp_lua=$(mktemp "$MINIMAL_STATE/.input-lua-XXXXXXXX")
+    printf '%s' "$lua_content" > "$tmp_lua"
+    mv -f "$tmp_lua" "$lua_file"
 
-    lua_content = f"""-- Generated by Minimal input-config.sh
-hl.config({{
-    input = {{
-        sensitivity = {sens_str},
-        left_handed = {lh_str},
-        touchpad = {{
-            tap_to_click = {tap_str},
-            natural_scroll = {nat_str},
-            disable_while_typing = {dwt_str},
-        }},
-    }},
-}})
-"""
+    tmp_json=$(mktemp "$MINIMAL_STATE/.input-json-XXXXXXXX")
+    jq -n \
+        --argjson tap "$tap_to_click" \
+        --argjson nat "$natural_scroll" \
+        --argjson dwt "$disable_while_typing" \
+        --argjson sens "$sens_formatted" \
+        --argjson lh "$left_handed" \
+        '{"tap_to_click": $tap, "natural_scroll": $nat, "disable_while_typing": $dwt, "sensitivity": $sens, "left_handed": $lh}' > "$tmp_json"
+    mv -f "$tmp_json" "$json_file"
 
-    # Apply live to Hyprland
-    eval_cmd = f"hl.config({{ input = {{ sensitivity = {sens_str}, left_handed = {lh_str}, touchpad = {{ tap_to_click = {tap_str}, natural_scroll = {nat_str}, disable_while_typing = {dwt_str} }} }} }})"
-    subprocess.run(["hyprctl", "eval", eval_cmd], stdout=subprocess.DEVNULL, timeout=10, check=True)
-    write_atomic(lua_file, lua_content)
-    write_atomic(json_file, json.dumps(data, indent=2) + "\n")
-    print(json.dumps(data))
-PY
+    cat "$json_file"
+fi
