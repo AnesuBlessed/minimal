@@ -86,16 +86,10 @@ class MinimalTests(unittest.TestCase):
         source.write_text('<html>not an image</html>')
         self.assertNotEqual(self.run_script('scripts/image-preview.py', str(source), expected=None).returncode, 0)
 
-    def test_search_apply_rejects_local_url_and_path_traversal(self):
-        cache = self.base / 'search'
-        cache.mkdir()
-        self.env['QS_CACHE_WALLPAPER_PICKER'] = str(cache)
-        (cache / 'search_map.txt').write_text('image.jpg|file:///etc/passwd\n')
-        for name in ('image.jpg', '../escape.jpg', 'missing.jpg'):
-            result = self.run_script('quickshell/wallpaper-picker/apply-search.sh', name, 'all', expected=None)
+    def test_wallpaper_script_rejects_invalid_and_traversal_paths(self):
+        for bad in ('../etc/passwd', 'not_real.png', 'invalid,name.jpg'):
+            result = self.run_script('scripts/wallpaper.sh', bad, expected=None)
             self.assertNotEqual(result.returncode, 0)
-        self.assertFalse((self.repo / 'wallpapers/image.jpg').exists())
-        self.assertFalse(self.trace.exists())
 
     def test_optional_build_failure_keeps_idle_lock_startup(self):
         for name in ('prepare-lock.sh', 'hardware-detect.sh', 'restore-wallpapers.sh', 'session-conflicts.py'):
@@ -624,7 +618,7 @@ class MinimalTests(unittest.TestCase):
     def test_wallpaper_picker_self_contained_files(self):
         wp_dir = ROOT / 'quickshell/wallpaper-picker'
         required_files = (
-            'shell.qml', 'WallpaperPicker.qml', 'ddg_search.sh', 'get_ddg_links.py',
+            'shell.qml', 'WallpaperPicker.qml',
             'generate_thumbs.sh', 'Caching.qml', 'Scaler.qml', 'WindowRegistry.js',
             'MatugenColors.qml', 'GlobalTheme.qml', 'GlobalSettingsWatcher.qml', 'qmldir'
         )
@@ -632,7 +626,7 @@ class MinimalTests(unittest.TestCase):
             self.assertTrue((wp_dir / req).is_file(), f"Missing required file: {req}")
 
         # Scripts must be executable
-        for script in ('ddg_search.sh', 'get_ddg_links.py', 'generate_thumbs.sh'):
+        for script in ('generate_thumbs.sh',):
             self.assertTrue(os.access(wp_dir / script, os.X_OK), f"{script} should be executable")
 
         # No hardcoded ~/.config/hypr paths in WallpaperPicker.qml
@@ -860,18 +854,11 @@ elif sys.argv[1]=='wipe': json.dump([],open(state,'w'))
         self.assertIn('REGRESSION_PASS', output)
         self.assertNotIn('REGRESSION_FAIL', output)
 
-    def test_search_query_is_passed_literally(self):
-        import time
-        self.mock('setsid', '')
-        marker = self.base / 'injected'
-        query = '$(touch "' + str(marker) + '") " landscape'
-        self.run_script('quickshell/wallpaper-picker/start-search.sh', query)
-        for _ in range(50):
-            if self.trace.exists() and any(e[0] == 'setsid' for e in self.events()): break
-            time.sleep(0.02)
-        call = next(e for e in self.events() if e[0] == 'setsid')
-        self.assertEqual(call[-1], query)
-        self.assertFalse(marker.exists())
+    def test_wallpaper_picker_offline_local_search(self):
+        wp_qml = (self.repo / 'quickshell/wallpaper-picker/WallpaperPicker.qml').read_text()
+        self.assertNotIn('start-search.sh', wp_qml)
+        self.assertNotIn('get_ddg_links.py', wp_qml)
+        self.assertIn('indexOf(q)', wp_qml)
 
 
     def test_looknfeel_gaps_and_curved_edges(self):
@@ -1265,13 +1252,10 @@ ShellRoot {
         self.assertIn('hl.dsp.dpms("on")', kb_text)
         self.assertIn('paths.script("screenshot.sh")', kb_text)
 
-    def test_clipboard_caching_paths_and_search_control_protocol(self):
+    def test_clipboard_caching_paths(self):
         caching_text = (self.repo / 'quickshell/clipboard/Caching.qml').read_text()
         self.assertNotIn('wallpaper-picker', caching_text)
         self.assertIn('minimalCache + "/clipboard"', caching_text)
-        ctrl_text = (self.repo / 'quickshell/wallpaper-picker/search-control.sh').read_text()
-        self.assertNotIn('kill -STOP', ctrl_text)
-        self.assertIn('ddg_search_control', ctrl_text)
 
     def test_battery_not_charging_and_device_scope_filtering(self):
         supplies = self.base / 'power'

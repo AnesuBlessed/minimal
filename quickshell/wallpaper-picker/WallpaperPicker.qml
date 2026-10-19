@@ -92,8 +92,7 @@ Item {
 
     readonly property var filterData: [
         { name: "All", hex: "", label: "All" },
-        { name: "Video", hex: "", label: "Vid" },
-        { name: "Search", hex: "", label: "Search" }
+        { name: "Video", hex: "", label: "Vid" }
     ]
 
     ListModel { id: monitorModel }
@@ -152,14 +151,6 @@ Item {
 
         window.targetWallName = safeFileName;
         let cleanName = window.getCleanName(safeFileName);
-
-        if (window.currentFilter === "Search" && window.hasSearched) {
-            window.isDownloadingWallpaper = true;
-            window.currentDownloadName = safeFileName;
-            downloadProcess.command = [Quickshell.shellDir + "/apply-search.sh", safeFileName, outputs];
-            downloadProcess.running = true;
-            return;
-        }
         const originalFile = window.srcDir + "/" + cleanName;
         const thumbFile = paths.getCacheDir("wallpaper_picker") + "/thumbs/" + safeFileName;
 
@@ -447,9 +438,12 @@ Item {
     }
 
     function checkItemMatchesFilter(fileName, isVid, cv, filter) {
-        if (filter === "Search") return true;
-        if (filter === "All") return true;
         if (filter === "Video") return isVid;
+        if (filter === "Search") {
+            let q = (window.searchQuery || "").trim().toLowerCase();
+            if (!q) return true;
+            return String(fileName).toLowerCase().indexOf(q) !== -1;
+        }
         return true;
     }
 
@@ -697,7 +691,7 @@ Item {
     ListModel { id: localProxyModel }
     ListModel { id: searchProxyModel }
 
-    readonly property var activeModel: window.currentFilter === "Search" ? searchProxyModel : localProxyModel
+    readonly property var activeModel: localProxyModel
 
     FolderListModel {
         id: localFolderModel
@@ -992,8 +986,8 @@ Item {
                         anchors.centerIn: parent
                         anchors.horizontalCenterOffset: window.s(-50)
                         width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
-                        height: window.itemHeight + window.s(30)
-                        sourceSize.height: 420
+                        sourceSize.width: Math.round(width)
+                        sourceSize.height: Math.round(height)
                         fillMode: Image.PreserveAspectCrop
                         source: delegateRoot.matchesFilter && fileUrl !== undefined ? fileUrl : ""
                         asynchronous: true
@@ -1315,38 +1309,6 @@ Item {
                 }
             }
 
-            Rectangle {
-                id: searchControlBtn
-                visible: window.currentFilter === "Search" && window.hasSearched
-                width: visible ? window.s(44) : 0
-                height: window.s(44)
-                radius: _theme.controlRadius
-                clip: true
-                anchors.verticalCenter: parent.verticalCenter
-                color: window.isSearchPaused ? _theme.control : "transparent"
-                border.color: window.isSearchPaused ? _theme.accent : _theme.border
-                border.width: 1
-
-                Behavior on width { NumberAnimation { duration: _theme.duration; easing.type: Easing.OutCubic } }
-                Behavior on color { ColorAnimation { duration: _theme.duration; easing.type: Easing.OutQuart } }
-
-                MouseArea {
-                    id: scMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    enabled: !window.isApplying
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: window.isSearchPaused = !window.isSearchPaused
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: window.isSearchPaused ? "󰐊" : "󰏤"
-                    font.family: _theme.fontFamily
-                    font.pixelSize: window.s(16)
-                    color: window.isSearchPaused ? _theme.accent : (scMouse.containsMouse ? _theme.text : _theme.muted)
-                }
-            }
 
             Rectangle {
                 id: searchBox
@@ -1415,12 +1377,13 @@ Item {
                     clip: true
 
                     onTextEdited: {
-                        window.hasSearched = false;
-                        searchState.searched = false;
+                        window.searchQuery = searchInput.text;
+                        window.updateVisibleCount();
                     }
 
                     onAccepted: {
-                        window.triggerOnlineSearch();
+                        window.searchQuery = searchInput.text;
+                        window.updateVisibleCount();
                         searchInput.focus = false;
                         view.forceActiveFocus();
                     }
@@ -1458,7 +1421,12 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
                         enabled: !window.isApplying
-                        onClicked: window.triggerOnlineSearch()
+                        onClicked: {
+                            window.searchQuery = searchInput.text;
+                            window.updateVisibleCount();
+                            searchInput.focus = false;
+                            view.forceActiveFocus();
+                        }
                     }
                 }
             }
