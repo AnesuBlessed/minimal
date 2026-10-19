@@ -154,7 +154,7 @@ ShellRoot {
 
         Item {
             anchors.fill: parent
-            focus: !passInput.activeFocus
+            focus: root.pendingSsid === ""
             Keys.onEscapePressed: {
                 if (root.pendingSsid !== "") {
                     root.pendingSsid = "";
