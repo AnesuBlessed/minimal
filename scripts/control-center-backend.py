@@ -428,14 +428,20 @@ def handle_action(args):
             notify("Bluetooth", "Device is now hidden from discovery", "low")
     elif act == "bt-scan":
         run_cmd(["bluetoothctl", "--timeout", "4", "scan", "on"], timeout=6.0)
+    elif act == "bt-pair":
+        mac = args[1] if len(args) > 1 else ""
+        if mac:
+            rc, _, err = run_cmd(["bluetoothctl", "pair", mac], timeout=15.0)
+            if rc == 0:
+                run_cmd(["bluetoothctl", "trust", mac], timeout=4.0)
+                run_cmd(["bluetoothctl", "connect", mac], timeout=10.0)
+                notify("Bluetooth Paired", mac)
+            else:
+                notify("Bluetooth Pairing Failed", err or mac, "critical")
     elif act == "bt-connect":
         mac = args[1] if len(args) > 1 else ""
         if mac:
             rc, _, err = run_cmd(["bluetoothctl", "connect", mac], timeout=10.0)
-            if rc != 0:
-                run_cmd(["bluetoothctl", "pair", mac], timeout=8.0)
-                run_cmd(["bluetoothctl", "trust", mac], timeout=4.0)
-                rc, _, err = run_cmd(["bluetoothctl", "connect", mac], timeout=10.0)
             if rc == 0:
                 notify("Bluetooth Connected", mac)
             else:

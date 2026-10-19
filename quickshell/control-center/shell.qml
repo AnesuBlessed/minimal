@@ -18,6 +18,9 @@ ShellRoot {
     property string pendingSsid: ""
     property string wifiPassword: ""
     property bool showWifiPassword: false
+    property string connectingWifiSsid: ""
+    property string connectingBtMac: ""
+    property string connectingBtAction: ""
 
     readonly property var tabs: [
         { id: "quick", icon: "󰒓", label: "Quick" },
@@ -108,6 +111,9 @@ ShellRoot {
         }
         onExited: {
             root.busy = false;
+            root.connectingWifiSsid = "";
+            root.connectingBtMac = "";
+            root.connectingBtAction = "";
             if (root.actionQueue.length > 0) {
                 const nextArgs = root.actionQueue.shift();
                 root.runAction(nextArgs);
@@ -638,191 +644,254 @@ ShellRoot {
                         }
                     }
 
-                    // Inline Password Prompt (when connecting to an unsaved secured SSID)
-                    Rectangle {
-                        id: passBox
-                        visible: root.pendingSsid !== ""
-                        y: 48
-                        width: parent.width; height: 40
-                        radius: theme.controlRadius
-                        color: theme.reading
-                        border.width: 1; border.color: theme.accent
-
-                        Text {
-                            id: passPrompt
-                            x: 10; anchors.verticalCenter: parent.verticalCenter
-                            text: "󰌾 " + root.pendingSsid + ":"
-                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                            color: theme.accent
-                        }
-
-                        TextInput {
-                            id: passInput
-                            anchors.left: passPrompt.right; anchors.leftMargin: 8
-                            anchors.right: passEyeBtn.left; anchors.rightMargin: 6
-                            height: parent.height
-                            verticalAlignment: TextInput.AlignVCenter
-                            echoMode: root.showWifiPassword ? TextInput.Normal : TextInput.Password
-                            font.family: theme.fontFamily; font.pixelSize: theme.fontBody
-                            color: theme.text; selectionColor: theme.selection
-                            clip: true
-                            onTextChanged: root.wifiPassword = text
-                            Keys.onReturnPressed: {
-                                const target = root.pendingSsid;
-                                const pw = root.wifiPassword;
-                                root.pendingSsid = "";
-                                root.wifiPassword = "";
-                                root.showWifiPassword = false;
-                                passInput.text = "";
-                                root.runAction(["wifi-connect", target, pw]);
-                            }
-                            Keys.onEscapePressed: {
-                                root.pendingSsid = "";
-                                root.wifiPassword = "";
-                                root.showWifiPassword = false;
-                                passInput.text = "";
-                            }
-                        }
-
-                        Rectangle {
-                            id: passEyeBtn
-                            anchors.right: passConnectBtn.left; anchors.rightMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 26; height: 26
-                            radius: Math.max(4, theme.controlRadius - 2)
-                            color: passEyeArea.containsMouse ? theme.selection : "transparent"
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.showWifiPassword ? "󰈉" : "󰈈"
-                                font.family: theme.fontFamily; font.pixelSize: 13
-                                color: root.showWifiPassword ? theme.accent : theme.muted
-                            }
-                            MouseArea {
-                                id: passEyeArea
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onClicked: root.showWifiPassword = !root.showWifiPassword
-                            }
-                        }
-
-                        Rectangle {
-                            id: passConnectBtn
-                            anchors.right: parent.right; anchors.rightMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 68; height: 26
-                            radius: Math.max(4, theme.controlRadius - 1)
-                            color: theme.accent
-                            Text {
-                                anchors.centerIn: parent; text: "Join"
-                                font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                color: theme.base
-                            }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    const target = root.pendingSsid;
-                                    const pw = root.wifiPassword;
-                                    root.pendingSsid = "";
-                                    root.wifiPassword = "";
-                                    root.showWifiPassword = false;
-                                    passInput.text = "";
-                                    root.runAction(["wifi-connect", target, pw]);
-                                }
-                            }
-                        }
-                    }
-
                     // Wi-Fi Network List
                     Component {
                         id: wifiCardDelegate
 
                         Rectangle {
+                            id: wifiCard
                             required property var modelData
-                            width: wifiCol.width; height: 42
+                            readonly property bool isPending: root.pendingSsid === modelData.ssid
+                            readonly property bool isConnecting: root.connectingWifiSsid === modelData.ssid
+
+                            width: wifiCol.width
+                            height: isPending ? 86 : 42
                             radius: theme.controlRadius
                             color: modelData.inUse ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.16) : theme.control
                             border.width: 1
-                            border.color: modelData.inUse ? theme.accent : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.06)
+                            border.color: (modelData.inUse || isPending) ? theme.accent : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.06)
+                            clip: true
 
-                            Row {
-                                x: 10; anchors.verticalCenter: parent.verticalCenter
-                                spacing: 8
-                                width: parent.width - 150
-
-                                Text {
-                                    text: modelData.signal >= 75 ? "󰤨" : (modelData.signal >= 50 ? "󰤥" : (modelData.signal >= 25 ? "󰤢" : "󰤟"))
-                                    font.family: theme.fontFamily; font.pixelSize: 15
-                                    color: modelData.inUse ? theme.accent : theme.text
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Column {
-                                    width: parent.width - 30
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    Text {
-                                        width: parent.width
-                                        text: modelData.ssid
-                                        elide: Text.ElideRight
-                                        font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: modelData.inUse
-                                        color: theme.text
-                                    }
-                                    Text {
-                                        text: modelData.signal + "% · " + modelData.security + (modelData.inUse ? " · Connected" : (modelData.saved ? " · Saved" : ""))
-                                        font.family: theme.fontFamily; font.pixelSize: 10
-                                        color: modelData.inUse ? theme.accent : theme.muted
-                                    }
-                                }
+                            Behavior on height {
+                                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                             }
 
-                            Row {
-                                anchors.right: parent.right; anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 6
+                            // Main network info row
+                            Item {
+                                id: mainRow
+                                width: parent.width; height: 42
 
-                                // Connect / Disconnect button
-                                Rectangle {
-                                    width: 78; height: 26
-                                    radius: Math.max(4, theme.controlRadius - 1)
-                                    color: modelData.inUse ? theme.reading : theme.accent
-                                    border.width: 1; border.color: theme.border
+                                Row {
+                                    x: 10; anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 8
+                                    width: parent.width - 150
+
                                     Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.inUse ? "Disconnect" : "Connect"
-                                        font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                        color: modelData.inUse ? theme.text : theme.base
+                                        text: modelData.signal >= 75 ? "󰤨" : (modelData.signal >= 50 ? "󰤥" : (modelData.signal >= 25 ? "󰤢" : "󰤟"))
+                                        font.family: theme.fontFamily; font.pixelSize: 15
+                                        color: modelData.inUse ? theme.accent : theme.text
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData.inUse) {
-                                                root.runAction(["wifi-disconnect", modelData.ssid]);
-                                            } else if (modelData.saved || !modelData.secured) {
-                                                root.runAction(["wifi-connect", modelData.ssid]);
-                                            } else {
-                                                root.pendingSsid = modelData.ssid;
-                                                root.wifiPassword = "";
-                                                passInput.text = "";
-                                                passInput.forceActiveFocus();
-                                            }
+
+                                    Column {
+                                        width: parent.width - 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.ssid
+                                            elide: Text.ElideRight
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: modelData.inUse
+                                            color: theme.text
+                                        }
+                                        Text {
+                                            text: isConnecting
+                                                ? "Connecting..."
+                                                : (modelData.signal + "% · " + modelData.security + (modelData.inUse ? " · Connected" : (modelData.saved ? " · Saved" : "")))
+                                            font.family: theme.fontFamily; font.pixelSize: 10
+                                            color: (modelData.inUse || isConnecting) ? theme.accent : theme.muted
                                         }
                                     }
                                 }
 
-                                // Forget saved profile button
-                                Rectangle {
-                                    visible: modelData.saved
-                                    width: 28; height: 26
-                                    radius: Math.max(4, theme.controlRadius - 1)
-                                    color: theme.reading
-                                    border.width: 1; border.color: theme.border
+                                Row {
+                                    anchors.right: parent.right; anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 6
+
+                                    // Connect / Disconnect button
+                                    Rectangle {
+                                        width: 78; height: 26
+                                        radius: Math.max(4, theme.controlRadius - 1)
+                                        color: modelData.inUse ? theme.reading : theme.accent
+                                        border.width: 1; border.color: theme.border
+                                        opacity: isConnecting ? 0.7 : 1.0
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: isConnecting ? "…" : (modelData.inUse ? "Disconnect" : "Connect")
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                            color: modelData.inUse ? theme.text : theme.base
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            enabled: !isConnecting
+                                            onClicked: {
+                                                if (modelData.inUse) {
+                                                    root.runAction(["wifi-disconnect", modelData.ssid]);
+                                                } else if (modelData.saved || !modelData.secured) {
+                                                    root.connectingWifiSsid = modelData.ssid;
+                                                    root.runAction(["wifi-connect", modelData.ssid]);
+                                                } else {
+                                                    if (root.pendingSsid === modelData.ssid) {
+                                                        root.pendingSsid = "";
+                                                        root.wifiPassword = "";
+                                                    } else {
+                                                        root.pendingSsid = modelData.ssid;
+                                                        root.wifiPassword = "";
+                                                        root.showWifiPassword = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Forget saved profile button
+                                    Rectangle {
+                                        visible: modelData.saved
+                                        width: 28; height: 26
+                                        radius: Math.max(4, theme.controlRadius - 1)
+                                        color: theme.reading
+                                        border.width: 1; border.color: theme.border
+                                        Text {
+                                            anchors.centerIn: parent; text: "󰆴"
+                                            font.family: theme.fontFamily; font.pixelSize: 13
+                                            color: theme.muted
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.runAction(["wifi-forget", modelData.ssid])
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Inline expandable password input row
+                            Rectangle {
+                                id: inlinePassRow
+                                visible: wifiCard.isPending
+                                x: 8; y: 44
+                                width: parent.width - 16; height: 34
+                                radius: Math.max(4, theme.controlRadius - 2)
+                                color: theme.reading
+                                border.width: 1; border.color: theme.border
+
+                                Text {
+                                    id: lockIcon
+                                    x: 8; anchors.verticalCenter: parent.verticalCenter
+                                    text: "󰌾"
+                                    font.family: theme.fontFamily; font.pixelSize: 13
+                                    color: theme.accent
+                                }
+
+                                TextInput {
+                                    id: cardPassInput
+                                    anchors.left: lockIcon.right; anchors.leftMargin: 6
+                                    anchors.right: passEyeBtn.left; anchors.rightMargin: 6
+                                    height: parent.height
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    echoMode: root.showWifiPassword ? TextInput.Normal : TextInput.Password
+                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                    color: theme.text; selectionColor: theme.selection
+                                    clip: true
+                                    text: wifiCard.isPending ? root.wifiPassword : ""
+                                    onTextChanged: {
+                                        if (wifiCard.isPending) root.wifiPassword = text;
+                                    }
+                                    Component.onCompleted: {
+                                        if (wifiCard.isPending) forceActiveFocus();
+                                    }
+                                    Keys.onReturnPressed: {
+                                        const target = modelData.ssid;
+                                        const pw = root.wifiPassword;
+                                        root.pendingSsid = "";
+                                        root.wifiPassword = "";
+                                        root.showWifiPassword = false;
+                                        root.connectingWifiSsid = target;
+                                        root.runAction(["wifi-connect", target, pw]);
+                                    }
+                                    Keys.onEscapePressed: {
+                                        root.pendingSsid = "";
+                                        root.wifiPassword = "";
+                                        root.showWifiPassword = false;
+                                    }
+
                                     Text {
-                                        anchors.centerIn: parent; text: "󰆴"
-                                        font.family: theme.fontFamily; font.pixelSize: 13
-                                        color: theme.muted
+                                        visible: !cardPassInput.text && !cardPassInput.activeFocus
+                                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                        text: "Enter Wi-Fi password..."
+                                        font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                        color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.4)
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: passEyeBtn
+                                    anchors.right: cardJoinBtn.left; anchors.rightMargin: 4
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 24; height: 24
+                                    radius: 4
+                                    color: passEyeArea.containsMouse ? theme.selection : "transparent"
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: root.showWifiPassword ? "󰈉" : "󰈈"
+                                        font.family: theme.fontFamily; font.pixelSize: 12
+                                        color: root.showWifiPassword ? theme.accent : theme.muted
+                                    }
+                                    MouseArea {
+                                        id: passEyeArea
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        hoverEnabled: true
+                                        onClicked: root.showWifiPassword = !root.showWifiPassword
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: cardJoinBtn
+                                    anchors.right: cardCancelBtn.left; anchors.rightMargin: 4
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 48; height: 24
+                                    radius: 4
+                                    color: theme.accent
+                                    Text {
+                                        anchors.centerIn: parent; text: "Join"
+                                        font.family: theme.fontFamily; font.pixelSize: 11; font.bold: true
+                                        color: theme.base
                                     }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.runAction(["wifi-forget", modelData.ssid])
+                                        onClicked: {
+                                            const target = modelData.ssid;
+                                            const pw = root.wifiPassword;
+                                            root.pendingSsid = "";
+                                            root.wifiPassword = "";
+                                            root.showWifiPassword = false;
+                                            root.connectingWifiSsid = target;
+                                            root.runAction(["wifi-connect", target, pw]);
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: cardCancelBtn
+                                    anchors.right: parent.right; anchors.rightMargin: 4
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 24; height: 24
+                                    radius: 4
+                                    color: cardCancelArea.containsMouse ? theme.selection : "transparent"
+                                    Text {
+                                        anchors.centerIn: parent; text: "󰅖"
+                                        font.family: theme.fontFamily; font.pixelSize: 12
+                                        color: theme.muted
+                                    }
+                                    MouseArea {
+                                        id: cardCancelArea
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            root.pendingSsid = "";
+                                            root.wifiPassword = "";
+                                            root.showWifiPassword = false;
+                                        }
                                     }
                                 }
                             }
@@ -831,8 +900,8 @@ ShellRoot {
 
                     Flickable {
                         id: wifiFlick
-                        y: passBox.visible ? 94 : 48
-                        width: parent.width; height: parent.height - y
+                        y: 48
+                        width: parent.width; height: parent.height - 48
                         contentWidth: width
                         contentHeight: wifiCol.implicitHeight
                         clip: true
@@ -994,6 +1063,8 @@ ShellRoot {
 
                         Rectangle {
                             required property var modelData
+                            readonly property bool isConnecting: root.connectingBtMac === modelData.mac
+
                             width: btCol.width; height: 42
                             radius: theme.controlRadius
                             color: modelData.connected ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.16) : theme.control
@@ -1030,11 +1101,13 @@ ShellRoot {
                                         color: theme.text
                                     }
                                     Text {
-                                        text: (modelData.connected ? "Connected" : (modelData.paired ? "Paired" : "Available"))
-                                            + (modelData.trusted ? " · Trusted" : "")
-                                            + (modelData.battery ? (" · 󰁹 " + modelData.battery) : "")
+                                        text: isConnecting
+                                            ? (root.connectingBtAction === "pair" ? "Pairing..." : "Connecting...")
+                                            : ((modelData.connected ? "Connected" : (modelData.paired ? "Paired" : "Available"))
+                                                + (modelData.trusted ? " · Trusted" : "")
+                                                + (modelData.battery ? (" · 󰁹 " + modelData.battery) : ""))
                                         font.family: theme.fontFamily; font.pixelSize: 10
-                                        color: modelData.connected ? theme.accent : theme.muted
+                                        color: (modelData.connected || isConnecting) ? theme.accent : theme.muted
                                     }
                                 }
                             }
@@ -1049,15 +1122,30 @@ ShellRoot {
                                     radius: Math.max(4, theme.controlRadius - 1)
                                     color: modelData.connected ? theme.reading : theme.accent
                                     border.width: 1; border.color: theme.border
+                                    opacity: isConnecting ? 0.7 : 1.0
+
                                     Text {
                                         anchors.centerIn: parent
-                                        text: modelData.connected ? "Disconnect" : (modelData.paired ? "Connect" : "Pair")
+                                        text: isConnecting ? "…" : (modelData.connected ? "Disconnect" : (modelData.paired ? "Connect" : "Pair"))
                                         font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
                                         color: modelData.connected ? theme.text : theme.base
                                     }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.runAction([modelData.connected ? "bt-disconnect" : "bt-connect", modelData.mac])
+                                        enabled: !isConnecting
+                                        onClicked: {
+                                            if (modelData.connected) {
+                                                root.runAction(["bt-disconnect", modelData.mac]);
+                                            } else if (modelData.paired) {
+                                                root.connectingBtMac = modelData.mac;
+                                                root.connectingBtAction = "connect";
+                                                root.runAction(["bt-connect", modelData.mac]);
+                                            } else {
+                                                root.connectingBtMac = modelData.mac;
+                                                root.connectingBtAction = "pair";
+                                                root.runAction(["bt-pair", modelData.mac]);
+                                            }
+                                        }
                                     }
                                 }
 
