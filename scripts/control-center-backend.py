@@ -301,7 +301,7 @@ def get_system_state(wifi_enabled, bt_powered):
     caffeine = (RUNTIME / "caffeine.inhibit").is_file()
     night_light = False
     if shutil.which("systemctl"):
-        rc, _, _ = run_cmd(["systemctl", "--user", "is-active", "--quiet", f"{SERVICE_PREFIX}-sunset.service"], timeout=1.5)
+        rc, _, _ = run_cmd(["systemctl", "--user", "is-active", "--quiet", f"{SERVICE_PREFIX}-night-light.service"], timeout=1.5)
         night_light = rc == 0
 
     dnd = False

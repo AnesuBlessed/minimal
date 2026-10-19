@@ -29,6 +29,21 @@ ShellRoot {
         { id: "audio", icon: "󰕾", label: "Audio" }
     ]
 
+    // Reactive UI state properties (direct binding for instant click responsiveness)
+    property bool wifiEnabled: true
+    property string wifiConnectedSsid: ""
+    property bool btPowered: false
+    property bool btDiscoverable: false
+    property bool sysAirplane: false
+    property bool sysNightLight: false
+    property bool sysCaffeine: false
+    property bool sysDnd: false
+    property int audioVolume: 50
+    property bool audioMuted: false
+    property int micVolume: 80
+    property bool micMuted: false
+    property int sysBrightness: 80
+
     property var stateData: ({
         wifi: { available: true, enabled: true, connectedSsid: "", ipAddress: "", interface: "", hotspotActive: false, networks: [] },
         bluetooth: { available: true, powered: false, discoverable: false, controller: "Bluetooth", devices: [] },
@@ -87,6 +102,27 @@ ShellRoot {
                     audio: Object.assign({ volume: 50, muted: false, micVolume: 80, micMuted: false, sinks: [], sources: [] }, parsed.audio || {}),
                     system: Object.assign({ brightness: 80, caffeine: false, nightLight: false, dnd: false, airplane: false }, parsed.system || {})
                 };
+                if (parsed.wifi) {
+                    root.wifiEnabled = !!parsed.wifi.enabled;
+                    root.wifiConnectedSsid = parsed.wifi.connectedSsid || "";
+                }
+                if (parsed.bluetooth) {
+                    root.btPowered = !!parsed.bluetooth.powered;
+                    root.btDiscoverable = !!parsed.bluetooth.discoverable;
+                }
+                if (parsed.audio) {
+                    root.audioVolume = (typeof parsed.audio.volume === "number") ? parsed.audio.volume : root.audioVolume;
+                    root.audioMuted = !!parsed.audio.muted;
+                    root.micVolume = (typeof parsed.audio.micVolume === "number") ? parsed.audio.micVolume : root.micVolume;
+                    root.micMuted = !!parsed.audio.micMuted;
+                }
+                if (parsed.system) {
+                    root.sysBrightness = (typeof parsed.system.brightness === "number") ? parsed.system.brightness : root.sysBrightness;
+                    root.sysNightLight = !!parsed.system.nightLight;
+                    root.sysCaffeine = !!parsed.system.caffeine;
+                    root.sysDnd = !!parsed.system.dnd;
+                    root.sysAirplane = !!parsed.system.airplane;
+                }
             }
         } catch (e) {}
     }
@@ -243,51 +279,57 @@ ShellRoot {
                         Repeater {
                             model: [
                                 {
-                                    icon: root.stateData.wifi.enabled ? "󰖩" : "󰖪",
+                                    icon: root.wifiEnabled ? "󰖩" : "󰖪",
                                     title: "Wi-Fi",
-                                    sub: root.stateData.wifi.connectedSsid || (root.stateData.wifi.enabled ? "On" : "Off"),
-                                    active: root.stateData.wifi.enabled,
+                                    sub: root.wifiConnectedSsid || (root.wifiEnabled ? "On" : "Off"),
+                                    active: root.wifiEnabled,
                                     act: ["wifi-toggle"],
+                                    toggleLocal: () => { root.wifiEnabled = !root.wifiEnabled; },
                                     moreTab: "wifi"
                                 },
                                 {
-                                    icon: root.stateData.bluetooth.powered ? "󰂯" : "󰂲",
+                                    icon: root.btPowered ? "󰂯" : "󰂲",
                                     title: "Bluetooth",
-                                    sub: root.stateData.bluetooth.powered ? "Powered On" : "Off",
-                                    active: root.stateData.bluetooth.powered,
+                                    sub: root.btPowered ? "Powered On" : "Off",
+                                    active: root.btPowered,
                                     act: ["bt-toggle"],
+                                    toggleLocal: () => { root.btPowered = !root.btPowered; },
                                     moreTab: "bluetooth"
                                 },
                                 {
                                     icon: "󰀝",
                                     title: "Airplane",
-                                    sub: root.stateData.system.airplane ? "Active" : "Off",
-                                    active: root.stateData.system.airplane,
+                                    sub: root.sysAirplane ? "Active" : "Off",
+                                    active: root.sysAirplane,
                                     act: ["airplane-toggle"],
+                                    toggleLocal: () => { root.sysAirplane = !root.sysAirplane; },
                                     moreTab: ""
                                 },
                                 {
                                     icon: "󰖔",
                                     title: "Night Light",
-                                    sub: root.stateData.system.nightLight ? "Warm 4200K" : "Off",
-                                    active: root.stateData.system.nightLight,
+                                    sub: root.sysNightLight ? "Warm 4500K" : "Off",
+                                    active: root.sysNightLight,
                                     act: ["nightlight-toggle"],
+                                    toggleLocal: () => { root.sysNightLight = !root.sysNightLight; },
                                     moreTab: ""
                                 },
                                 {
                                     icon: "󰅶",
                                     title: "Caffeine",
-                                    sub: root.stateData.system.caffeine ? "Awake" : "Normal Idle",
-                                    active: root.stateData.system.caffeine,
+                                    sub: root.sysCaffeine ? "Awake" : "Normal Idle",
+                                    active: root.sysCaffeine,
                                     act: ["caffeine-toggle"],
+                                    toggleLocal: () => { root.sysCaffeine = !root.sysCaffeine; },
                                     moreTab: ""
                                 },
                                 {
                                     icon: "󰂛",
                                     title: "Do Not Disturb",
-                                    sub: root.stateData.system.dnd ? "Silenced" : "Alerts On",
-                                    active: root.stateData.system.dnd,
+                                    sub: root.sysDnd ? "Silenced" : "Alerts On",
+                                    active: root.sysDnd,
                                     act: ["dnd-toggle"],
+                                    toggleLocal: () => { root.sysDnd = !root.sysDnd; },
                                     moreTab: ""
                                 }
                             ]
@@ -341,19 +383,7 @@ ShellRoot {
                                         if (mouse.button === Qt.RightButton && modelData.moreTab !== "") {
                                             root.activeTab = modelData.moreTab;
                                         } else {
-                                            if (modelData.act[0] === "wifi-toggle") {
-                                                root.stateData.wifi.enabled = !root.stateData.wifi.enabled;
-                                            } else if (modelData.act[0] === "bt-toggle") {
-                                                root.stateData.bluetooth.powered = !root.stateData.bluetooth.powered;
-                                            } else if (modelData.act[0] === "airplane-toggle") {
-                                                root.stateData.system.airplane = !root.stateData.system.airplane;
-                                            } else if (modelData.act[0] === "nightlight-toggle") {
-                                                root.stateData.system.nightLight = !root.stateData.system.nightLight;
-                                            } else if (modelData.act[0] === "caffeine-toggle") {
-                                                root.stateData.system.caffeine = !root.stateData.system.caffeine;
-                                            } else if (modelData.act[0] === "dnd-toggle") {
-                                                root.stateData.system.dnd = !root.stateData.system.dnd;
-                                            }
+                                            modelData.toggleLocal();
                                             root.runAction(modelData.act);
                                         }
                                     }
@@ -379,33 +409,33 @@ ShellRoot {
                             Repeater {
                                 model: [
                                     {
-                                        icon: root.stateData.audio.muted ? "󰝟" : "󰕾",
+                                        icon: root.audioMuted ? "󰝟" : "󰕾",
                                         label: "Speaker",
-                                        val: root.stateData.audio.volume,
+                                        val: root.audioVolume,
                                         max: 100,
                                         muteAct: ["audio-mute"],
                                         setAct: "audio-volume",
-                                        setLocal: (pct) => { root.stateData.audio.volume = pct; root.stateData.audio.muted = false; },
-                                        toggleMuteLocal: () => { root.stateData.audio.muted = !root.stateData.audio.muted; }
+                                        setLocal: (pct) => { root.audioVolume = pct; root.audioMuted = false; },
+                                        toggleMuteLocal: () => { root.audioMuted = !root.audioMuted; }
                                     },
                                     {
-                                        icon: root.stateData.audio.micMuted ? "󰍭" : "󰍬",
+                                        icon: root.micMuted ? "󰍭" : "󰍬",
                                         label: "Mic",
-                                        val: root.stateData.audio.micVolume,
+                                        val: root.micVolume,
                                         max: 100,
                                         muteAct: ["mic-mute"],
                                         setAct: "mic-volume",
-                                        setLocal: (pct) => { root.stateData.audio.micVolume = pct; root.stateData.audio.micMuted = false; },
-                                        toggleMuteLocal: () => { root.stateData.audio.micMuted = !root.stateData.audio.micMuted; }
+                                        setLocal: (pct) => { root.micVolume = pct; root.micMuted = false; },
+                                        toggleMuteLocal: () => { root.micMuted = !root.micMuted; }
                                     },
                                     {
                                         icon: "󰃠",
                                         label: "Display",
-                                        val: root.stateData.system.brightness,
+                                        val: root.sysBrightness,
                                         max: 100,
                                         muteAct: [],
                                         setAct: "brightness",
-                                        setLocal: (pct) => { root.stateData.system.brightness = pct; },
+                                        setLocal: (pct) => { root.sysBrightness = pct; },
                                         toggleMuteLocal: () => {}
                                     }
                                 ]
@@ -626,17 +656,20 @@ ShellRoot {
                             Rectangle {
                                 width: 52; height: 26
                                 radius: Math.max(4, theme.controlRadius - 1)
-                                color: root.stateData.wifi.enabled ? theme.accent : theme.reading
+                                color: root.wifiEnabled ? theme.accent : theme.reading
                                 border.width: 1; border.color: theme.border
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.stateData.wifi.enabled ? "ON" : "OFF"
+                                    text: root.wifiEnabled ? "ON" : "OFF"
                                     font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: root.stateData.wifi.enabled ? theme.base : theme.muted
+                                    color: root.wifiEnabled ? theme.base : theme.muted
                                 }
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.runAction(["wifi-toggle"])
+                                    onClicked: {
+                                        root.wifiEnabled = !root.wifiEnabled;
+                                        root.runAction(["wifi-toggle"]);
+                                    }
                                 }
                             }
                         }
@@ -1006,17 +1039,20 @@ ShellRoot {
                             Rectangle {
                                 width: 92; height: 26
                                 radius: Math.max(4, theme.controlRadius - 1)
-                                color: root.stateData.bluetooth.discoverable ? theme.accent : theme.reading
+                                color: root.btDiscoverable ? theme.accent : theme.reading
                                 border.width: 1; border.color: theme.border
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.stateData.bluetooth.discoverable ? "Discoverable" : "Hidden"
+                                    text: root.btDiscoverable ? "Discoverable" : "Hidden"
                                     font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: root.stateData.bluetooth.discoverable ? theme.base : theme.text
+                                    color: root.btDiscoverable ? theme.base : theme.text
                                 }
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.runAction(["bt-discoverable"])
+                                    onClicked: {
+                                        root.btDiscoverable = !root.btDiscoverable;
+                                        root.runAction(["bt-discoverable"]);
+                                    }
                                 }
                             }
 
@@ -1040,17 +1076,20 @@ ShellRoot {
                             Rectangle {
                                 width: 52; height: 26
                                 radius: Math.max(4, theme.controlRadius - 1)
-                                color: root.stateData.bluetooth.powered ? theme.accent : theme.reading
+                                color: root.btPowered ? theme.accent : theme.reading
                                 border.width: 1; border.color: theme.border
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.stateData.bluetooth.powered ? "ON" : "OFF"
+                                    text: root.btPowered ? "ON" : "OFF"
                                     font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: root.stateData.bluetooth.powered ? theme.base : theme.muted
+                                    color: root.btPowered ? theme.base : theme.muted
                                 }
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.runAction(["bt-toggle"])
+                                    onClicked: {
+                                        root.btPowered = !root.btPowered;
+                                        root.runAction(["bt-toggle"]);
+                                    }
                                 }
                             }
                         }
