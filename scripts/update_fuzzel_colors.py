@@ -32,12 +32,21 @@ def main():
     with Image.open(sys.argv[1]) as source:
         source = source.convert("RGB")
         source.thumbnail((96, 96))
+        # Compute average image luminance across the thumbnail
+        pixels = list(source.getdata())
+        avg_lum = sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b in pixels) / len(pixels)
+
         dominant = source.quantize(colors=8).convert("RGB")
         rgb = max(dominant.getcolors(96 * 96), key=lambda item: item[0])[1]
+
     hue, _, saturation = colorsys.rgb_to_hls(*(value / 255 for value in rgb))
-    # Wallpaper supplies only the accent; neutral surfaces stay recognizable.
+
+    # Balanced accent: legible against dark reading surfaces while adapting to wallpaper hue
+    # On bright wallpapers, slightly deepen accent lightness to prevent glowing white washout
+    target_lightness = 0.72 if avg_lum > 130 else 0.78
     accent = "".join(f"{round(v * 255):02x}" for v in colorsys.hls_to_rgb(
-        hue, 0.78, min(0.24, max(0.10, saturation))))
+        hue, target_lightness, min(0.30, max(0.12, saturation))))
+
     cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "minimal"
     cache.mkdir(parents=True, exist_ok=True)
     with (cache / "palette.lock").open("w") as lock:
@@ -45,6 +54,8 @@ def main():
         path = ROOT / "theme.json"
         theme = json.loads(path.read_text())
         theme["colors"]["accent"] = accent
+        # Protect Waybar readability: on bright wallpapers, raise panel opacity so white text doesn't wash out
+        theme["opacity"]["panel"] = 0.90 if avg_lum > 130 else 0.82
         atomic_write(path, json.dumps(theme, indent=2) + "\n")
         import runpy
         runpy.run_path(str(ROOT / "scripts/sync-theme.py"), run_name="__main__")

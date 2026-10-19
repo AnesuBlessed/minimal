@@ -138,8 +138,7 @@ def update_gtk_config(accent_css):
     for version in ('gtk-3.0', 'gtk-4.0'):
         vdir = config_dir / version
         try:
-            if not vdir.exists() and not vdir.is_symlink():
-                continue
+            vdir.mkdir(parents=True, exist_ok=True)
             css_file = vdir / 'gtk.css'
             if css_file.is_file():
                 content = css_file.read_text()
