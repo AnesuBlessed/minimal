@@ -55,7 +55,7 @@ def main():
         theme = json.loads(path.read_text())
         theme["colors"]["accent"] = accent
         # Protect Waybar readability: on bright wallpapers, raise panel opacity so white text doesn't wash out
-        theme["opacity"]["panel"] = 0.90 if avg_lum > 130 else 0.82
+        theme["opacity"]["panel"] = 0.90 if avg_lum > 130 else 0.80
         atomic_write(path, json.dumps(theme, indent=2) + "\n")
         import runpy
         runpy.run_path(str(ROOT / "scripts/sync-theme.py"), run_name="__main__")

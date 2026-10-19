@@ -334,38 +334,6 @@ Item {
         window.visibleItemCount = count;
     }
 
-    function triggerOnlineSearch() {
-        if (searchInput.text.trim() === "") return;
-
-        window.isModelChanging = true;
-        searchProxyModel.clear();
-        window.lastSearchName = "";
-        searchState.lastName = "";
-
-        if (window.currentFilter === "Search") {
-            view.currentIndex = 0;
-            view.positionViewAtIndex(0, ListView.Center);
-        }
-        window.isModelChanging = false;
-
-        window.searchIndexRestored = true;
-        window.isOnlineSearch = true;
-        window.hasSearched = true;
-
-        window.visibleItemCount = 0;
-
-        searchState.searched = true;
-        searchState.query = searchInput.text.trim();
-
-        window.isSearchPaused = false;
-        window.searchQuery = searchInput.text.trim();
-
-        const script = decodeURIComponent(Qt.resolvedUrl("start-search.sh").toString().replace(/^file:\/\//, ""));
-        Quickshell.execDetached(["bash", script, window.searchQuery]);
-
-        searchInput.focus = false;
-        view.forceActiveFocus();
-    }
 
     readonly property real itemWidth: window.s(400)
     readonly property real itemHeight: window.s(420)

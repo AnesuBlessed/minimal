@@ -96,7 +96,7 @@ Item {
         fullTextFetcher.running = false;
         let item = clipModel.get(clipList.currentIndex);
         if (item && item.type === "text") {
-            fullTextFetcher.command = ["python3", Quickshell.shellDir + "/clip_fetcher.py", "--text", item.id.toString()];
+            fullTextFetcher.command = ["cliphist", "decode", item.id.toString()];
             fullTextFetcher.running = true;
         }
     }
