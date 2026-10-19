@@ -125,6 +125,7 @@ ShellRoot {
 
     Component.onCompleted: {
         applyJson(Quickshell.env("MINIMAL_CC_JSON"));
+        pollProc.running = true;
     }
 
     PanelWindow {

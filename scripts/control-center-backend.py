@@ -497,13 +497,27 @@ def handle_action(args):
 def main():
     if len(sys.argv) <= 1 or sys.argv[1] == "--state":
         scan = "--no-scan" not in sys.argv
-        print(json.dumps(full_state(scan_networks=scan)))
+        state = full_state(scan_networks=scan)
+        payload = json.dumps(state)
+        try:
+            CACHE.mkdir(parents=True, exist_ok=True)
+            (CACHE / "cc-state.json").write_text(payload)
+        except OSError:
+            pass
+        print(payload)
         return
     if sys.argv[1] == "--action":
         action_args = sys.argv[2:]
         handle_action(action_args)
         need_scan = bool(action_args and action_args[0].startswith("wifi"))
-        print(json.dumps(full_state(scan_networks=need_scan)))
+        state = full_state(scan_networks=need_scan)
+        payload = json.dumps(state)
+        try:
+            CACHE.mkdir(parents=True, exist_ok=True)
+            (CACHE / "cc-state.json").write_text(payload)
+        except OSError:
+            pass
+        print(payload)
         return
     handle_action(sys.argv[1:])
 

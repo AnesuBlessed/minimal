@@ -13,19 +13,7 @@ case "$TAB" in
     *) TAB="quick" ;;
 esac
 
-if [[ "${1:-}" == "--popup" ]]; then
-    TAB="${2:-quick}"
-elif [[ -f "$MINIMAL_ROOT/scripts/settings.sh" ]]; then
-    case "$TAB" in
-        quick) exec "$MINIMAL_ROOT/scripts/settings.sh" toggle ;;
-        wifi) exec "$MINIMAL_ROOT/scripts/settings.sh" network ;;
-        bluetooth) exec "$MINIMAL_ROOT/scripts/settings.sh" bluetooth ;;
-        audio) exec "$MINIMAL_ROOT/scripts/settings.sh" sound ;;
-        *) exec "$MINIMAL_ROOT/scripts/settings.sh" toggle ;;
-    esac
-fi
-
-mkdir -p -- "$MINIMAL_RUNTIME"
+mkdir -p -- "$MINIMAL_RUNTIME" "$MINIMAL_CACHE"
 exec 9>"$MINIMAL_RUNTIME/control-center-toggle.lock"
 flock -n 9 || exit 0
 
@@ -34,7 +22,7 @@ if [[ ! -r "$MINIMAL_RUNTIME/control-center.pid" ]] && pgrep -u "${UID:-$(id -u)
 fi
 
 MINIMAL_CC_TAB="$TAB"
-MINIMAL_CC_JSON=$("$MINIMAL_ROOT/scripts/control-center-backend.py" --state 2>/dev/null || printf '{}')
+MINIMAL_CC_JSON=$(cat "$MINIMAL_CACHE/cc-state.json" 2>/dev/null || printf '{}')
 MINIMAL_POPUP_OUTPUT=$(hyprctl -j monitors 2>/dev/null | jq -r 'first(.[] | select(.focused)).name // empty' || true)
 export MINIMAL_CC_TAB MINIMAL_CC_JSON MINIMAL_POPUP_OUTPUT
 exec "$MINIMAL_ROOT/scripts/popup.sh" control-center quickshell -n -p "$CONFIG_PATH" 9>&-
