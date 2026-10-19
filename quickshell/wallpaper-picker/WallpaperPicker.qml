@@ -954,6 +954,7 @@ Item {
                         anchors.centerIn: parent
                         anchors.horizontalCenterOffset: window.s(-50)
                         width: (window.itemWidth * 1.5) + ((window.itemHeight + window.s(30)) * Math.abs(window.skewFactor)) + window.s(50)
+                        height: window.itemHeight + window.s(30)
                         sourceSize.width: Math.round(width)
                         sourceSize.height: Math.round(height)
                         fillMode: Image.PreserveAspectCrop
