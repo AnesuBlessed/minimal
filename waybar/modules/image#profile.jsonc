@@ -1,7 +1,0 @@
-{
-  "image#profile": {
-    "exec": "printf '%s\\n' \"${MINIMAL_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/minimal}/avatar\"",
-    "size": 24,
-    "tooltip": false
-  }
-}

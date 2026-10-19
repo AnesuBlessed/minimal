@@ -1,8 +1,0 @@
-{
-  "custom/workflows": {
-    "format": "󰑮",
-    "tooltip": true,
-    "tooltip-format": "Workspaces & Windows",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/launcher.sh\""
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "custom/hyprsunset": {
-    "format": "\udb81\udee8",
-    "tooltip": true,
-    "tooltip-format": "Night Light / Hyprsunset (Click to toggle)",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/night-light.sh\""
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "custom/gamemode": {
-    "format": "\udb80\udeb4",
-    "tooltip-format": "Toggle Game Mode (Animations & Effects)",
-    "rotate": 0,
-    "on-click": "sh -c 'if [ \"$(hyprctl getoption animations:enabled -j | jq -r .int)\" = 1 ]; then hyprctl keyword animations:enabled 0; else hyprctl keyword animations:enabled 1; fi'"
-  }
-}

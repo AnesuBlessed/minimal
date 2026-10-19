@@ -568,7 +568,7 @@ class MinimalTests(unittest.TestCase):
         modules_dir = self.repo / 'waybar/modules'
         self.assertTrue(modules_dir.is_dir(), "waybar/modules directory must exist")
         module_files = list(modules_dir.glob('*.jsonc'))
-        self.assertGreater(len(module_files), 50, "Should have 50+ modular jsonc files")
+        self.assertGreaterEqual(len(module_files), 20, "Should have active modular jsonc files")
 
         forbidden = ['wallbash', 'rofilaunch', 'hl.dsp']
         for mf in module_files:
@@ -1438,7 +1438,7 @@ if "-j" in sys.argv:
         self.assertEqual(len(parsed['monitors']), 2)
         self.assertTrue((self.base / 'state/minimal/monitors.json').is_file())
         self.assertTrue((self.base / 'state/minimal/monitors.lua').is_file())
-        self.assertTrue(any(e[:3] == ['hyprctl', 'keyword', 'monitor'] for e in self.events()))
+        self.assertTrue(any(e[:2] == ['hyprctl', 'eval'] and 'hl.monitor(' in e[2] for e in self.events()))
 
     def test_monitors_configure_complete_geometry(self):
         self.mock('hyprctl', '''
@@ -1464,7 +1464,7 @@ if "-j" in sys.argv:
         self.assertEqual(saved['HDMI-A-1']['position'], '1920x0')
         self.assertEqual(saved['HDMI-A-1']['scale'], 1.25)
         self.assertEqual(saved['HDMI-A-1']['vrr'], 1)
-        self.assertTrue(any(e == ['hyprctl', 'keyword', 'monitor', 'HDMI-A-1,2560x1440@144.00Hz,1920x0,1.25,vrr,1'] for e in self.events()))
+        self.assertTrue(any(e[:2] == ['hyprctl', 'eval'] and 'output = "HDMI-A-1"' in e[2] and 'vrr = 1' in e[2] and 'scale = 1.25' in e[2] for e in self.events()))
 
     def test_screen_recording_toggle_and_region_ocr(self):
         self.mock('slurp', 'print("10,10 200x100")')
@@ -1508,6 +1508,112 @@ if "-j" in sys.argv:
         cc_qml = (self.repo / 'quickshell/control-center/shell.qml').read_text()
         self.assertIn('root.stateData.bluetooth.address', cc_qml)
         self.assertIn('bt-send', cc_qml)
+
+    def test_input_success_persists_matching_lua(self):
+        self.mock('hyprctl', 'print("ok")')
+        result = self.run_script('scripts/input-config.sh', 'set', 'sensitivity', '0.35')
+        self.assertEqual(json.loads(result.stdout)['sensitivity'], 0.35)
+        state = self.base / 'state/minimal'
+        self.assertEqual(json.loads((state / 'input.json').read_text())['sensitivity'], 0.35)
+        self.assertIn('sensitivity = 0.35', (state / 'input.lua').read_text())
+
+    def test_launcher_preference_does_not_overwrite_effects(self):
+        self.mock('hyprctl', 'sys.exit(1)')
+        state = self.base / 'state/minimal'
+        state.mkdir(parents=True)
+        (state / 'effects.lua').write_text('-- preserve visual preferences')
+        self.run_script('scripts/effects-config.sh', 'set', 'launcher', 'fuzzel')
+        self.assertEqual((state / 'launcher.pref').read_text(), 'fuzzel\n')
+        self.assertEqual((state / 'effects.lua').read_text(), '-- preserve visual preferences')
+
+    def test_input_rejection_preserves_saved_settings(self):
+        self.mock('hyprctl', 'sys.exit(1)')
+        state = self.base / 'state/minimal'
+        state.mkdir(parents=True)
+        (state / 'input.json').write_text('{"sensitivity": 0.2}')
+        (state / 'input.lua').write_text('-- previous configuration')
+        result = self.run_script('scripts/input-config.sh', 'set', 'sensitivity', '0.5', expected=None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((state / 'input.json').read_text(), '{"sensitivity": 0.2}')
+        self.assertEqual((state / 'input.lua').read_text(), '-- previous configuration')
+
+    def test_settings_reject_invalid_values_before_commands(self):
+        for script, key, value in [('input', 'sensitivity', 'nan'), ('input', 'sensitivity', '2'),
+                                   ('input', 'left_handed', 'maybe'), ('effects', 'launcher', 'unknown'),
+                                   ('effects', 'temperature', 'nan'), ('effects', 'blur', 'maybe')]:
+            with self.subTest(script=script, key=key, value=value):
+                result = self.run_script('scripts/' + script + '-config.sh', 'set', key, value, expected=None)
+                self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.trace.exists())
+
+    def test_effects_rejection_does_not_persist(self):
+        self.mock('hyprctl', 'sys.exit(1)')
+        result = self.run_script('scripts/effects-config.sh', 'set', 'blur', 'true', expected=None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.base / 'state/minimal/effects.json').exists())
+        self.assertFalse((self.base / 'state/minimal/effects.lua').exists())
+
+    def test_wifi_stale_disconnect_never_targets_another_network(self):
+        self.mock('nmcli', "print('*:OtherNet:wlan0')")
+        result = self.run_script('scripts/network-action.py', 'disconnect', 'HomeNet', expected=None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any('disconnect' in call for call in self.events()))
+
+    def test_wifi_saved_names_unescape_nmcli_fields(self):
+        self.mock('nmcli', r"print(r'Office\:Guest:802-11-wireless')")
+        result = self.run_script('scripts/network-action.py', 'saved')
+        self.assertEqual(result.stdout.strip(), 'Office:Guest')
+
+    def test_network_actions_and_password_toggle(self):
+        self.mock('notify-send', '')
+        self.mock('nmcli', r'''
+args = sys.argv[1:]
+if "connection" in args and "show" in args:
+    print("HomeNet:802-11-wireless\nWorkNet:802-11-wireless\nWired:802-3-ethernet")
+elif "wifi" in args and "list" in args:
+    print("*:HomeNet:wlan0\n :OtherNet:wlan0")
+elif "device" in args and "disconnect" in args:
+    print("Device 'wlan0' successfully disconnected.")
+elif "wifi" in args and "connect" in args:
+    print("Successfully connected.")
+elif "connection" in args and "delete" in args:
+    print("Connection successfully deleted.")
+''')
+        # Test saved
+        res_saved = self.run_script('scripts/network-action.py', 'saved')
+        self.assertIn('HomeNet', res_saved.stdout)
+        self.assertIn('WorkNet', res_saved.stdout)
+        self.assertNotIn('Wired', res_saved.stdout)
+
+        # Test connect without password (saved)
+        res_conn_saved = self.run_script('scripts/network-action.py', 'connect', 'HomeNet')
+        self.assertEqual(res_conn_saved.returncode, 0)
+
+        # Test connect with password
+        res_conn_pw = self.run_script('scripts/network-action.py', 'connect', 'OtherNet', 'secretpw')
+        self.assertEqual(res_conn_pw.returncode, 0)
+
+        # Test disconnect
+        res_disc = self.run_script('scripts/network-action.py', 'disconnect', 'HomeNet')
+        self.assertEqual(res_disc.returncode, 0)
+
+        # Test forget
+        res_forget = self.run_script('scripts/network-action.py', 'forget', 'HomeNet')
+        self.assertEqual(res_forget.returncode, 0)
+
+        # Verify Settings Network.qml has password toggle and saved connection logic
+        net_qml = (self.repo / 'quickshell/settings/Tabs/Network.qml').read_text()
+        self.assertIn('showPassword', net_qml)
+        self.assertIn('eyeBtn', net_qml)
+        self.assertIn('savedNetworks', net_qml)
+        self.assertIn('connectSaved', net_qml)
+        self.assertIn('connectSecured', net_qml)
+        self.assertIn('SAVED', net_qml)
+
+        # Verify Control Center has see/unsee password toggle
+        cc_qml = (self.repo / 'quickshell/control-center/shell.qml').read_text()
+        self.assertIn('showWifiPassword', cc_qml)
+        self.assertIn('passEyeBtn', cc_qml)
 
 
 if __name__ == '__main__':
