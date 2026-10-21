@@ -8,6 +8,8 @@ if (($# == 0)) && [[ ${user_shell##*/} == fish ]]; then
 fi
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 if [[ -S ${XDG_RUNTIME_DIR:-/nonexistent}/foot-${WAYLAND_DISPLAY:-none}.sock ]]; then
-    footclient --no-wait --client-environment "$@" && exit 0
+    if footclient --no-wait --client-environment "$@"; then
+        exit 0
+    fi
 fi
 exec foot "$@"

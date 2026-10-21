@@ -25,4 +25,8 @@ MINIMAL_CC_TAB="$TAB"
 MINIMAL_CC_JSON=$(cat "$MINIMAL_CACHE/cc-state.json" 2>/dev/null || printf '{}')
 MINIMAL_POPUP_OUTPUT=$(hyprctl -j monitors 2>/dev/null | jq -r 'first(.[] | select(.focused)).name // empty' || true)
 export MINIMAL_CC_TAB MINIMAL_CC_JSON MINIMAL_POPUP_OUTPUT
+# Match Settings' tested Qt input context while preserving explicit IME choices.
+if [[ -z ${QT_IM_MODULE:-} && -z ${XMODIFIERS:-} ]]; then
+    export QT_IM_MODULE=compose
+fi
 exec "$MINIMAL_ROOT/scripts/popup.sh" control-center quickshell -n -p "$CONFIG_PATH" 9>&-

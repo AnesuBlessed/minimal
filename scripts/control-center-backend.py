@@ -307,7 +307,8 @@ def get_system_state(wifi_enabled, bt_powered):
     dnd = False
     if shutil.which("makoctl"):
         _, modes, _ = run_cmd(["makoctl", "mode"], timeout=1.5)
-        dnd = "do-not-disturb" in modes.splitlines()
+        mode_set = set(modes.splitlines())
+        dnd = "dnd" in mode_set or "do-not-disturb" in mode_set
 
     return {
         "brightness": brightness,
