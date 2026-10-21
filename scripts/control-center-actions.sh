@@ -59,11 +59,17 @@ case "$act" in
         ssid="${1:-}"
         pw="${2:-}"
         if [[ -n "$pw" ]]; then
-            nmcli device wifi connect "$ssid" password "$pw"
+            if ! nmcli device wifi connect "$ssid" password "$pw"; then
+                command -v notify-send >/dev/null 2>&1 && notify-send -a minimal -u critical -i network-wireless-offline "Connection Failed" "Could not connect to $ssid" || true
+                exit 1
+            fi
         else
-            nmcli connection up id "$ssid" 2>/dev/null || nmcli device wifi connect "$ssid"
+            if ! { nmcli connection up id "$ssid" 2>/dev/null || nmcli device wifi connect "$ssid"; }; then
+                command -v notify-send >/dev/null 2>&1 && notify-send -a minimal -u critical -i network-wireless-offline "Connection Failed" "Could not connect to $ssid" || true
+                exit 1
+            fi
         fi
-        command -v notify-send >/dev/null 2>&1 && notify-send -a minimal "Wi-Fi Connected" "$ssid" || true
+        command -v notify-send >/dev/null 2>&1 && notify-send -a minimal -i network-wireless "Wi-Fi Connected" "$ssid" || true
         ;;
     wifi-disconnect)
         ssid="${1:-}"
@@ -72,7 +78,7 @@ case "$act" in
     wifi-forget)
         ssid="${1:-}"
         if [[ -n "$ssid" ]]; then
-            nmcli connection delete id "$ssid" 2>/dev/null || true
+            nmcli connection delete id "$ssid" 2>/dev/null || nmcli connection delete "$ssid" 2>/dev/null || true
             command -v notify-send >/dev/null 2>&1 && notify-send -a minimal "Removed Saved Network" "$ssid" || true
         fi
         ;;

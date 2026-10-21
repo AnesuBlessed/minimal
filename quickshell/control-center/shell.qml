@@ -19,6 +19,9 @@ ShellRoot {
     property string wifiPassword: ""
     property bool showWifiPassword: false
     property string connectingWifiSsid: ""
+    property string wifiSearchText: ""
+    property string wifiError: ""
+    property string lastActionError: ""
     property string connectingBtMac: ""
     property string connectingBtAction: ""
 
@@ -63,8 +66,13 @@ ShellRoot {
     readonly property var availableWifiNetworks: {
         var res = [];
         var nets = (root.stateData && root.stateData.wifi && root.stateData.wifi.networks) ? root.stateData.wifi.networks : [];
+        var filter = (root.wifiSearchText || "").trim().toLowerCase();
         for (var i = 0; i < nets.length; i++) {
-            if (!nets[i].inUse) res.push(nets[i]);
+            if (!nets[i].inUse) {
+                if (!filter || (nets[i].ssid && nets[i].ssid.toLowerCase().indexOf(filter) !== -1)) {
+                    res.push(nets[i]);
+                }
+            }
         }
         return res;
     }
@@ -142,8 +150,22 @@ ShellRoot {
 
     Process {
         id: actionProc
-        onExited: {
+        stdout: StdioCollector {}
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim()) root.lastActionError = text.trim();
+            }
+        }
+        onExited: (exitCode) => {
             root.busy = false;
+            if (exitCode !== 0 && root.connectingWifiSsid !== "") {
+                var err = root.lastActionError || ("Failed to connect to " + root.connectingWifiSsid);
+                if (err.indexOf("Error:") === 0) err = err.slice(6).trim();
+                root.wifiError = err;
+            } else if (exitCode === 0 && root.connectingWifiSsid !== "") {
+                root.wifiError = "";
+            }
+            root.lastActionError = "";
             root.connectingWifiSsid = "";
             root.connectingBtMac = "";
             root.connectingBtAction = "";
@@ -567,115 +589,284 @@ ShellRoot {
                 }
 
                 // =============================================================
-                // TAB 2: FULL WI-FI MANAGER
+                // TAB 2: FULL WI-FI MANAGER (REDESIGNED)
                 // =============================================================
                 Item {
+                    id: wifiTabItem
                     visible: root.activeTab === "wifi"
                     x: 12; y: 60
                     width: parent.width - 24
                     height: parent.height - 72
 
-                    // Top Wi-Fi Control Bar
-                    Rectangle {
-                        id: wifiHeader
-                        width: parent.width; height: 42
-                        radius: theme.controlRadius
-                        color: theme.control
-                        border.width: 1
-                        border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+                    // Top Control Stack: Header Bar + Error Banner + Search Filter
+                    Column {
+                        id: wifiTopStack
+                        width: parent.width
+                        spacing: 8
 
-                        Row {
-                            x: 10; anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
-                            Text {
-                                text: root.stateData.wifi.enabled ? "󰖩" : "󰖪"
-                                font.family: theme.fontFamily; font.pixelSize: 16
-                                color: theme.accent
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
+                        // 1. Wi-Fi Control Header Bar
+                        Rectangle {
+                            id: wifiHeader
+                            width: parent.width; height: 44
+                            radius: theme.controlRadius
+                            color: theme.control
+                            border.width: 1
+                            border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+
+                            Row {
+                                x: 12; anchors.verticalCenter: parent.verticalCenter
+                                spacing: 10
+                                width: parent.width - 210
+
                                 Text {
-                                    text: root.stateData.wifi.connectedSsid
-                                        ? ("Connected: " + root.stateData.wifi.connectedSsid)
-                                        : (root.stateData.wifi.enabled ? "Wi-Fi Enabled · Disconnected" : "Wi-Fi Disabled")
-                                    font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
-                                    color: theme.text
+                                    text: root.stateData.wifi.enabled ? "󰖩" : "󰖪"
+                                    font.family: theme.fontFamily; font.pixelSize: 18
+                                    color: root.stateData.wifi.enabled ? theme.accent : theme.muted
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
-                                Text {
-                                    visible: root.stateData.wifi.ipAddress !== ""
-                                    text: "IP: " + root.stateData.wifi.ipAddress + " (" + root.stateData.wifi.interface + ")"
-                                    font.family: theme.fontFamily; font.pixelSize: 10
-                                    color: theme.muted
+
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    width: parent.width - 28
+
+                                    Text {
+                                        width: parent.width
+                                        text: {
+                                            if (!root.stateData.wifi.enabled) return "Wi-Fi Disabled";
+                                            if (root.stateData.wifi.connectedSsid) return root.stateData.wifi.connectedSsid;
+                                            return "Wi-Fi Disconnected";
+                                        }
+                                        font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: {
+                                            if (!root.stateData.wifi.enabled) return "Wireless radio turned off";
+                                            if (root.stateData.wifi.ipAddress) return "IP: " + root.stateData.wifi.ipAddress + " · " + root.stateData.wifi.interface;
+                                            return "Ready to connect";
+                                        }
+                                        font.family: theme.fontFamily; font.pixelSize: 10
+                                        color: theme.muted
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+
+                            Row {
+                                anchors.right: parent.right; anchors.rightMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                // Hotspot Toggle
+                                Rectangle {
+                                    width: hsText.implicitWidth + 14; height: 28
+                                    radius: Math.max(4, theme.controlRadius - 1)
+                                    color: root.stateData.wifi.hotspotActive ? theme.accent : theme.reading
+                                    border.width: 1; border.color: root.stateData.wifi.hotspotActive ? theme.accent : theme.border
+
+                                    Text {
+                                        id: hsText; anchors.centerIn: parent
+                                        text: root.stateData.wifi.hotspotActive ? "󰀂 Hotspot On" : "󰀂 Hotspot"
+                                        font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                        color: root.stateData.wifi.hotspotActive ? theme.base : theme.text
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.runAction(["wifi-hotspot"])
+                                    }
+                                }
+
+                                // Scan Button
+                                Rectangle {
+                                    width: 68; height: 28
+                                    radius: Math.max(4, theme.controlRadius - 1)
+                                    color: theme.reading
+                                    border.width: 1; border.color: theme.border
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text {
+                                            text: "󰑐"
+                                            font.family: theme.fontFamily; font.pixelSize: 12
+                                            color: theme.accent
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            RotationAnimation on rotation {
+                                                running: root.busy
+                                                loops: Animation.Infinite
+                                                from: 0; to: 360; duration: 900
+                                            }
+                                        }
+                                        Text {
+                                            text: root.busy ? "Scan…" : "Scan"
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                            color: theme.accent
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        enabled: !root.busy
+                                        onClicked: root.runAction(["wifi-scan"])
+                                    }
+                                }
+
+                                // Radio Power Toggle Switch
+                                Rectangle {
+                                    width: 54; height: 28
+                                    radius: Math.max(4, theme.controlRadius - 1)
+                                    color: root.wifiEnabled ? theme.accent : theme.reading
+                                    border.width: 1; border.color: root.wifiEnabled ? theme.accent : theme.border
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Rectangle {
+                                            width: 6; height: 6; radius: 3
+                                            color: root.wifiEnabled ? theme.base : theme.muted
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Text {
+                                            text: root.wifiEnabled ? "ON" : "OFF"
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                            color: root.wifiEnabled ? theme.base : theme.muted
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.wifiEnabled = !root.wifiEnabled;
+                                            root.runAction(["wifi-toggle"]);
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        Row {
-                            anchors.right: parent.right; anchors.rightMargin: 8
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 6
+                        // 2. Wi-Fi Error Banner
+                        Rectangle {
+                            id: wifiErrorBanner
+                            visible: root.wifiError !== ""
+                            width: parent.width; height: 32
+                            radius: Math.max(4, theme.controlRadius - 1)
+                            color: Qt.rgba(0.9, 0.2, 0.2, 0.14)
+                            border.width: 1
+                            border.color: Qt.rgba(0.9, 0.2, 0.2, 0.45)
 
-                            // Hotspot Toggle
-                            Rectangle {
-                                width: hsText.implicitWidth + 14; height: 26
-                                radius: Math.max(4, theme.controlRadius - 1)
-                                color: root.stateData.wifi.hotspotActive ? theme.accent : theme.reading
-                                border.width: 1; border.color: theme.border
+                            Row {
+                                anchors.left: parent.left; anchors.leftMargin: 10
+                                anchors.right: dismissErrBtn.left; anchors.rightMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 8
+
                                 Text {
-                                    id: hsText; anchors.centerIn: parent
-                                    text: root.stateData.wifi.hotspotActive ? "󰀂 Hotspot On" : "󰀂 Hotspot"
-                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: root.stateData.wifi.hotspotActive ? theme.base : theme.text
+                                    text: "󰅚"
+                                    font.family: theme.fontFamily; font.pixelSize: 13
+                                    color: Qt.rgba(0.95, 0.35, 0.35, 1)
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.runAction(["wifi-hotspot"])
+
+                                Text {
+                                    width: parent.width - 24
+                                    text: root.wifiError
+                                    font.family: theme.fontFamily; font.pixelSize: 11
+                                    color: theme.text
+                                    elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
-                            // Scan Button
                             Rectangle {
-                                width: 58; height: 26
-                                radius: Math.max(4, theme.controlRadius - 1)
-                                color: theme.reading
-                                border.width: 1; border.color: theme.border
+                                id: dismissErrBtn
+                                anchors.right: parent.right; anchors.rightMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 20; height: 20; radius: 10
+                                color: dismissErrArea.containsMouse ? theme.selection : "transparent"
                                 Text {
-                                    anchors.centerIn: parent
-                                    text: root.busy ? "…" : "󰑐 Scan"
-                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: theme.accent
+                                    anchors.centerIn: parent; text: "󰅖"
+                                    font.family: theme.fontFamily; font.pixelSize: 11
+                                    color: theme.muted
                                 }
                                 MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.runAction(["wifi-scan"])
+                                    id: dismissErrArea
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                                    onClicked: root.wifiError = ""
                                 }
                             }
+                        }
 
-                            // Radio Power Toggle
-                            Rectangle {
-                                width: 52; height: 26
-                                radius: Math.max(4, theme.controlRadius - 1)
-                                color: root.wifiEnabled ? theme.accent : theme.reading
-                                border.width: 1; border.color: theme.border
+                        // 3. Search Filter Bar
+                        Rectangle {
+                            id: wifiSearchRow
+                            visible: root.stateData.wifi.enabled && (root.connectedWifiNetworks.length > 0 || root.availableWifiNetworks.length > 0 || root.wifiSearchText !== "")
+                            width: parent.width; height: 32
+                            radius: Math.max(4, theme.controlRadius - 1)
+                            color: theme.control
+                            border.width: 1
+                            border.color: wifiSearchField.activeFocus ? theme.accent : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10; anchors.rightMargin: 8
+                                spacing: 8
+
                                 Text {
-                                    anchors.centerIn: parent
-                                    text: root.wifiEnabled ? "ON" : "OFF"
-                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
-                                    color: root.wifiEnabled ? theme.base : theme.muted
+                                    text: "󰍉"
+                                    font.family: theme.fontFamily; font.pixelSize: 13
+                                    color: wifiSearchField.activeFocus ? theme.accent : theme.muted
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.wifiEnabled = !root.wifiEnabled;
-                                        root.runAction(["wifi-toggle"]);
+
+                                TextInput {
+                                    id: wifiSearchField
+                                    width: parent.width - (clearFilterBtn.visible ? 48 : 28)
+                                    height: parent.height
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                    color: theme.text; selectionColor: theme.selection
+                                    clip: true
+                                    text: root.wifiSearchText
+                                    onTextChanged: root.wifiSearchText = text
+
+                                    Text {
+                                        visible: !wifiSearchField.text && !wifiSearchField.activeFocus
+                                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                        text: "Filter networks by name..."
+                                        font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                        color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.35)
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: clearFilterBtn
+                                    visible: root.wifiSearchText !== ""
+                                    width: 20; height: 20; radius: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: clearFilterArea.containsMouse ? theme.selection : "transparent"
+                                    Text {
+                                        anchors.centerIn: parent; text: "󰅖"
+                                        font.family: theme.fontFamily; font.pixelSize: 11
+                                        color: theme.muted
+                                    }
+                                    MouseArea {
+                                        id: clearFilterArea
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                                        onClicked: {
+                                            root.wifiSearchText = "";
+                                            wifiSearchField.text = "";
+                                        }
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Wi-Fi Network List
+                    // Network Delegate Component
                     Component {
                         id: wifiCardDelegate
 
@@ -686,70 +877,157 @@ ShellRoot {
                             readonly property bool isConnecting: root.connectingWifiSsid === modelData.ssid
 
                             width: wifiCol.width
-                            height: isPending ? 86 : 42
+                            height: isPending ? 104 : 48
                             radius: theme.controlRadius
-                            color: modelData.inUse ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.16) : theme.control
+                            color: (modelData.inUse || isPending)
+                                ? Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.12)
+                                : (cardHover.containsMouse ? Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.05) : theme.control)
                             border.width: 1
-                            border.color: (modelData.inUse || isPending) ? theme.accent : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.06)
+                            border.color: (modelData.inUse || isPending)
+                                ? theme.accent
+                                : (cardHover.containsMouse ? Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.22) : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.07))
                             clip: true
 
                             Behavior on height {
-                                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+                            }
+
+                            // Full card interaction
+                            MouseArea {
+                                id: cardHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                enabled: !wifiCard.isPending && !wifiCard.isConnecting
+                                onClicked: {
+                                    if (modelData.inUse) {
+                                        root.runAction(["wifi-disconnect", modelData.ssid]);
+                                    } else if (modelData.saved || !modelData.secured) {
+                                        root.wifiError = "";
+                                        root.connectingWifiSsid = modelData.ssid;
+                                        root.runAction(["wifi-connect", modelData.ssid]);
+                                    } else {
+                                        root.wifiError = "";
+                                        root.pendingSsid = modelData.ssid;
+                                        root.wifiPassword = "";
+                                        root.showWifiPassword = false;
+                                    }
+                                }
                             }
 
                             // Main network info row
                             Item {
                                 id: mainRow
-                                width: parent.width; height: 42
+                                width: parent.width; height: 48
 
                                 Row {
-                                    x: 10; anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 8
+                                    x: 12; anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 10
                                     width: parent.width - 150
 
                                     Text {
                                         text: modelData.signal >= 75 ? "󰤨" : (modelData.signal >= 50 ? "󰤥" : (modelData.signal >= 25 ? "󰤢" : "󰤟"))
-                                        font.family: theme.fontFamily; font.pixelSize: 15
-                                        color: modelData.inUse ? theme.accent : theme.text
+                                        font.family: theme.fontFamily; font.pixelSize: 16
+                                        color: modelData.inUse ? theme.accent : (modelData.signal >= 50 ? theme.text : theme.muted)
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Column {
-                                        width: parent.width - 30
+                                        width: parent.width - 32
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text {
+                                        spacing: 2
+
+                                        Row {
+                                            spacing: 6
                                             width: parent.width
-                                            text: modelData.ssid
-                                            elide: Text.ElideRight
-                                            font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: modelData.inUse
-                                            color: theme.text
+
+                                            Text {
+                                                text: modelData.ssid
+                                                elide: Text.ElideRight
+                                                font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: modelData.inUse || modelData.saved
+                                                color: theme.text
+                                                maximumLineCount: 1
+                                            }
+
+                                            // SAVED Pill
+                                            Rectangle {
+                                                visible: modelData.saved && !modelData.inUse
+                                                width: savedPillTxt.implicitWidth + 8; height: 15; radius: 3
+                                                color: Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.18)
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                Text {
+                                                    id: savedPillTxt
+                                                    anchors.centerIn: parent; text: "SAVED"
+                                                    font.family: theme.fontFamily; font.pixelSize: 8; font.bold: true
+                                                    color: theme.accent
+                                                }
+                                            }
+
+                                            // Band badge (5G / 2.4G)
+                                            Rectangle {
+                                                visible: !!modelData.band
+                                                width: bandPillTxt.implicitWidth + 8; height: 15; radius: 3
+                                                color: theme.reading
+                                                border.width: 1; border.color: theme.border
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                Text {
+                                                    id: bandPillTxt
+                                                    anchors.centerIn: parent
+                                                    text: modelData.band ? (modelData.band.indexOf("5") !== -1 ? "5G" : (modelData.band.indexOf("2") !== -1 ? "2.4G" : modelData.band)) : ""
+                                                    font.family: theme.fontFamily; font.pixelSize: 8; font.bold: true
+                                                    color: theme.muted
+                                                }
+                                            }
                                         }
-                                        Text {
-                                            text: isConnecting
-                                                ? "Connecting..."
-                                                : (modelData.signal + "% · " + modelData.security + (modelData.inUse ? " · Connected" : (modelData.saved ? " · Saved" : "")))
-                                            font.family: theme.fontFamily; font.pixelSize: 10
-                                            color: (modelData.inUse || isConnecting) ? theme.accent : theme.muted
+
+                                        Row {
+                                            spacing: 6
+                                            Text {
+                                                text: isConnecting
+                                                    ? "Connecting..."
+                                                    : (modelData.signal + "%  ·  " + (modelData.secured ? (modelData.security || "Secured") : "Open"))
+                                                font.family: theme.fontFamily; font.pixelSize: 10
+                                                color: isConnecting ? theme.accent : theme.muted
+                                            }
                                         }
                                     }
                                 }
 
                                 Row {
-                                    anchors.right: parent.right; anchors.rightMargin: 8
+                                    anchors.right: parent.right; anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 6
 
+                                    // Forget saved profile button
+                                    Rectangle {
+                                        visible: modelData.saved && !modelData.inUse
+                                        width: 28; height: 28
+                                        radius: Math.max(4, theme.controlRadius - 1)
+                                        color: theme.reading
+                                        border.width: 1; border.color: cardForgetArea.containsMouse ? theme.accent : theme.border
+                                        Text {
+                                            anchors.centerIn: parent; text: "󰆴"
+                                            font.family: theme.fontFamily; font.pixelSize: 13
+                                            color: cardForgetArea.containsMouse ? theme.accent : theme.muted
+                                        }
+                                        MouseArea {
+                                            id: cardForgetArea
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                                            onClicked: root.runAction(["wifi-forget", modelData.ssid])
+                                        }
+                                    }
+
                                     // Connect / Disconnect button
                                     Rectangle {
-                                        width: 78; height: 26
+                                        width: 78; height: 28
                                         radius: Math.max(4, theme.controlRadius - 1)
                                         color: modelData.inUse ? theme.reading : theme.accent
-                                        border.width: 1; border.color: theme.border
+                                        border.width: 1; border.color: modelData.inUse ? theme.border : theme.accent
                                         opacity: isConnecting ? 0.7 : 1.0
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: isConnecting ? "…" : (modelData.inUse ? "Disconnect" : "Connect")
+                                            text: isConnecting ? "…" : (modelData.inUse ? "Disconnect" : (isPending ? "Cancel" : "Connect"))
                                             font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
                                             color: modelData.inUse ? theme.text : theme.base
                                         }
@@ -760,6 +1038,7 @@ ShellRoot {
                                                 if (modelData.inUse) {
                                                     root.runAction(["wifi-disconnect", modelData.ssid]);
                                                 } else if (modelData.saved || !modelData.secured) {
+                                                    root.wifiError = "";
                                                     root.connectingWifiSsid = modelData.ssid;
                                                     root.runAction(["wifi-connect", modelData.ssid]);
                                                 } else {
@@ -767,6 +1046,7 @@ ShellRoot {
                                                         root.pendingSsid = "";
                                                         root.wifiPassword = "";
                                                     } else {
+                                                        root.wifiError = "";
                                                         root.pendingSsid = modelData.ssid;
                                                         root.wifiPassword = "";
                                                         root.showWifiPassword = false;
@@ -775,153 +1055,144 @@ ShellRoot {
                                             }
                                         }
                                     }
-
-                                    // Forget saved profile button
-                                    Rectangle {
-                                        visible: modelData.saved
-                                        width: 28; height: 26
-                                        radius: Math.max(4, theme.controlRadius - 1)
-                                        color: theme.reading
-                                        border.width: 1; border.color: theme.border
-                                        Text {
-                                            anchors.centerIn: parent; text: "󰆴"
-                                            font.family: theme.fontFamily; font.pixelSize: 13
-                                            color: theme.muted
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.runAction(["wifi-forget", modelData.ssid])
-                                        }
-                                    }
                                 }
                             }
 
-                            // Inline expandable password input row
+                            // Inline expandable password input drawer
                             Rectangle {
                                 id: inlinePassRow
                                 visible: wifiCard.isPending
-                                x: 8; y: 44
-                                width: parent.width - 16; height: 34
+                                x: 10; y: 52
+                                width: parent.width - 20; height: 44
                                 radius: Math.max(4, theme.controlRadius - 2)
                                 color: theme.reading
                                 border.width: 1; border.color: theme.border
 
-                                Text {
-                                    id: lockIcon
-                                    x: 8; anchors.verticalCenter: parent.verticalCenter
-                                    text: "󰌾"
-                                    font.family: theme.fontFamily; font.pixelSize: 13
-                                    color: theme.accent
-                                }
-
-                                TextInput {
-                                    id: cardPassInput
-                                    anchors.left: lockIcon.right; anchors.leftMargin: 6
-                                    anchors.right: passEyeBtn.left; anchors.rightMargin: 6
-                                    height: parent.height
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    echoMode: root.showWifiPassword ? TextInput.Normal : TextInput.Password
-                                    font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
-                                    color: theme.text; selectionColor: theme.selection
-                                    clip: true
-                                    text: wifiCard.isPending ? root.wifiPassword : ""
-                                    onTextChanged: {
-                                        if (wifiCard.isPending) root.wifiPassword = text;
-                                    }
-                                    Component.onCompleted: {
-                                        if (wifiCard.isPending) forceActiveFocus();
-                                    }
-                                    Keys.onReturnPressed: {
-                                        const target = modelData.ssid;
-                                        const pw = root.wifiPassword;
-                                        root.pendingSsid = "";
-                                        root.wifiPassword = "";
-                                        root.showWifiPassword = false;
-                                        root.connectingWifiSsid = target;
-                                        root.runAction(["wifi-connect", target, pw]);
-                                    }
-                                    Keys.onEscapePressed: {
-                                        root.pendingSsid = "";
-                                        root.wifiPassword = "";
-                                        root.showWifiPassword = false;
-                                    }
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10; anchors.rightMargin: 6
+                                    spacing: 6
 
                                     Text {
-                                        visible: !cardPassInput.text && !cardPassInput.activeFocus
-                                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                                        text: "Enter Wi-Fi password..."
-                                        font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
-                                        color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.4)
+                                        id: lockIcon
+                                        text: "󰌾"
+                                        font.family: theme.fontFamily; font.pixelSize: 14
+                                        color: theme.accent
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
-                                }
 
-                                Rectangle {
-                                    id: passEyeBtn
-                                    anchors.right: cardJoinBtn.left; anchors.rightMargin: 4
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 24; height: 24
-                                    radius: 4
-                                    color: passEyeArea.containsMouse ? theme.selection : "transparent"
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: root.showWifiPassword ? "󰈉" : "󰈈"
-                                        font.family: theme.fontFamily; font.pixelSize: 12
-                                        color: root.showWifiPassword ? theme.accent : theme.muted
-                                    }
-                                    MouseArea {
-                                        id: passEyeArea
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        hoverEnabled: true
-                                        onClicked: root.showWifiPassword = !root.showWifiPassword
-                                    }
-                                }
+                                    Item {
+                                        width: parent.width - lockIcon.width - passEyeBtn.width - cardJoinBtn.width - cardCancelBtn.width - 34
+                                        height: parent.height
+                                        anchors.verticalCenter: parent.verticalCenter
 
-                                Rectangle {
-                                    id: cardJoinBtn
-                                    anchors.right: cardCancelBtn.left; anchors.rightMargin: 4
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 48; height: 24
-                                    radius: 4
-                                    color: theme.accent
-                                    Text {
-                                        anchors.centerIn: parent; text: "Join"
-                                        font.family: theme.fontFamily; font.pixelSize: 11; font.bold: true
-                                        color: theme.base
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            const target = modelData.ssid;
-                                            const pw = root.wifiPassword;
-                                            root.pendingSsid = "";
-                                            root.wifiPassword = "";
-                                            root.showWifiPassword = false;
-                                            root.connectingWifiSsid = target;
-                                            root.runAction(["wifi-connect", target, pw]);
+                                        TextInput {
+                                            id: cardPassInput
+                                            anchors.fill: parent
+                                            verticalAlignment: TextInput.AlignVCenter
+                                            echoMode: root.showWifiPassword ? TextInput.Normal : TextInput.Password
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                            color: theme.text; selectionColor: theme.selection
+                                            clip: true
+                                            text: wifiCard.isPending ? root.wifiPassword : ""
+                                            onTextChanged: {
+                                                if (wifiCard.isPending) root.wifiPassword = text;
+                                            }
+                                            Component.onCompleted: {
+                                                if (wifiCard.isPending) forceActiveFocus();
+                                            }
+                                            Keys.onReturnPressed: {
+                                                const target = modelData.ssid;
+                                                const pw = root.wifiPassword;
+                                                root.pendingSsid = "";
+                                                root.wifiPassword = "";
+                                                root.showWifiPassword = false;
+                                                root.connectingWifiSsid = target;
+                                                root.wifiError = "";
+                                                root.runAction(["wifi-connect", target, pw]);
+                                            }
+                                            Keys.onEscapePressed: {
+                                                root.pendingSsid = "";
+                                                root.wifiPassword = "";
+                                                root.showWifiPassword = false;
+                                            }
+                                        }
+
+                                        Text {
+                                            visible: !cardPassInput.text && !cardPassInput.activeFocus
+                                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                            text: "Enter Wi-Fi password..."
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary
+                                            color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.4)
                                         }
                                     }
-                                }
 
-                                Rectangle {
-                                    id: cardCancelBtn
-                                    anchors.right: parent.right; anchors.rightMargin: 4
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 24; height: 24
-                                    radius: 4
-                                    color: cardCancelArea.containsMouse ? theme.selection : "transparent"
-                                    Text {
-                                        anchors.centerIn: parent; text: "󰅖"
-                                        font.family: theme.fontFamily; font.pixelSize: 12
-                                        color: theme.muted
+                                    Rectangle {
+                                        id: passEyeBtn
+                                        width: 28; height: 28
+                                        radius: 4
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: passEyeArea.containsMouse ? theme.selection : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: root.showWifiPassword ? "󰈉" : "󰈈"
+                                            font.family: theme.fontFamily; font.pixelSize: 13
+                                            color: root.showWifiPassword ? theme.accent : theme.muted
+                                        }
+                                        MouseArea {
+                                            id: passEyeArea
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            hoverEnabled: true
+                                            onClicked: root.showWifiPassword = !root.showWifiPassword
+                                        }
                                     }
-                                    MouseArea {
-                                        id: cardCancelArea
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        hoverEnabled: true
-                                        onClicked: {
-                                            root.pendingSsid = "";
-                                            root.wifiPassword = "";
-                                            root.showWifiPassword = false;
+
+                                    Rectangle {
+                                        id: cardJoinBtn
+                                        width: 54; height: 28
+                                        radius: 4
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: theme.accent
+                                        Text {
+                                            anchors.centerIn: parent; text: "Join"
+                                            font.family: theme.fontFamily; font.pixelSize: 11; font.bold: true
+                                            color: theme.base
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                const target = modelData.ssid;
+                                                const pw = root.wifiPassword;
+                                                root.pendingSsid = "";
+                                                root.wifiPassword = "";
+                                                root.showWifiPassword = false;
+                                                root.connectingWifiSsid = target;
+                                                root.wifiError = "";
+                                                root.runAction(["wifi-connect", target, pw]);
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        id: cardCancelBtn
+                                        width: 28; height: 28
+                                        radius: 4
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: cardCancelArea.containsMouse ? theme.selection : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent; text: "󰅖"
+                                            font.family: theme.fontFamily; font.pixelSize: 13
+                                            color: theme.muted
+                                        }
+                                        MouseArea {
+                                            id: cardCancelArea
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            hoverEnabled: true
+                                            onClicked: {
+                                                root.pendingSsid = "";
+                                                root.wifiPassword = "";
+                                                root.showWifiPassword = false;
+                                            }
                                         }
                                     }
                                 }
@@ -929,10 +1200,13 @@ ShellRoot {
                         }
                     }
 
+                    // Scrollable Networks Container
                     Flickable {
                         id: wifiFlick
-                        y: 48
-                        width: parent.width; height: parent.height - 48
+                        anchors.top: wifiTopStack.bottom
+                        anchors.topMargin: 8
+                        anchors.bottom: parent.bottom
+                        width: parent.width
                         contentWidth: width
                         contentHeight: wifiCol.implicitHeight
                         clip: true
@@ -942,46 +1216,329 @@ ShellRoot {
                         Column {
                             id: wifiCol
                             width: parent.width
-                            spacing: 6
+                            spacing: 8
 
-                            Text {
-                                visible: root.connectedWifiNetworks.length > 0
+                            // Disabled state card
+                            Rectangle {
+                                visible: !root.stateData.wifi.enabled
+                                width: parent.width; height: 200
+                                radius: theme.controlRadius
+                                color: theme.control
+                                border.width: 1
+                                border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 12
+
+                                    Text {
+                                        text: "󰖪"
+                                        font.family: theme.fontFamily; font.pixelSize: 42
+                                        color: theme.muted
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
+
+                                    Column {
+                                        spacing: 4
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        Text {
+                                            text: "Wi-Fi is Turned Off"
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
+                                            color: theme.text
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                        Text {
+                                            text: "Enable Wi-Fi to scan and connect to nearby networks"
+                                            font.family: theme.fontFamily; font.pixelSize: 11
+                                            color: theme.muted
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 140; height: 32
+                                        radius: Math.max(4, theme.controlRadius - 1)
+                                        color: theme.accent
+                                        anchors.horizontalCenter: parent.horizontalCenter
+
+                                        Row {
+                                            anchors.centerIn: parent
+                                            spacing: 8
+                                            Text {
+                                                text: "󰖩"
+                                                font.family: theme.fontFamily; font.pixelSize: 13
+                                                color: theme.base
+                                            }
+                                            Text {
+                                                text: "Turn On Wi-Fi"
+                                                font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                                color: theme.base
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.wifiEnabled = true;
+                                                root.runAction(["wifi-toggle"]);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Active Connection Hero Card
+                            Rectangle {
+                                visible: root.stateData.wifi.enabled && root.connectedWifiNetworks.length > 0
+                                width: parent.width; height: 72
+                                radius: theme.controlRadius
+                                color: Qt.rgba(theme.accent.r, theme.accent.g, theme.accent.b, 0.12)
+                                border.width: 1
+                                border.color: theme.accent
+
+                                Item {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+
+                                    Row {
+                                        anchors.left: parent.left
+                                        anchors.right: heroActions.left
+                                        anchors.rightMargin: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 10
+
+                                        Text {
+                                            readonly property int sig: root.connectedWifiNetworks.length > 0 ? (root.connectedWifiNetworks[0].signal || 0) : 0
+                                            text: sig >= 75 ? "󰤨" : (sig >= 50 ? "󰤥" : (sig >= 25 ? "󰤢" : "󰤟"))
+                                            font.family: theme.fontFamily; font.pixelSize: 22
+                                            color: theme.accent
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 4
+                                            width: parent.width - 34
+
+                                            Row {
+                                                spacing: 6
+                                                width: parent.width
+
+                                                Text {
+                                                    text: root.stateData.wifi.connectedSsid || (root.connectedWifiNetworks.length > 0 ? root.connectedWifiNetworks[0].ssid : "Connected")
+                                                    font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
+                                                    color: theme.text
+                                                    elide: Text.ElideRight
+                                                    maximumLineCount: 1
+                                                }
+
+                                                Rectangle {
+                                                    width: 52; height: 16; radius: 3
+                                                    color: theme.accent
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    Text {
+                                                        anchors.centerIn: parent; text: "ACTIVE"
+                                                        font.family: theme.fontFamily; font.pixelSize: 9; font.bold: true
+                                                        color: theme.base
+                                                    }
+                                                }
+
+                                                Rectangle {
+                                                    visible: root.connectedWifiNetworks.length > 0 && !!root.connectedWifiNetworks[0].band
+                                                    width: bandHeroTxt.implicitWidth + 8; height: 16; radius: 3
+                                                    color: theme.reading
+                                                    border.width: 1; border.color: theme.border
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    Text {
+                                                        id: bandHeroTxt
+                                                        anchors.centerIn: parent
+                                                        text: root.connectedWifiNetworks.length > 0 ? (root.connectedWifiNetworks[0].band || "") : ""
+                                                        font.family: theme.fontFamily; font.pixelSize: 9; font.bold: true
+                                                        color: theme.muted
+                                                    }
+                                                }
+                                            }
+
+                                            Row {
+                                                spacing: 8
+                                                Text {
+                                                    readonly property int sig: root.connectedWifiNetworks.length > 0 ? (root.connectedWifiNetworks[0].signal || 0) : 0
+                                                    text: sig + "% signal"
+                                                    font.family: theme.fontFamily; font.pixelSize: 10
+                                                    color: theme.accent
+                                                }
+                                                Text {
+                                                    visible: root.stateData.wifi.ipAddress !== ""
+                                                    text: "·  IP: " + root.stateData.wifi.ipAddress
+                                                    font.family: theme.fontFamily; font.pixelSize: 10
+                                                    color: theme.muted
+                                                }
+                                                Text {
+                                                    visible: root.stateData.wifi.interface !== ""
+                                                    text: "(" + root.stateData.wifi.interface + ")"
+                                                    font.family: theme.fontFamily; font.pixelSize: 10
+                                                    color: theme.muted
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Row {
+                                        id: heroActions
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 6
+
+                                        Rectangle {
+                                            width: 86; height: 28
+                                            radius: Math.max(4, theme.controlRadius - 1)
+                                            color: theme.reading
+                                            border.width: 1
+                                            border.color: heroDiscArea.containsMouse ? theme.accent : theme.border
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "Disconnect"
+                                                font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                                color: theme.text
+                                            }
+                                            MouseArea {
+                                                id: heroDiscArea
+                                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                                                onClicked: {
+                                                    const target = root.stateData.wifi.connectedSsid || (root.connectedWifiNetworks.length > 0 ? root.connectedWifiNetworks[0].ssid : "");
+                                                    if (target) root.runAction(["wifi-disconnect", target]);
+                                                }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            visible: root.connectedWifiNetworks.length > 0 && root.connectedWifiNetworks[0].saved
+                                            width: 28; height: 28
+                                            radius: Math.max(4, theme.controlRadius - 1)
+                                            color: theme.reading
+                                            border.width: 1
+                                            border.color: heroForgetArea.containsMouse ? theme.accent : theme.border
+                                            Text {
+                                                anchors.centerIn: parent; text: "󰆴"
+                                                font.family: theme.fontFamily; font.pixelSize: 13
+                                                color: heroForgetArea.containsMouse ? theme.accent : theme.muted
+                                            }
+                                            MouseArea {
+                                                id: heroForgetArea
+                                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                                                onClicked: {
+                                                    const target = root.stateData.wifi.connectedSsid || (root.connectedWifiNetworks.length > 0 ? root.connectedWifiNetworks[0].ssid : "");
+                                                    if (target) root.runAction(["wifi-forget", target]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Available Networks Section Header
+                            Row {
+                                visible: root.stateData.wifi.enabled && root.availableWifiNetworks.length > 0
                                 width: parent.width
-                                text: "CONNECTED"
-                                color: theme.accent
-                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                                spacing: 8
+
+                                Text {
+                                    text: "AVAILABLE NETWORKS"
+                                    color: theme.muted
+                                    font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Rectangle {
+                                    width: countTxt.implicitWidth + 8; height: 16; radius: 8
+                                    color: theme.control
+                                    border.width: 1; border.color: theme.border
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        id: countTxt
+                                        anchors.centerIn: parent
+                                        text: root.availableWifiNetworks.length
+                                        font.family: theme.fontFamily; font.pixelSize: 9
+                                        color: theme.muted
+                                    }
+                                }
                             }
 
-                            Repeater {
-                                model: root.connectedWifiNetworks
-                                delegate: wifiCardDelegate
-                            }
-
-                            Item {
-                                visible: root.connectedWifiNetworks.length > 0 && root.availableWifiNetworks.length > 0
-                                width: parent.width; height: 4
-                            }
-
-                            Text {
-                                visible: root.availableWifiNetworks.length > 0
-                                width: parent.width
-                                text: "AVAILABLE NETWORKS"
-                                color: theme.muted
-                                font.family: theme.fontFamily; font.pixelSize: 10; font.bold: true
-                            }
-
+                            // Available Networks List
                             Repeater {
                                 model: root.availableWifiNetworks
                                 delegate: wifiCardDelegate
                             }
 
-                            Text {
+                            // Empty search / No networks state
+                            Rectangle {
                                 visible: root.stateData.wifi.enabled && root.connectedWifiNetworks.length === 0 && root.availableWifiNetworks.length === 0
-                                width: parent.width
-                                text: "No Wi-Fi networks found"
-                                font.family: theme.fontFamily; font.pixelSize: theme.fontBody
-                                color: theme.muted
-                                horizontalAlignment: Text.AlignHCenter
+                                width: parent.width; height: 160
+                                radius: theme.controlRadius
+                                color: theme.control
+                                border.width: 1
+                                border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.08)
+
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 10
+
+                                    Text {
+                                        text: root.busy ? "󰑐" : "󰖩"
+                                        font.family: theme.fontFamily; font.pixelSize: 32
+                                        color: theme.accent
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        RotationAnimation on rotation {
+                                            running: root.busy
+                                            loops: Animation.Infinite
+                                            from: 0; to: 360; duration: 1000
+                                        }
+                                    }
+
+                                    Column {
+                                        spacing: 4
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        Text {
+                                            text: root.busy ? "Scanning for Networks..." : (root.wifiSearchText !== "" ? "No Networks Match Filter" : "No Networks Found")
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontBody; font.bold: true
+                                            color: theme.text
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                        Text {
+                                            text: root.wifiSearchText !== "" ? ("No network name matching \"" + root.wifiSearchText + "\"") : "Ensure your wireless device is in range and active."
+                                            font.family: theme.fontFamily; font.pixelSize: 11
+                                            color: theme.muted
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 100; height: 28
+                                        radius: Math.max(4, theme.controlRadius - 1)
+                                        color: theme.reading
+                                        border.width: 1; border.color: theme.border
+                                        anchors.horizontalCenter: parent.horizontalCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: root.wifiSearchText !== "" ? "Clear Filter" : "󰑐 Scan"
+                                            font.family: theme.fontFamily; font.pixelSize: theme.fontSecondary; font.bold: true
+                                            color: theme.accent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (root.wifiSearchText !== "") {
+                                                    root.wifiSearchText = "";
+                                                } else {
+                                                    root.runAction(["wifi-scan"]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

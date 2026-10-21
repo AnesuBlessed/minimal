@@ -650,9 +650,9 @@ Item {
 
                             Rectangle {
                                 width: parent.width
-                                height: 46
+                                height: 48
                                 radius: Theme.radius
-                                color: modelData.connected ? Theme.alpha(Theme.accent, 0.1) : Theme.tint("#ffffff", 0.02)
+                                color: modelData.connected ? Theme.alpha(Theme.accent, 0.12) : Theme.tint("#ffffff", 0.02)
                                 border.width: 1
                                 border.color: modelData.connected ? Theme.borderAccent : Theme.border
 
@@ -668,7 +668,7 @@ Item {
                                         text: page.icWifi
                                         color: modelData.connected ? Theme.accent : Theme.textDim
                                         font.family: Theme.iconFont
-                                        font.pixelSize: 14
+                                        font.pixelSize: 15
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
@@ -708,6 +708,15 @@ Item {
                                             font.pixelSize: 9
                                             font.bold: true
                                         }
+                                    }
+
+                                    Text {
+                                        visible: modelData.signal !== undefined && modelData.signal > 0
+                                        text: modelData.signal + "%"
+                                        color: Theme.textDim
+                                        font.family: page.monoFont
+                                        font.pixelSize: 10
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
                                 }
 
@@ -846,7 +855,7 @@ Item {
                                     spacing: 8
 
                                     Rectangle {
-                                        width: Math.min(320, parent.width - 130)
+                                        width: Math.max(180, parent.width - 126)
                                         height: 34
                                         color: Theme.bgCard
                                         border.color: page.connectError ? Theme.danger : Theme.accent

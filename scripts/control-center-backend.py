@@ -79,7 +79,7 @@ def get_wifi_state(scan_networks=True):
     networks = []
     if enabled and scan_networks:
         _, list_out, _ = run_cmd(
-            ["nmcli", "-t", "-e", "yes", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "no"],
+            ["nmcli", "-t", "-e", "yes", "-f", "IN-USE,SSID,SIGNAL,SECURITY,BAND,CHAN", "device", "wifi", "list", "--rescan", "no"],
             timeout=3.0,
         )
         seen = {}
@@ -96,13 +96,22 @@ def get_wifi_state(scan_networks=True):
                 signal = int(fields[2].strip())
             except ValueError:
                 signal = 0
-            security = ":".join(fields[3:]).replace(r"\:", ":").strip()
+            band = ""
+            chan = ""
+            if len(fields) >= 6:
+                security = fields[3].replace(r"\:", ":").strip()
+                band = fields[4].replace(r"\:", ":").strip()
+                chan = fields[5].replace(r"\:", ":").strip()
+            else:
+                security = ":".join(fields[3:]).replace(r"\:", ":").strip()
             secured = bool(security and security != "--")
             entry = {
                 "ssid": ssid,
                 "signal": signal,
                 "security": security if secured else "Open",
                 "secured": secured,
+                "band": band,
+                "chan": chan,
                 "inUse": in_use or (ssid == connected_ssid and bool(connected_ssid)),
                 "saved": ssid in saved_ssids or in_use,
             }
