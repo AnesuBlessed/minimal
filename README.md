@@ -50,6 +50,10 @@ A blazingly fast, ultra-efficient desktop environment for Hyprland featuring a p
 | `Super + Shift + O` | Region OCR to Clipboard (Tesseract) |
 | `Super + L` | Lock Screen (Hyprlock) |
 | `Super + Escape` / `Power` | Power Menu (Wlogout) |
+| `XF86MonBrightnessUp / Down` | Adjust Brightness with Mako OSD |
+| `XF86AudioRaise / LowerVolume` | Adjust Volume with Mako OSD |
+| `XF86AudioMute / MicMute` | Toggle Audio / Microphone Mute |
+| `Super + Space` / Media Keys | Music Play / Pause / Next / Prev |
 | `Super + R` | Reload Hyprland Configuration & Waybar |
 
 ---
@@ -63,7 +67,7 @@ Minimal relies on native, battle-tested Wayland tools without framework bloat:
 sudo pacman -S hyprland waybar rofi-wayland mako foot wlogout hyprpaper hypridle hyprlock
 
 # Media, Hardware & Utilities
-sudo pacman -S pamixer wireplumber cliphist grim slurp satty tesseract network-manager-applet blueman
+sudo pacman -S pamixer wireplumber cliphist grim slurp satty tesseract network-manager-applet blueman brightnessctl
 
 # Fonts & Icons (Recommended)
 sudo pacman -S ttf-jetbrains-mono-nerd
@@ -97,6 +101,7 @@ sudo pacman -S ttf-jetbrains-mono-nerd
 │   └── theme.rasi         # Central obsidian glass palette
 ├── scripts/
 │   ├── battery-status.sh  # Minimal sysfs battery reader for lockscreen
+│   ├── brightness.sh      # Screen brightness controller with Mako progress bar OSD
 │   ├── clipboard.sh       # Rofi clipboard manager with clear brush & delete tags
 │   ├── launcher.sh        # Dual-pane application launcher runner
 │   ├── lock.sh            # Hyprlock runner with single-instance lock
