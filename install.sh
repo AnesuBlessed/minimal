@@ -461,6 +461,11 @@ elif [[ "$MODE" == "doctor" ]]; then
     exit 0
 fi
 
+# Launch Interactive TUI if in a real terminal and not automated with --yes
+if [[ -t 0 && "$AUTO_CONFIRM" == false && -x "$MINIMAL_DIR/scripts/installer_tui.py" ]]; then
+    exec "$MINIMAL_DIR/scripts/installer_tui.py" "$@"
+fi
+
 print_banner
 check_dependencies
 backup_existing_configs
