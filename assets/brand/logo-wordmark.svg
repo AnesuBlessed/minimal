@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 180" width="840" height="180">
+  <defs>
+    <!-- Background Obsidian Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141419"/>
+      <stop offset="50%" stop-color="#0a0a0d"/>
+      <stop offset="100%" stop-color="#050507"/>
+    </linearGradient>
+
+    <!-- Outer Glass Border Stroke -->
+    <linearGradient id="rimStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#71717a" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#27272a" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Monogram Shading Gradients -->
+    <linearGradient id="facetWhite" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e4e4e7"/>
+    </linearGradient>
+    <linearGradient id="facetPlatinum" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f4f4f5"/>
+      <stop offset="100%" stop-color="#d4d4d8"/>
+    </linearGradient>
+    <linearGradient id="facetSilver" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4d4d8"/>
+      <stop offset="100%" stop-color="#a1a1aa"/>
+    </linearGradient>
+    <linearGradient id="facetTitanium" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#71717a"/>
+      <stop offset="100%" stop-color="#3f3f46"/>
+    </linearGradient>
+    <linearGradient id="facetDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#27272a"/>
+      <stop offset="100%" stop-color="#18181b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left Icon Container (140x140 at x=20, y=20) -->
+  <g transform="translate(20, 20) scale(0.28)">
+    <rect x="24" y="24" width="464" height="464" rx="104" ry="104"
+          fill="url(#bgGrad)" stroke="url(#rimStroke)" stroke-width="6"/>
+
+    <g id="monogram-scaled">
+      <polygon points="108,372 108,172 156,124 176,124 176,372 108,372" fill="url(#facetWhite)"/>
+      <polygon points="176,124 192,140 192,372 176,372" fill="url(#facetTitanium)"/>
+      <polygon points="176,124 256,280 256,356 176,200" fill="url(#facetPlatinum)"/>
+      <polygon points="176,200 256,356 256,372 176,216" fill="url(#facetDark)"/>
+      <polygon points="336,124 256,280 256,356 336,200" fill="url(#facetSilver)"/>
+      <polygon points="336,200 256,356 256,372 336,216" fill="url(#facetDark)"/>
+      <polygon points="336,124 320,140 320,372 336,372" fill="url(#facetDark)"/>
+      <polygon points="404,372 404,172 356,124 336,124 336,372 404,372" fill="url(#facetSilver)"/>
+      <polygon points="256,160 286,220 256,260 226,220" fill="url(#facetWhite)"/>
+      <polygon points="256,160 286,220 256,260" fill="url(#facetTitanium)"/>
+      <rect x="226" y="392" width="60" height="8" rx="4" fill="#71717a" opacity="0.6"/>
+    </g>
+  </g>
+
+  <!-- Right Wordmark -->
+  <text x="195" y="98"
+        font-family="system-ui, -apple-system, 'Space Grotesk', 'Segoe UI', sans-serif"
+        font-weight="800"
+        font-size="64"
+        letter-spacing="14"
+        fill="#ffffff">MINIMAL</text>
+
+  <!-- Subtitle Tagline -->
+  <text x="200" y="134"
+        font-family="system-ui, -apple-system, 'SpaceMono Nerd Font', 'JetBrains Mono', monospace"
+        font-weight="500"
+        font-size="16"
+        letter-spacing="6"
+        fill="#a1a1aa">ULTRA-LEAN WAYLAND WORKSTATION</text>
+
+  <!-- Accent Status Dot -->
+  <circle cx="790" cy="80" r="5" fill="#e4e4e7"/>
+</svg>

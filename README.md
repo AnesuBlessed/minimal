@@ -1,8 +1,53 @@
+<div align="center">
+
+<img src="assets/brand/logo-wordmark.png" alt="Minimal" width="560" />
+
 # Minimal
 
-A blazingly fast, ultra-efficient desktop environment for Hyprland featuring a polished frosted glass aesthetic, rich Waybar layouts, and battle-tested ergonomics—engineered on top of clean, lightweight Wayland primitives without framework bloat.
+**Pure Wayland Workstation** &middot; *Fast, modular, obsidian glass.*
 
-> **Philosophy:** Pixel-perfect modern aesthetic, zero runtime bloat. No background Python watchers, no image generation pipelines on wallpaper swap, no heavy dependencies. Pure Wayland native tools (`rofi`, `mako`, `hyprpaper`, `waybar`, `wlogout`) engineered for daily reliability and performance.
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-0d0d0d?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
+[![CachyOS](https://img.shields.io/badge/CachyOS-0d0d0d?style=for-the-badge&logo=cachyos&logoColor=white)](https://cachyos.org)
+[![Hyprland](https://img.shields.io/badge/Hyprland-0d0d0d?style=for-the-badge&logo=hyprland&logoColor=white)](https://hypr.land)
+[![Waybar](https://img.shields.io/badge/Waybar-0d0d0d?style=for-the-badge)](https://github.com/Alexays/Waybar)
+[![License: MIT](https://img.shields.io/badge/License-MIT-white?style=for-the-badge)](LICENSE)
+
+</div>
+
+A blazingly fast, ultra-efficient desktop environment for Hyprland featuring a polished frosted glass aesthetic, 17 switchable Waybar layouts, and battle-tested ergonomics—engineered on top of clean, lightweight Wayland primitives without framework bloat.
+
+> **Philosophy:** Pixel-perfect modern aesthetic, zero runtime bloat. No background Python watchers, no image generation pipelines on wallpaper swap, no heavy dependencies. Pure Wayland native tools (`rofi`, `mako`, `hyprpaper`, `waybar`, `wlogout`) engineered for daily reliability and performance. Under 90 MB resting RAM footprint.
+
+---
+
+## Quick Install & Deployment
+
+Minimal includes an atomic, reversible deployment engine with automatic configuration backups:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/minimal.git ~/Projects/minimal
+cd ~/Projects/minimal
+
+# 2. Preview the installation (Dry Run)
+./install.sh --dry-run
+
+# 3. Deploy Minimal with atomic backup
+./install.sh
+```
+
+### Rollback / Recovery
+If you ever want to revert back to your previous setup, run:
+```bash
+./install.sh --restore
+```
+Every installation automatically backs up your existing `~/.config` into `~/.local/state/minimal/backups/` and generates an executable `restore.sh` to revert seamlessly.
+
+### Diagnostic Health Check
+Verify your compositor, Waybar layouts, audio sinks, and dependencies anytime:
+```bash
+./install.sh --doctor
+```
 
 ---
 
@@ -79,7 +124,9 @@ sudo pacman -S ttf-jetbrains-mono-nerd
 
 ```
 .
-├── fastfetch/             # Sixel greeting configuration and anime character assets
+├── assets/
+│   └── brand/             # Vector SVGs, high-res PNG emblems, and ASCII text art
+├── fastfetch/             # Sixel greeting configuration and minimal emblem
 ├── foot/                  # Clean obsidian glass terminal configuration
 ├── hypr/
 │   ├── colors.lua         # Central obsidian glass palette
@@ -93,6 +140,7 @@ sudo pacman -S ttf-jetbrains-mono-nerd
 │   ├── monitors.lua       # Auto-detect display configuration
 │   ├── paths.lua          # Self-contained path resolution
 │   └── rules.lua          # Window and layer rules (floating modals, blur)
+├── install.sh             # Atomic installer, rollback engine, and health doctor
 ├── mako/                  # Notification daemon theme with OSD progress bar
 ├── rofi/                  # Pure Wayland Rofi themes (dual-pane launcher, clipboard, selector)
 │   ├── clipboard.rasi     # Sleek glass clipboard manager theme
