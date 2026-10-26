@@ -1,64 +1,41 @@
 # Minimal
 
-A lightweight, zero-bloat Hyprland desktop environment for Arch Linux.
+A blazingly fast, ultra-efficient desktop environment for Hyprland featuring a polished frosted glass aesthetic, rich Waybar layouts, and battle-tested ergonomics—engineered on top of clean, lightweight Wayland primitives without framework bloat.
 
-## How It Works
+> **Philosophy:** Pixel-perfect modern aesthetic, zero runtime bloat. No background Python watchers, no image generation pipelines on wallpaper swap, no heavy dependencies. Pure Wayland native tools (`rofi`, `mako`, `hyprpaper`, `waybar`, `wlogout`) engineered for daily reliability and performance.
 
-- **Native Hyprland Lua (`hypr/`):** Configured directly in Lua (`hyprland.lua`) with modular files for hardware, monitors, keybindings, window rules, and appearance.
-- **Hardware-Aware Startup (`scripts/hardware-detect.sh`):** Detects your GPU (Intel, AMD, NVIDIA, hybrid, or VM) at login and configures VA-API/VDPAU drivers, VFR, and rendering flags automatically.
-- **Scoped Session Lifecycle (`scripts/session-start.sh`):** Core services (Waybar, Hyprpaper, Mako, Hypridle, Foot server, native C automounter, and session guard) run as isolated `systemd --user` units tied to the active display.
-- **On-Demand Quickshell Popups (`quickshell/`):** Application launcher, clipboard manager, wallpaper picker, keybind cheat-sheet, unified Control Center & Settings Hub (Display, Sound, Network, Bluetooth, Power, Maintenance), and Monitor Switcher launch on demand and exit on close (0 MB idle RAM).
-- **Dynamic Palette & Live Keybinds:** Changing wallpapers (`Super + W` or `Super + Shift + W`) extracts a new accent color and updates Waybar, Foot, Fuzzel, Mako, Wlogout, Hyprland, Hyprlock, Quickshell, and GTK-3/4/libadwaita (`assets/gtk-accent.css`) transactionally. Editing `hypr/keybinds.lua` automatically updates the `Super + /` cheat-sheet and Waybar tooltip.
+---
 
-## Install
+## Architecture & Components
 
-Keep this repository where you clone it (deployment links `~/.config` entries directly to this checkout):
+- **Compositor (`hypr/`):** Pure Lua configuration (`hyprland.lua`) for Hyprland 0.56+. Variable Frame Rate (VFR) enabled, smooth 140ms microSnap transitions, 12px rounding, and deep glass borders.
+- **Status Bar (`waybar/`):** Full 17-layout suite (`01.jsonc`–`17.jsonc`) with modular CSS pills, hardware indicators, and instant layout switching (`Super + Alt + Up/Down` or `custom/wbar`).
+- **Launcher (`rofi/`):** Dual-pane signature card featuring dynamic wallpaper banner, circular mode-switch buttons, and fast application finder (`Super + A`, `Super + Tab`).
+- **Clipboard (`scripts/clipboard.sh`, `rofi/`):** Waybar-anchored dropdown with wallpaper banner. Features clean raw-text copy mode (no icons) and dedicated delete mode with `[ ✕ ]` tags and top wipe brush action (`Super + C`, `Super + Shift + C`).
+- **Network & Bluetooth:** Battle-tested `network-manager-applet` (`nm-connection-editor`) and `blueman` (`blueman-manager`) with auto-centering modal window rules.
+- **Audio & OSD (`scripts/volume.sh`, `mako/`):** WirePlumber / pamixer controls with smooth in-place Mako progress-bar notifications for volume and microphone mute.
+- **Power Menu (`wlogout/`, `scripts/powermenu.sh`):** Signature 6-button circular glass layer-shell overlay (`Super + Escape`).
+- **Terminal (`foot/`):** Ultra-lean C-native Wayland terminal configured with an obsidian glass palette and Sixel graphics support (`Super + T`).
+- **Screenshots & OCR (`scripts/screenshot.sh`):** Grim + Slurp with Satty annotation (`Print`, `Shift + Print`) and instant region OCR directly to clipboard via Tesseract (`Super + Shift + O`).
+- **Lockscreen & Idle (`hypr/hyprlock.conf`, `hypr/hypridle.conf`):** Obsidian typography lockscreen with battery indicator, timed screen blanking, and suspend.
+- **Wallpaper (`scripts/wallpaper.sh`):** Zero-latency Hyprpaper IPC switcher with interactive Rofi picker (`Super + W`) and randomizer (`Super + Shift + W`).
 
-```sh
-git clone https://github.com/AnesuBlessed/minimal.git ~/Projects/minimal
-cd ~/Projects/minimal
-./deploy.sh --check
-./deploy.sh
-```
-
-For a bare-metal Arch / CachyOS installation (installs GPU VA-API/Vulkan drivers, PipeWire, fonts, services, and runs `deploy.sh`):
-
-```sh
-./bootstrap.sh
-```
-
-`deploy.sh` checks required packages, installs any missing dependencies via `pacman`, backs up your existing configs under `~/.config/backups/`, links the managed components (`hypr`, `waybar`, `wlogout`, `fuzzel`, `foot`, `mako`, `fastfetch`, `minimal`), and registers the **Minimal (Hyprland)** display-manager session. Log out and select **Minimal (Hyprland)** at login.
-
-## Uninstall / Restore
-
-To remove Minimal's symlinks and restore your previous configuration from the automatic backup:
-
-```sh
-cd ~/Projects/minimal
-./restore.sh --check
-./restore.sh
-```
-
-If you want to delete the checkout entirely after restoring:
-
-```sh
-rm -rf ~/Projects/minimal
-```
+---
 
 ## Keybindings
 
 | Shortcut | Action |
-| --- | --- |
-| `Super + A` | Application Launcher |
-| `Super + S` | Settings & System Hub / Control Center |
-| `Super + P` | Display & Monitor Switcher (Multi-Monitor Presets, Refresh Rate, Scale, VRR) |
-| `Super + T` | Terminal (Foot) |
-| `Super + B` / `Super + F` | Web Browser |
-| `Super + E` | File Manager |
-| `Super + C` | Clipboard History |
-| `Super + W` / `Super + Shift + W` | Wallpaper Picker / Random Wallpaper |
-| `Super + U` | USB Drive Menu |
-| `Super + /` | Interactive Keybind Cheat-Sheet |
+| :--- | :--- |
+| `Super + A` | Application Launcher (Rofi Dual-Pane) |
+| `Super + Tab` | Window Switcher (Rofi) |
+| `Super + T` | Terminal (Foot Client / Server) |
+| `Super + C` | Clipboard Manager (Rofi + Cliphist) |
+| `Super + Shift + C` | Clipboard Delete Mode |
+| `Super + W` | Wallpaper Picker Menu |
+| `Super + Shift + W` | Random Wallpaper |
+| `Super + Alt + Up / Down` | Next / Previous Waybar Layout |
+| `Super + B` | Web Browser (Firefox) |
+| `Super + E` | File Manager (Thunar) |
 | `Super + Q` | Close Active Window |
 | `Super + M` / `Super + F11` | Fullscreen Window |
 | `Super + Shift + F` | Toggle Floating |
@@ -67,25 +44,80 @@ rm -rf ~/Projects/minimal
 | `Super + Shift + Arrows` | Resize Window |
 | `Super + 1–9` / `Super + Shift + 1–9` | Switch Workspace / Move Window to Workspace |
 | `Super + BackSpace` | Toggle Scratchpad (`pocket`) |
-| `Super + N` / `Super + Shift + B` / `Super + V` | Settings: Wi-Fi / Bluetooth / Audio Tabs |
-| `Print` / `Shift + Print` / `Super + Print` | Region / Annotated / Full Screenshot |
-| `Super + Shift + R` | Toggle Region MP4 Screen Recording |
-| `Super + Shift + O` | Instant Region OCR to Clipboard |
-| `Super + L` / `Super + Escape` | Lock Screen / Power Menu |
-| `Super + R` | Reload Hyprland & Waybar |
+| `Print` | Region Screenshot to Clipboard & Pictures |
+| `Shift + Print` | Region Screenshot with Annotation (Satty) |
+| `Super + Print` | Fullscreen Screenshot |
+| `Super + Shift + O` | Region OCR to Clipboard (Tesseract) |
+| `Super + L` | Lock Screen (Hyprlock) |
+| `Super + Escape` / `Power` | Power Menu (Wlogout) |
+| `Super + R` | Reload Hyprland Configuration & Waybar |
 
-## Layout
+---
 
-- `hypr/` — Hyprland Lua configuration, Hyprlock, and Hypridle
-- `waybar/` — Modular status bar configuration and styles
-- `quickshell/` — Launcher, Clipboard, Wallpaper Picker, Keybinds, Control Center, Settings Hub, Monitors, and shared palette
-- `foot/`, `fuzzel/`, `mako/`, `wlogout/`, `fastfetch/` — Component configs
-- `scripts/` — Session management, hardware detection, theme sync, and native C helpers
-- `theme.json` — Single source of truth for colors, radii, opacity, and typography
+## Dependencies
 
-Settings uses `opacity.settings` in `theme.json` (default `0.98`) for readability,
-independently of translucent bars and popups. Its launcher uses Qt's Compose
-input context when neither `QT_IM_MODULE` nor `XMODIFIERS` is configured; this
-avoids the text-input focus warnings observed with the installed Qt Wayland
-backend. Explicit input-method selections are preserved. For an IME, launch
-with its normal `QT_IM_MODULE` setting (for example, `ibus` or `fcitx`).
+Minimal relies on native, battle-tested Wayland tools without framework bloat:
+
+```bash
+# Core Compositor & Environment
+sudo pacman -S hyprland waybar rofi-wayland mako foot wlogout hyprpaper hypridle hyprlock
+
+# Media, Hardware & Utilities
+sudo pacman -S pamixer wireplumber cliphist grim slurp satty tesseract network-manager-applet blueman
+
+# Fonts & Icons (Recommended)
+sudo pacman -S ttf-jetbrains-mono-nerd
+```
+
+---
+
+## Directory Layout
+
+```
+.
+├── fastfetch/             # Sixel greeting configuration and anime character assets
+├── foot/                  # Clean obsidian glass terminal configuration
+├── hypr/
+│   ├── colors.lua         # Central obsidian glass palette
+│   ├── hardware.lua       # Wayland toolkit environment variables and VFR
+│   ├── hypridle.conf      # Native idle and DPMS timeouts
+│   ├── hyprland.lua       # Master Hyprland configuration entrypoint
+│   ├── hyprlock.conf      # Centered typography lock screen
+│   ├── hyprpaper.conf     # Wallpaper daemon configuration
+│   ├── keybinds.lua       # Clean, ergonomic keybindings
+│   ├── looknfeel.lua      # Gaps, borders, blur, and microSnap animations
+│   ├── monitors.lua       # Auto-detect display configuration
+│   ├── paths.lua          # Self-contained path resolution
+│   └── rules.lua          # Window and layer rules (floating modals, blur)
+├── mako/                  # Notification daemon theme with OSD progress bar
+├── rofi/                  # Pure Wayland Rofi themes (dual-pane launcher, clipboard, selector)
+│   ├── clipboard.rasi     # Sleek glass clipboard manager theme
+│   ├── launcher.rasi      # Signature dual-pane launcher with wallpaper banner
+│   ├── selector.rasi      # Minimal centered dmenu selector
+│   └── theme.rasi         # Central obsidian glass palette
+├── scripts/
+│   ├── battery-status.sh  # Minimal sysfs battery reader for lockscreen
+│   ├── clipboard.sh       # Rofi clipboard manager with clear brush & delete tags
+│   ├── launcher.sh        # Dual-pane application launcher runner
+│   ├── lock.sh            # Hyprlock runner with single-instance lock
+│   ├── paths.sh           # Portable shell path resolution
+│   ├── powermenu.sh       # Wlogout glass power menu runner with Rofi fallback
+│   ├── screenshot.sh      # Grim/slurp screenshot and Tesseract OCR
+│   ├── session-start.sh   # Session initialization (polkit, cliphist, applets, idle)
+│   ├── volume.sh          # Volume & mic OSD controller with Mako progress bar
+│   ├── wallpaper.sh       # Lightweight Hyprpaper switcher and Rofi picker
+│   └── wbar-switch.sh     # Instant Waybar layout switcher (17 layouts)
+├── wallpapers/            # Curated aesthetic wallpapers
+├── waybar/                # Full 17-layout suite and modular CSS styling
+│   ├── config.jsonc       # Active layout entrypoint (defaults to 01.jsonc)
+│   ├── style.css          # Master stylesheet
+│   ├── theme.css          # Palette variables
+│   ├── defaults.css       # Core pill and leaf styling
+│   ├── layouts/           # 17 switchable layout presets (01.jsonc–17.jsonc)
+│   ├── modules/           # Modular component definitions
+│   └── groups/            # Pill geometry styles
+└── wlogout/               # Standalone circular glass power menu and icons
+    ├── layout             # 6-action button definitions
+    ├── style.css          # Frosted glass styling with hover effects
+    └── icons/             # Clean white PNG action icons
+```

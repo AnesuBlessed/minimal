@@ -1,16 +1,15 @@
 {
   "network": {
     "tooltip": true,
-    "format-wifi": "󰤨",
-    "format-ethernet": "󰈀",
+    "format-wifi": " ",
+    "rotate": 0,
+    "format-ethernet": "󰈀 ",
+    "tooltip-format": "Network: <big><b>{essid}</b></big>\nSignal: <b>{signalStrength}%</b>\nIP: <b>{ipaddr}</b>",
     "format-linked": "󰈀 {ifname} (No IP)",
-    "format-disconnected": "󰤭",
-    "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\nIP: {ipaddr}\nInterface: {ifname}",
-    "tooltip-format-ethernet": "Ethernet: {ipaddr}\nInterface: {ifname}",
-    "tooltip-format-disconnected": "Disconnected",
-    "format-alt": "󰤨 {essid} ({signalStrength}%)",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center.sh\" wifi",
-    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/control-center-actions.sh\" wifi-toggle",
-    "interval": 15
+    "format-disconnected": "󰤮 ",
+    "tooltip-format-disconnected": "Disconnected\nLeft-click: Network Settings\nRight-click: Toggle Wi-Fi",
+    "on-click": "nm-connection-editor",
+    "on-click-right": "rfkill toggle wifi",
+    "interval": 2
   }
 }

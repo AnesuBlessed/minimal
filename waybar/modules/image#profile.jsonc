@@ -1,0 +1,5 @@
+{
+    "image#profile": {
+        "exec": "cat ${XDG_STATE_HOME:-$HOME/.local/state}/minimal/current_wallpaper 2>/dev/null || echo ''"
+    }
+}

@@ -4,10 +4,10 @@
     "format": "{}",
     "rotate": 0,
     "justify": "center",
-    "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/caffeine.sh\" status",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/caffeine.sh\" toggle",
-    "interval": 30,
-    "signal": 9,
+    "exec": "true",
+    "on-click": "true,21",
+    "interval": "once",
+    "signal": 21,
     "tooltip": true
   }
 }

@@ -1,33 +1,62 @@
-@import "colors.css";
-@import "design.css";
-* { background-image: none; box-shadow: none; text-shadow: none; }
-window { background-color: rgba(0, 0, 0, 0.25); }
+* {
+    background-image: none;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 14px;
+}
+
+window {
+    background-color: rgba(14, 16, 18, 0.75);
+}
+
 button {
-    color: @text-main;
-    background-color: @bg-reading;
-    border: 1px solid @border-glass;
+    color: #eaedf0;
+    background-color: rgba(15, 26, 42, 0.85);
+    outline-style: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 32px;
-    outline-style: none;
-    margin: 0;
-    padding: 0;
-    min-width: 120px;
-    min-height: 120px;
-    transition-property: background-color, border-color;
-    transition-timing-function: ease;
+    background-size: 26%;
+    margin: 32vh 10px;
+    box-shadow: none;
+    text-shadow: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-button:focus, button:hover { background-color: @bg-glass-hover; border-color: @accent; }
-button:active { background-color: @accent; color: @accent-dark; }
-#lock { background-image: url("icons/lock_white.png"); }
-#logout { background-image: url("icons/logout_white.png"); }
-#suspend { background-image: url("icons/suspend_white.png"); }
-#shutdown { background-image: url("icons/shutdown_white.png"); }
-#hibernate { background-image: url("icons/hibernate_white.png"); }
-#reboot { background-image: url("icons/reboot_white.png"); }
-#lock:active { background-image: url("icons/lock_black.png"); }
-#logout:active { background-image: url("icons/logout_black.png"); }
-#suspend:active { background-image: url("icons/suspend_black.png"); }
-#shutdown:active { background-image: url("icons/shutdown_black.png"); }
-#hibernate:active { background-image: url("icons/hibernate_black.png"); }
-#reboot:active { background-image: url("icons/reboot_black.png"); }
+
+button:focus,
+button:hover {
+    background-color: rgba(75, 92, 125, 0.65);
+    border-color: rgba(255, 255, 255, 0.3);
+    background-size: 34%;
+    margin: 30vh 10px;
+    border-radius: 24px;
+    color: #ffffff;
+}
+
+#lock {
+    background-image: image(url("icons/lock_white.png"), url("/usr/share/wlogout/icons/lock.png"));
+    border-radius: 28px 16px 16px 28px;
+    margin-left: 40px;
+}
+
+#logout {
+    background-image: image(url("icons/logout_white.png"), url("/usr/share/wlogout/icons/logout.png"));
+}
+
+#suspend {
+    background-image: image(url("icons/suspend_white.png"), url("/usr/share/wlogout/icons/suspend.png"));
+}
+
+#hibernate {
+    background-image: image(url("icons/hibernate_white.png"), url("/usr/share/wlogout/icons/hibernate.png"));
+}
+
+#shutdown {
+    background-image: image(url("icons/shutdown_white.png"), url("/usr/share/wlogout/icons/shutdown.png"));
+}
+
+#reboot {
+    background-image: image(url("icons/reboot_white.png"), url("/usr/share/wlogout/icons/reboot.png"));
+    border-radius: 16px 28px 28px 16px;
+    margin-right: 40px;
+}

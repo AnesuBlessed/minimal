@@ -1,0 +1,9 @@
+{
+    "image#wallpaper": {
+        "exec": "cat ${XDG_STATE_HOME:-$HOME/.local/state}/minimal/current_wallpaper 2>/dev/null || echo ''; echo -e '◉ Right-click: Switch layout | ◈ Left-click: Select wallpaper'",
+        "on-click": "$MINIMAL_ROOT/scripts/wallpaper.sh --menu; pkill -RTMIN+19 waybar",
+        "on-click-right": "$MINIMAL_ROOT/scripts/wbar-switch.sh select",
+        "tooltip": true,
+        "signal": 19
+    }
+}

@@ -1,10 +1,10 @@
 {
-  "custom/power": {
-    "format": "",
-    "rotate": 0,
-    "tooltip": true,
-    "tooltip-format": "Power Menu",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/powermenu.sh\"",
-    "interval": 86400
-  }
+    "custom/power": {
+        "format": "",
+        "rotate": 0,
+        "tooltip": true,
+        "tooltip-format": "Power Menu",
+        "on-click": "$MINIMAL_ROOT/scripts/powermenu.sh",
+        "interval": 86400
+    }
 }

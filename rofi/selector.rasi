@@ -1,0 +1,97 @@
+/**
+ *  MINIMAL — SELECTOR MENU THEME (WALLPAPERS, LAYOUTS, ACTIONS)
+ */
+
+configuration {
+    show-icons:                  false;
+    font:                        "JetBrainsMono Nerd Font 10";
+}
+
+@theme "theme.rasi"
+
+window {
+    width:                       26em;
+    transparency:                "real";
+    fullscreen:                  false;
+    enabled:                     true;
+    cursor:                      "default";
+    spacing:                     0em;
+    padding:                     0em;
+    border:                      2px;
+    border-radius:               1.2em;
+    border-color:                @main-br;
+    background-color:            @main-bg;
+}
+
+mainbox {
+    enabled:                     true;
+    spacing:                     0.8em;
+    padding:                     1.2em;
+    orientation:                 vertical;
+    children:                    [ "inputbar" , "listview" ];
+    background-color:            transparent;
+}
+
+inputbar {
+    enabled:                     true;
+    spacing:                     0.5em;
+    padding:                     0.7em 1em;
+    border:                      1px;
+    border-radius:               0.8em;
+    border-color:                @main-br;
+    background-color:            #182234cc;
+    children:                    [ "prompt" , "entry" ];
+}
+
+prompt {
+    enabled:                     true;
+    background-color:            transparent;
+    text-color:                  @accent;
+}
+
+entry {
+    enabled:                     true;
+    background-color:            transparent;
+    text-color:                  @main-fg;
+    cursor:                      text;
+    placeholder:                 "Filter...";
+    placeholder-color:           #506182cc;
+}
+
+listview {
+    enabled:                     true;
+    spacing:                     0.3em;
+    padding:                     0.2em 0em;
+    columns:                     1;
+    lines:                       8;
+    cycle:                       true;
+    dynamic:                     true;
+    scrollbar:                   false;
+    layout:                      vertical;
+    cursor:                      "default";
+    background-color:            transparent;
+    text-color:                  @main-fg;
+}
+
+element {
+    enabled:                     true;
+    spacing:                     0.6em;
+    padding:                     0.6em 0.8em;
+    cursor:                      pointer;
+    background-color:            transparent;
+    text-color:                  @main-fg;
+    border-radius:               0.6em;
+}
+
+element selected.normal {
+    background-color:            @select-bg;
+    text-color:                  @select-fg;
+}
+
+element-text {
+    vertical-align:              0.5;
+    horizontal-align:            0.0;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}

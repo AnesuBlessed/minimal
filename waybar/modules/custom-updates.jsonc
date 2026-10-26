@@ -1,11 +1,12 @@
 {
   "custom/updates": {
-    "exec": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/updates.sh\"",
+    "exec": "checkupdates 2>/dev/null | wc -l || echo 0",
     "return-type": "json",
-    "format": "{}",
+    "format": "{0}",
     "rotate": 0,
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/terminal.sh\" sudo pacman -Syu",
-    "interval": 3600,
-    "tooltip": true
+    "on-click": "foot -e sudo pacman -Syu",
+    "interval": 86400,
+    "tooltip": true,
+    "signal": 20
   }
 }

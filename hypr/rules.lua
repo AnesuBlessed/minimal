@@ -1,24 +1,34 @@
 -- -----------------------------------------------------------------------------
 -- Window & Layer Rules (Lua)
 -- -----------------------------------------------------------------------------
--- Rule 4: Clean, Ergonomic Window Management
 
--- Floating Utilities & Dialogs (Curved 10px edges inherited from decoration.rounding)
+-- Battle-Tested Floating Utilities (Networking, Bluetooth, Audio, Archive)
 hl.window_rule({
     name  = "floating_utilities",
     match = {
-        class = "^(pavucontrol|org\\.pulseaudio\\.pavucontrol|blueman-manager|blueman-applet|blueman-services|blueman-adapters|nm-connection-editor|nm-applet|iwgtk|overskride|blueberry\\.py|file-roller|org\\.gnome\\.FileRoller|hyprpolkitagent|xdg-desktop-portal-gtk)$",
+        class = "^(pavucontrol|org\\.pulseaudio\\.pavucontrol|blueman-manager|nm-connection-editor|file-roller|org\\.gnome\\.FileRoller|hyprpolkitagent|xdg-desktop-portal-gtk)$",
     },
-    float = true,
+    float  = true,
+    center = true,
 })
 
--- File Pickers
+-- Modal Dimensions for Settings Dialogs
+hl.window_rule({
+    name  = "modal_dialog_size",
+    match = {
+        class = "^(blueman-manager|nm-connection-editor|pavucontrol)$",
+    },
+    size  = "750 500",
+})
+
+-- File Pickers & Save Dialogs
 hl.window_rule({
     name  = "file_pickers",
     match = {
-        title = "^(Open File|Open Folder|Save As|Choose Files)$",
+        title = "^(Open File|Open Folder|Save As|Choose Files|File Upload.*)$",
     },
-    float = true,
+    float  = true,
+    center = true,
 })
 
 -- Picture-in-Picture
@@ -31,54 +41,55 @@ hl.window_rule({
     pin   = true,
 })
 
-
--- Waybar Layer Rule
-hl.layer_rule({
-    name  = "waybar_transparency",
-    match = {
-        namespace = "waybar",
-    },
-    blur         = true,
-    ignore_alpha = 0.5,
-})
-
--- Notification Layer Rule
-hl.layer_rule({
-    name  = "notifications",
-    match = {
-        namespace = "^(notifications|mako)$",
-    },
-    ignore_alpha = 0.5,
-})
-
--- Launcher & bottom trays slide in from the bottom edge.
-hl.layer_rule({
-    name  = "launcher_bottom",
-    match = {
-        namespace = "^(launcher|fuzzel|minimal-launcher|qs-clipboard|qs-wallpaper-picker)$",
-    },
-    animation    = "slide bottom",
-    blur         = true,
-    ignore_alpha = 0.5,
-})
-
--- Quickshell Popups & Overlays (Control Center, Cheat Sheet, Monitor Switcher, Transfer)
-hl.layer_rule({
-    name  = "quickshell_popups",
-    match = {
-        namespace = "^(minimal-control-center|minimal-keybinds|minimal-monitors|minimal-bt-transfer)$",
-    },
-    blur         = true,
-    ignore_alpha = 0.5,
-})
-
--- Quickshell Settings Window
+-- Satty Annotation Tool
 hl.window_rule({
-    name  = "quickshell_settings",
+    name  = "satty_editor",
     match = {
-        title = "^(Minimal Settings)$",
+        class = "^(com\\.gabm\\.satty)$",
     },
     float  = true,
     center = true,
 })
 
+-- =====================================================
+-- Layer Shell Rules (Frosted Glass & Alpha)
+-- =====================================================
+-- Rofi Launcher & Dmenu Overlay
+hl.layer_rule({
+    name  = "rofi_overlay",
+    match = {
+        namespace = "^(rofi)$",
+    },
+    blur         = true,
+    ignore_alpha = 0.5,
+})
+
+-- Mako Notifications
+hl.layer_rule({
+    name  = "notifications",
+    match = {
+        namespace = "^(notifications|mako)$",
+    },
+    blur         = true,
+    ignore_alpha = 0.5,
+})
+
+-- Waybar Layer & Blur
+hl.layer_rule({
+    name  = "waybar_layer",
+    match = {
+        namespace = "^(waybar)$",
+    },
+    blur         = true,
+    ignore_alpha = 0.5,
+})
+
+-- Wlogout Power Menu
+hl.layer_rule({
+    name  = "wlogout_layer",
+    match = {
+        namespace = "^(wlogout)$",
+    },
+    blur         = true,
+    ignore_alpha = 0.5,
+})

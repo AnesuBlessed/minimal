@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Minimal (Hyprland)
-Comment=Pure, zero-bloat dynamic tiling environment for Hyprland
-# deploy.sh generates an absolute Exec path for the selected checkout.
-Exec=Hyprland
-Type=Application
-DesktopNames=Hyprland
-Keywords=tiling;wayland;compositor;minimal;

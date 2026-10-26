@@ -1,6 +1,0 @@
-/* Generated from theme.json. */
-* { font-family: "JetBrainsMono Nerd Font"; font-size: 12px; }
-window#waybar #pill, window#waybar #pill-right, window#waybar #pill-left, window#waybar #pill-down, window#waybar #pill-up, window#waybar #pill-in, window#waybar #pill-out, window#waybar #leaf, window#waybar #leaf-inverse, window#waybar #leaf-up, window#waybar #leaf-down, window#waybar #leaf-right, window#waybar #leaf-left { border-radius: 12px; }
-#workspaces button, menu menuitem { border-radius: 6px; }
-tooltip, menu { border-radius: 12px; }
-#workspaces button, #taskbar button, menu menuitem { transition-duration: 0.12s; }

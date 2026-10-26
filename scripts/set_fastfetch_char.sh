@@ -25,7 +25,7 @@ case "${1:-}" in
             ln -sf -- "$1.png" "$TARGET"
             echo "Fastfetch character set to: $1"
         else
-            echo "Usage: $0 [ryuzaki|pochita|agk_clan|aisaka|geass|loli|random|list]" >&2
+            echo "Usage: $0 [<character_name>|random|list]" >&2
             exit 2
         fi
         ;;

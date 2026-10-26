@@ -1,10 +1,9 @@
 {
-  "custom/menu": {
-    "format": "󰍜",
-    "tooltip": true,
-    "tooltip-format": "App Launcher (Left-click) | Reload Bar (Right-click)",
-    "on-click": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/launcher.sh\"",
-    "on-click-right": "\"${MINIMAL_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/minimal}/scripts/waybar.sh\" --reload",
-    "interval": 86400
-  }
+    "custom/menu": {
+        "format": "",
+        "tooltip": true,
+        "tooltip-format": "Left: Launcher | Right: Power Menu",
+        "on-click": "$MINIMAL_ROOT/scripts/launcher.sh",
+        "on-click-right": "$MINIMAL_ROOT/scripts/powermenu.sh"
+    }
 }

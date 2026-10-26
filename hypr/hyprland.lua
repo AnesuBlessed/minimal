@@ -1,18 +1,16 @@
 -- =============================================================================
 --  MINIMAL — HYPRLAND MASTER CONFIGURATION (LUA)
 -- =============================================================================
---  Design principles summarized in README.md:
---  - Future-proof native Lua engine (Hyprland 0.56+)
---  - Zero runtime bloat, VFR enabled for low latency and cool iGPU operation
---  - Event-driven architecture with native C utilities
+--  - Native Lua engine (Hyprland 0.56+)
+--  - Zero runtime bloat, VFR enabled for low latency and battery efficiency
+--  - Event-driven architecture with native Wayland utilities
 -- =============================================================================
 
--- Add script directory to Lua package path for clean modular require()
 local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.*/)") or "./"
 local config_hypr = (os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config")) .. "/hypr/"
 package.path = script_dir .. "?.lua;" .. config_hypr .. "?.lua;" .. package.path
 
--- Invalidate component cache so re-evaluating hyprland.lua always reloads all modules
+-- Invalidate component cache so re-evaluating hyprland.lua reloads all modules
 package.loaded["paths"] = nil
 package.loaded["monitors"] = nil
 package.loaded["hardware"] = nil
@@ -44,16 +42,7 @@ hl.config({
     },
 })
 
--- Load persistent user input overrides if saved by Settings
-local state_dir = os.getenv("MINIMAL_STATE") or ((os.getenv("XDG_STATE_HOME") or ((os.getenv("HOME") or "") .. "/.local/state")) .. "/minimal")
-local saved_input = state_dir .. "/input.lua"
-local f_in = io.open(saved_input, "r")
-if f_in then
-    f_in:close()
-    pcall(dofile, saved_input)
-end
-
--- The session helper starts native daemons once and exits.
+-- Session start: starts essential daemons (polkit, idle, wallpaper, clipboard)
 hl.on("hyprland.start", function ()
     hl.exec_cmd(paths.script("session-start.sh"))
 end)

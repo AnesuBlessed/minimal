@@ -1,0 +1,10 @@
+/*
+ * Dynamic Style Configuration
+ * Minimal Obsidian Glass Theme Defaults
+ */
+
+* {
+    border-radius: 0em;
+    font-family: "JetBrainsMono Nerd Font","JetBrainsMono Nerd Font";
+    font-size: 10px;
+}

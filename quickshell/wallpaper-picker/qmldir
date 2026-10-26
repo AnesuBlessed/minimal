@@ -1,8 +1,0 @@
-singleton GlobalTheme 1.0 GlobalTheme.qml
-singleton GlobalSettingsWatcher 1.0 GlobalSettingsWatcher.qml
-Caching 1.0 Caching.qml
-Scaler 1.0 Scaler.qml
-MatugenColors 1.0 MatugenColors.qml
-WallpaperPicker 1.0 WallpaperPicker.qml
-
-Palette 1.0 Palette.qml

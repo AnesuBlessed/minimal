@@ -1,8 +1,6 @@
 -- -----------------------------------------------------------------------------
--- Keybindings Configuration — User Customized (Lua)
+-- Keybindings Configuration (Lua)
 -- -----------------------------------------------------------------------------
--- Rules 1 & 4: Native C/Rust Utilities & Clean Layout
-
 local mainMod = "SUPER"
 local paths = require("paths")
 
@@ -61,58 +59,48 @@ hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
 -- =====================================================
 -- Applications & Shell Controls
 -- =====================================================
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(paths.script("terminal.sh")))
-hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " browser"))
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " browser"))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(paths.script("open-app.sh") .. " files"))
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("footclient || foot"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(paths.script("launcher.sh")))
+hl.bind(mainMod .. " + Tab", hl.dsp.exec_cmd(paths.script("launcher.sh") .. " window"))
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(paths.script("clipboard.sh")))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallchange.sh")))
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(paths.script("wallchange.sh") .. " --random"))
-hl.bind(mainMod .. " + U", hl.dsp.exec_cmd(paths.script("usb-menu.sh")))
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd(paths.script("control-center.sh")))
-hl.bind(mainMod .. " + I", hl.dsp.exec_cmd(paths.script("control-center.sh")))
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd(paths.script("monitors.sh")))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " wifi"))
-hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " bluetooth"))
-hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(paths.script("control-center.sh") .. " audio"))
-hl.bind(mainMod .. " + slash", hl.dsp.exec_cmd(paths.script("keybinds.sh")))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && " .. paths.script("waybar.sh") .. " --reload"))
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd(paths.script("clipboard.sh") .. " --delete"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallpaper.sh") .. " --menu"))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(paths.script("wallpaper.sh") .. " --random"))
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("thunar || xdg-open ~"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("firefox || xdg-open https://"))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && (pkill -SIGUSR2 waybar 2>/dev/null || true)"))
+
+-- Waybar Layout Cycle Hotkeys
+hl.bind(mainMod .. " + ALT + Up",   hl.dsp.exec_cmd(paths.script("wbar-switch.sh") .. " next"))
+hl.bind(mainMod .. " + ALT + Down", hl.dsp.exec_cmd(paths.script("wbar-switch.sh") .. " prev"))
 
 -- Power & Session Management
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(paths.script("lock.sh")))
 hl.bind("XF86PowerOff", hl.dsp.exec_cmd(paths.script("powermenu.sh")))
 
--- Laptop Lid Behavior (Safe lock on close, wake on open)
+-- Laptop Lid Behavior (Lock on close, wake on open)
 hl.bind("switch:on:Lid Switch", hl.dsp.exec_cmd(paths.script("lock.sh")), { locked = true })
 hl.bind("switch:off:Lid Switch", hl.dsp.dpms("on"), { locked = true })
 
--- Notification Controls (Mako / Dunst)
-hl.bind(mainMod .. " + SHIFT + N",       hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dismiss"))
-hl.bind(mainMod .. " + SHIFT + ALT + N", hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dismiss-all"))
-hl.bind(mainMod .. " + ALT + N",         hl.dsp.exec_cmd(paths.script("notifications.sh") .. " restore"))
-hl.bind(mainMod .. " + SHIFT + D",       hl.dsp.exec_cmd(paths.script("notifications.sh") .. " dnd"))
-
 -- =====================================================
--- Media & System Controls
+-- Media & System Controls (With Mako OSD)
 -- =====================================================
--- Screenshots, Recording & OCR
-hl.bind("Print",                     hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " region"))
-hl.bind("SHIFT + Print",             hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " edit"))
-hl.bind(mainMod .. " + Print",       hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " full"))
-hl.bind(mainMod .. " + SHIFT + R",   hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " record"))
-hl.bind(mainMod .. " + SHIFT + O",   hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " ocr"))
+-- Screenshots & Region OCR
+hl.bind("Print",               hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " region"))
+hl.bind("SHIFT + Print",       hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " edit"))
+hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " full"))
+hl.bind(mainMod .. " + SHIFT + O", hl.dsp.exec_cmd(paths.script("screenshot.sh") .. " ocr"))
 
--- Audio Controls (WirePlumber)
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume up"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(paths.script("media.sh") .. " volume down"),      { locked = true, repeating = true })
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd(paths.script("media.sh") .. " volume mute"),     { locked = true })
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd(paths.script("media.sh") .. " mic mute"),   { locked = true })
+-- Audio Controls with Mako OSD
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(paths.script("volume.sh") .. " --inc"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(paths.script("volume.sh") .. " --dec"), { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd(paths.script("volume.sh") .. " --toggle-mute"), { locked = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd(paths.script("volume.sh") .. " --toggle-mic-mute"), { locked = true })
 
--- Screen Brightness (brightnessctl)
-hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd(paths.script("media.sh") .. " brightness up"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(paths.script("media.sh") .. " brightness down"), { locked = true, repeating = true })
+-- Screen Brightness (With Mako OSD)
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd(paths.script("brightness.sh") .. " --inc"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(paths.script("brightness.sh") .. " --dec"), { locked = true, repeating = true })
 
 -- Music Play / Pause (Super + Space & Media Key)
 hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("playerctl play-pause"))

@@ -1,6 +1,6 @@
 {
   "cpu": {
-    "interval": 15,
+    "interval": 10,
     "format": "󰍛 {usage}%",
     "rotate": 0,
     "format-alt": "{icon0}{icon1}{icon2}{icon3}",

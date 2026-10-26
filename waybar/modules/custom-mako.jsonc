@@ -1,0 +1,17 @@
+{
+    "custom/mako": {
+        "format": "{icon}",
+        "format-icons": {
+            "default": "󰂚",
+            "dnd": "󰂛"
+        },
+        "tooltip": true,
+        "tooltip-format": "Notifications (Mako)\nLeft: Toggle DND | Middle: Dismiss All | Right: Restore",
+        "exec": "makoctl mode 2>/dev/null | grep -q 'do-not-disturb' && echo '{\"text\":\"󰂛\",\"alt\":\"dnd\",\"class\":\"dnd\"}' || echo '{\"text\":\"󰂚\",\"alt\":\"default\",\"class\":\"default\"}'",
+        "return-type": "json",
+        "interval": 2,
+        "on-click": "makoctl mode -t do-not-disturb",
+        "on-click-middle": "makoctl dismiss -a",
+        "on-click-right": "makoctl restore"
+    }
+}

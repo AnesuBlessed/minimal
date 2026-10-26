@@ -1,19 +1,16 @@
 -- -----------------------------------------------------------------------------
--- Look & Feel — Performance-Tuned Minimalist Aesthetics (Lua)
+-- Look & Feel — Performance-Tuned Obsidian Aesthetic (Lua)
 -- -----------------------------------------------------------------------------
--- Rules 2 & 3: Rendering Discipline & Snappy Micro-Latency
-
 local colors = require("colors")
 local hardware = require("hardware")
 
 hl.config({
     general = {
         gaps_in  = 3,
-        gaps_out = 6,
-        border_size = 1,
+        gaps_out = 8,
+        border_size = 2,
 
         col = {
-            -- Dynamic palette from colors.lua
             active_border   = { colors = { colors.accent, colors.accent_subtle }, angle = 45 },
             inactive_border = colors.border_dark,
         },
@@ -24,20 +21,19 @@ hl.config({
     },
 
     decoration = {
-        rounding = 10,
-        rounding_power = 2,
+        rounding = 12,
         active_opacity   = 1.0,
-        inactive_opacity = 0.96,
+        inactive_opacity = 0.92,
 
-        -- Lightweight frosted glass blur (passes=2, size=6 micro-latency profile)
         shadow = {
             enabled = false,
         },
         blur = {
-            enabled = (hardware.blur == true),
-            size = 6,
-            passes = 2,
+            enabled = (hardware.blur ~= false),
+            size = 5,
+            passes = 1,
             new_optimizations = true,
+            ignore_opacity = true,
             xray = false,
         },
     },
@@ -54,32 +50,27 @@ hl.config({
 
     misc = {
         vrr = 1,
-        disable_hyprland_logo   = true,
+        disable_hyprland_logo    = true,
         disable_splash_rendering = true,
-        force_default_wallpaper = 0,
-        mouse_move_enables_dpms = true,
-        key_press_enables_dpms  = true,
-        focus_on_activate       = true,
+        force_default_wallpaper  = 0,
+        mouse_move_enables_dpms  = true,
+        key_press_enables_dpms   = true,
+        focus_on_activate        = true,
+    },
+
+    cursor = {
+        no_hardware_cursors = 2,
+        enable_hyprcursor = true,
+        sync_gsettings_theme = true,
     },
 })
 
--- Ultra-snappy micro transitions (~100ms)
-hl.curve("microSnap", { type = "bezier", points = { {0.1, 0.9}, {0.2, 1.0} } })
+-- Snappy, low-latency micro transitions (~120ms)
+hl.curve("microSnap", { type = "bezier", points = { {0.16, 1.0}, {0.3, 1.0} } })
 
-hl.animation({ leaf = "windows",    enabled = true, speed = 1.2, bezier = "microSnap", style = "popin 90%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.0, bezier = "microSnap", style = "popin 100%" })
+hl.animation({ leaf = "windows",    enabled = true, speed = 1.4, bezier = "microSnap", style = "popin 80%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.2, bezier = "microSnap", style = "popin 80%" })
 hl.animation({ leaf = "border",     enabled = true, speed = 1.0, bezier = "default" })
 hl.animation({ leaf = "fade",       enabled = true, speed = 1.0, bezier = "default" })
-hl.animation({ leaf = "workspaces", enabled = true, speed = 1.2, bezier = "microSnap", style = "slide" })
-
--- Keep popup entrance and exit transitions brief.
-hl.animation({ leaf = "layers", enabled = true, speed = 1.2, bezier = "microSnap", style = "fade" })
-
--- Load persistent user visual effects overrides if saved by Settings
-local state_dir = os.getenv("MINIMAL_STATE") or ((os.getenv("XDG_STATE_HOME") or ((os.getenv("HOME") or "") .. "/.local/state")) .. "/minimal")
-local saved_effects = state_dir .. "/effects.lua"
-local f_eff = io.open(saved_effects, "r")
-if f_eff then
-    f_eff:close()
-    pcall(dofile, saved_effects)
-end
+hl.animation({ leaf = "workspaces", enabled = true, speed = 1.4, bezier = "microSnap", style = "slide" })
+hl.animation({ leaf = "layers",     enabled = true, speed = 1.2, bezier = "microSnap", style = "fade" })

@@ -1,89 +1,68 @@
 #!/usr/bin/env bash
-# Hyprpaper 0.8 IPC is shared by the picker and the random shortcut.
+# =============================================================================
+#  MINIMAL — FAST WALLPAPER CHANGER & PICKER
+# =============================================================================
+#  Usage:
+#    wallpaper.sh <path/to/image>
+#    wallpaper.sh --random
+#    wallpaper.sh --menu
+# =============================================================================
 set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
-wall=$(realpath -e -- "${1:?Wallpaper path required}")
-[[ -f $wall && $wall != *','* && $wall != *$'\n'* ]] || { printf 'Invalid wallpaper path\n' >&2; exit 1; }
-mkdir -p -- "$MINIMAL_STATE" "$MINIMAL_CACHE"
-# A video apply holds this same descriptor across preview, launch and state save.
-lock_path=$(readlink -m -- "$MINIMAL_STATE/wallpaper.lock")
-if [[ $(readlink "/proc/$$/fd/9" 2>/dev/null || true) != "$lock_path" ]]; then
-    exec 9>"$lock_path"
-fi
-flock 9
-# Keep theme, lock assets and persistence recoverable if any later step fails.
-transaction=$(mktemp -d "$MINIMAL_CACHE/wallpaper-transaction-XXXXXXXX")
-files=("$MINIMAL_ROOT/theme.json" "$MINIMAL_ROOT/waybar/theme.css"
-       "$MINIMAL_ROOT/waybar/design.css" "$MINIMAL_ROOT/wlogout/design.css"
-       "$MINIMAL_ROOT/foot/foot.ini" "$MINIMAL_ROOT/fuzzel/fuzzel.ini" "$MINIMAL_ROOT/colors.css"
-       "$MINIMAL_ROOT/hypr/colors.lua" "$MINIMAL_ROOT/mako/config"
-       "$MINIMAL_ROOT/hypr/hyprlock.conf" "$MINIMAL_ROOT/assets/gtk-accent.css" "$MINIMAL_CACHE/lock.png"
-       "$MINIMAL_CACHE/lock-source" "$MINIMAL_STATE/current_wallpaper"
-       "$MINIMAL_STATE/wallpapers.json")
-for index in "${!files[@]}"; do
-    [[ ! -f ${files[index]} ]] || cp -p -- "${files[index]}" "$transaction/$index"
-done
-committed=false
-changed=()
-rollback_wallpaper() {
-    result=$?
-    trap - EXIT
-    if ! $committed; then
-        for index in "${!files[@]}"; do
-            if [[ -f $transaction/$index ]]; then
-                cp -p -- "$transaction/$index" "${files[index]}" || true
-            else
-                rm -f -- "${files[index]}"
-            fi
-        done
-        if [[ " ${changed[*]} " == "  " ]]; then
-            mapfile -t changed < <(hyprctl -j monitors | jq -r '.[].name')
-        fi
-        for monitor in "${changed[@]}"; do
-            previous=''
-            if [[ -r $MINIMAL_STATE/wallpapers.json ]]; then
-                previous=$(jq -r --arg output "${monitor:-all}" '.[$output].preview // .all.preview // empty' "$MINIMAL_STATE/wallpapers.json") || true
-            fi
-            if [[ -z $previous && -r $MINIMAL_STATE/current_wallpaper ]]; then
-                read -r previous < "$MINIMAL_STATE/current_wallpaper" || true
-            fi
-            if [[ -f $previous ]]; then
-                hyprctl hyprpaper wallpaper "$monitor,$previous,cover" >/dev/null 2>&1 || printf 'Wallpaper rollback failed on %s\n' "${monitor:-all}" >&2
-            else
-                printf 'No previous wallpaper available for rollback on %s\n' "${monitor:-all}" >&2
-            fi
-        done
-        python3 "$MINIMAL_ROOT/scripts/video-state.py" || printf 'Video wallpaper rollback failed\n' >&2
+mkdir -p -- "$MINIMAL_STATE"
+
+# Build deduplicated map of available wallpapers (by basename)
+declare -A wall_map
+choices=()
+
+while IFS= read -r file; do
+    [[ -n "$file" && -f "$file" ]] || continue
+    base="$(basename "$file")"
+    if [[ -z "${wall_map["$base"]:-}" ]]; then
+        wall_map["$base"]="$file"
+        choices+=("$base")
     fi
-    rm -rf -- "$transaction"
-    exit "$result"
-}
-trap rollback_wallpaper EXIT
-# Prepare optional assets before changing the backend. A failure is visible.
-"$MINIMAL_ROOT/scripts/prepare-lock.sh" "$wall"
-"$MINIMAL_ROOT/scripts/update_fuzzel_colors.py" "$wall"
-# Do not save a selection or claim success when the backend rejects it.
-outputs=${2:-all}
-if [[ $outputs == all ]]; then
-    monitors=("")
-else
-    [[ -n $outputs && $outputs != *$'\n'* ]] || exit 2
-    IFS=',' read -r -a monitors <<< "$outputs"
+done < <(find "$MINIMAL_ROOT/wallpapers" "${HOME}/Pictures/Wallpapers" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) 2>/dev/null | sort -u)
+
+wall=""
+
+case "${1:-}" in
+    --random)
+        if ((${#choices[@]} > 0)); then
+            rand_idx=$((RANDOM % ${#choices[@]}))
+            rand_base="${choices[$rand_idx]}"
+            wall="${wall_map["$rand_base"]}"
+        fi
+        ;;
+    --menu)
+        if ((${#choices[@]} > 0)); then
+            selected_name=$(printf '%s\n' "${choices[@]}" | rofi -dmenu -theme "$MINIMAL_ROOT/rofi/selector.rasi" -p "󰸉 Wallpaper") || exit 0
+            [[ -n "$selected_name" ]] || exit 0
+            wall="${wall_map["$selected_name"]:-}"
+        fi
+        ;;
+    *)
+        if [[ -n "${1:-}" && -f "$1" ]]; then
+            wall="$(realpath "$1")"
+        elif [[ -f "$MINIMAL_STATE/current_wallpaper" ]]; then
+            wall="$(cat "$MINIMAL_STATE/current_wallpaper")"
+        elif ((${#choices[@]} > 0)); then
+            wall="${wall_map["${choices[0]}"]}"
+        else
+            wall="$MINIMAL_ROOT/wallpapers/japan_lake.jpg"
+        fi
+        ;;
+esac
+
+[[ -n "$wall" && -f "$wall" ]] || exit 1
+
+# Apply via Hyprpaper IPC cleanly
+if pgrep -x hyprpaper >/dev/null 2>&1; then
+    hyprctl hyprpaper preload "$wall" >/dev/null 2>&1 || true
+    hyprctl hyprpaper wallpaper ",$wall,cover" >/dev/null 2>&1 || hyprctl hyprpaper wallpaper ",$wall" >/dev/null 2>&1 || true
 fi
-for monitor in "${monitors[@]}"; do
-    changed+=("$monitor")
-    reply=$(hyprctl hyprpaper wallpaper "$monitor,$wall,cover")
-    sanitized_reply=${reply//"$wall"/}
-    if [[ $sanitized_reply == *[Ee]rror* || $sanitized_reply == *[Ff]ail* ]]; then printf '%s\n' "$reply" >&2; exit 1; fi
-done
-tmp=$(mktemp "$MINIMAL_STATE/wallpaper-XXXXXXXX")
-printf '%s\n' "$wall" > "$tmp"
-mv -f -- "$tmp" "$MINIMAL_STATE/current_wallpaper"
-"$MINIMAL_ROOT/scripts/wallpaper-state.py" "${4:-$wall}" "$outputs" "${3:-image}" "$wall"
-python3 "$MINIMAL_ROOT/scripts/video-state.py"
-committed=true
-if systemctl --user is-active --quiet "$MINIMAL_SERVICE_PREFIX-mako.service"; then
-    makoctl reload || printf 'Wallpaper applied, but notification theme reload failed\n' >&2
-fi
-hyprctl reload >/dev/null || printf 'Wallpaper applied, but compositor theme reload failed\n' >&2
-notify-send -a minimal -t 2000 -h string:x-canonical-private-synchronous:wallpaper 'Wallpaper applied' "$(basename "$wall")" || true
+
+printf '%s\n' "$wall" > "$MINIMAL_STATE/current_wallpaper"
+ln -sf "$wall" "$MINIMAL_STATE/wallpaper.set"
+pkill -RTMIN+19 waybar 2>/dev/null || true
+notify-send -a minimal -t 1500 -i "preferences-desktop-wallpaper" -- "Wallpaper" "$(basename "$wall")" 2>/dev/null || true

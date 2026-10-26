@@ -1,0 +1,11 @@
+{
+    "custom/clipboard": {
+        "format": "",
+        "rotate": 0,
+        "tooltip-format": "Left: Clipboard Manager | Right: Delete Entries",
+        "on-click": "$MINIMAL_ROOT/scripts/clipboard.sh",
+        "on-click-right": "$MINIMAL_ROOT/scripts/clipboard.sh --delete",
+        "interval": 86400,
+        "tooltip": true
+    }
+}

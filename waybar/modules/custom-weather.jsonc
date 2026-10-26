@@ -1,0 +1,11 @@
+{
+  "custom/weather": {
+    "exec": "curl -s 'https://wttr.in?format=1' || echo ''",
+    "on-click": "pkill -RTMIN+10 waybar",
+    "tooltip": true,
+    "format": "{0}",
+    "interval": 3600, // Update every hour
+    "return-type": "json",
+    "signal": 10
+  }
+}
