@@ -27,11 +27,13 @@ border-color=#7a92c2
 default-timeout=3000
 
 [urgency=critical]
-border-color=#f38ba8
+border-color=#e06c75
 default-timeout=0
 text-color=#ffccd8
 
-[mode=osd]
+[mode=do-not-disturb]
+invisible=1
+
+[app-name=minimal]
 default-timeout=1500
-anchor=top-right
-padding=10,16
+group-by=app-name,summary

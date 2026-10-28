@@ -13,7 +13,7 @@ set -euo pipefail
 mode="${1:-region}"
 save_dir="${HOME}/Pictures/Screenshots"
 mkdir -p -- "$save_dir"
-timestamp="$(date +'%Y-%m-%d_%H-%M-%S')"
+timestamp="$(date +'%Y-%m-%d_%H-%M-%S_%3N')"
 target_file="${save_dir}/screenshot_${timestamp}.png"
 
 capture=$(mktemp --suffix=.png)
@@ -42,7 +42,10 @@ case "$mode" in
             notify-send -a minimal -u low -- "OCR unavailable" "tesseract is not installed." 2>/dev/null || true
             exit 1
         fi
-        text=$(tesseract "$capture" stdout 2>/dev/null | sed -e 's/[[:space:]]*$//') || true
+        if ! text=$(tesseract "$capture" stdout 2>/dev/null | sed -e 's/[[:space:]]*$//'); then
+            notify-send -a minimal -- "OCR failed" "Check Tesseract and its language data." 2>/dev/null || true
+            exit 1
+        fi
         if [[ -z "${text//[[:space:]]/}" ]]; then
             notify-send -a minimal -u low -- "OCR" "No text detected in selected region." 2>/dev/null || true
             exit 0

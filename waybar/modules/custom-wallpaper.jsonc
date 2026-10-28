@@ -1,0 +1,12 @@
+{
+  "custom/wallpaper": {
+    "format": "󰸉",
+    "rotate": 0,
+    "tooltip-format": "Left: Random Wallpaper | Right: Wallpaper Picker",
+    "on-click": "\"$MINIMAL_ROOT/scripts/wallpaper.sh\" --random",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/wallpaper.sh\" --menu",
+    "on-click-middle": "\"$MINIMAL_ROOT/scripts/wallpaper.sh\" --random",
+    "interval": 86400,
+    "tooltip": true
+  }
+}

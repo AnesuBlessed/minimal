@@ -1,5 +1,6 @@
 {
-    "image#profile": {
-        "exec": "cat ${XDG_STATE_HOME:-$HOME/.local/state}/minimal/current_wallpaper 2>/dev/null || echo ''"
-    }
+  "image#profile": {
+    "exec": "cat \"${XDG_STATE_HOME:-$HOME/.local/state}/minimal/current_wallpaper\" 2>/dev/null || printf \"\\n\"",
+    "interval": 5
+  }
 }

@@ -42,7 +42,7 @@ case "${1:-}" in
         send_brightness_osd
         ;;
     --dec|-d)
-        brightnessctl set 5%- >/dev/null 2>&1 || true
+        brightnessctl -n 1 set 5%- >/dev/null 2>&1 || true
         send_brightness_osd
         ;;
     *)

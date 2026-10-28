@@ -9,19 +9,26 @@
 set -euo pipefail
 
 get_volume() {
+    local vol=""
     if command -v pamixer >/dev/null 2>&1; then
-        pamixer --get-volume 2>/dev/null || echo 0
-    elif command -v wpctl >/dev/null 2>&1; then
-        wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2 * 100)}' || echo 0
-    else
-        echo 50
+        vol=$(pamixer --get-volume 2>/dev/null) || true
     fi
+    if [[ -z "$vol" ]] && command -v wpctl >/dev/null 2>&1; then
+        vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2 * 100)}') || true
+    fi
+    echo "${vol:-0}"
 }
 
 is_muted() {
+    local state=""
     if command -v pamixer >/dev/null 2>&1; then
-        [[ "$(pamixer --get-mute 2>/dev/null)" == "true" ]]
-    elif command -v wpctl >/dev/null 2>&1; then
+        state=$(pamixer --get-mute 2>/dev/null) || true
+        if [[ -n "$state" ]]; then
+            [[ "$state" == "true" ]]
+            return $?
+        fi
+    fi
+    if command -v wpctl >/dev/null 2>&1; then
         wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -q '\[MUTED\]'
     else
         return 1
@@ -29,9 +36,15 @@ is_muted() {
 }
 
 is_mic_muted() {
+    local state=""
     if command -v pamixer >/dev/null 2>&1; then
-        [[ "$(pamixer --default-source --get-mute 2>/dev/null)" == "true" ]]
-    elif command -v wpctl >/dev/null 2>&1; then
+        state=$(pamixer --default-source --get-mute 2>/dev/null) || true
+        if [[ -n "$state" ]]; then
+            [[ "$state" == "true" ]]
+            return $?
+        fi
+    fi
+    if command -v wpctl >/dev/null 2>&1; then
         wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q '\[MUTED\]'
     else
         return 1
@@ -84,50 +97,50 @@ send_mic_osd() {
 
 case "${1:-}" in
     --inc|-i)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer -i 5 --allow-boost=false 2>/dev/null || true
-        else
-            wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer -i 5 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
         fi
         send_volume_osd
         ;;
     --dec|-d)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer -d 5 2>/dev/null || true
-        else
-            wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer -d 5 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
         fi
         send_volume_osd
         ;;
     --toggle-mute|-m)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer -t 2>/dev/null || true
-        else
-            wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer -t 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
         fi
         send_volume_osd
         ;;
     --toggle-mic-mute|-mic)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer --default-source -t 2>/dev/null || true
-        else
-            wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer --default-source -t 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
         fi
         send_mic_osd
         ;;
     --mic-inc)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer --default-source -i 5 --allow-boost=false 2>/dev/null || true
-        else
-            wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 5%+ 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer --default-source -i 5 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 5%+
         fi
         send_mic_osd
         ;;
     --mic-dec)
-        if command -v pamixer >/dev/null 2>&1; then
-            pamixer --default-source -d 5 2>/dev/null || true
-        else
-            wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%- 2>/dev/null || true
+        if command -v pamixer >/dev/null 2>&1 && pamixer --default-source -d 5 2>/dev/null; then
+            :
+        elif command -v wpctl >/dev/null 2>&1; then
+            wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-
         fi
         send_mic_osd
         ;;

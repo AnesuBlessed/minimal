@@ -1,27 +1,4 @@
-/* =============================================================================
- *  WAYBAR STYLE (SELF-CONTAINED MINIMAL ENGINE)
- * ============================================================================= */
-
-@import "theme.css";
+/* Minimal — bundled styles for the existing 17 layouts. */
 @import "defaults.css";
-
-/* Clean container overrides */
-window#waybar {
-    background: transparent;
-    font-family: "JetBrainsMono Nerd Font", monospace;
-}
-
-/* Custom extra polish */
-#workspaces button {
-    border-radius: 8px;
-}
-
-#custom-wbar,
-#custom-wallchange,
-#custom-cliphist,
-#custom-power,
-#custom-menu,
-#custom-app-launcher {
-    padding: 0 4px;
-    font-size: 13px;
-}
+@import "theme.css";
+@import "user-style.css";

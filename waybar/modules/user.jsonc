@@ -1,0 +1,7 @@
+{
+  "user": {
+    "format": "{user}",
+    "icon": false,
+    "tooltip": false
+  }
+}

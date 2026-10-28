@@ -1,28 +1,8 @@
-// Simple implementation of drawers in group modules
-// This module is used to control the backlight and hyprsunset settings
-// It includes a drawer that is hovered over to reveal additional options
 {
   "group/eyecare": {
     "orientation": "inherit",
-    "drawer": {
-      "transition-duration": "0.5",
-      "children-class": "eyecare-drawer",
-      "transition-left-to-right": false,
-      "click-to-reveal": false
-    },
     "modules": [
-      "backlight#eyecare",
-      "custom/hyprsunset"
+      "backlight"
     ]
-  },
-  "backlight#eyecare": {
-    "format": "<span size='large'>{icon}</span>",
-    "format-icons": ["", "", "", "", "", "", "", "", ""],
-    "on-click": "true",
-    "on-scroll-up": "true",
-    "on-scroll-down": "true",
-    "tooltip": true,
-    "min-length": 2,
-    "tooltip-format": "Backlight: {icon} {percent}%\n\n󰺤 Scroll to change brightness\n󰳾 Click to toggle hyprsunset"
   }
 }

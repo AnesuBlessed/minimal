@@ -1,0 +1,15 @@
+name: Validate Minimal
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install syntax and theme parsers
+        run: sudo apt-get update && sudo apt-get install -y lua5.4 python3-gi gir1.2-gtk-3.0
+      - name: Check configs and scripts
+        run: /usr/bin/python3 scripts/check.py
+      - name: Test deployment and runtime state
+        run: /usr/bin/python3 -m unittest discover -s tests -v

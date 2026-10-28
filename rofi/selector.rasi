@@ -55,7 +55,7 @@ entry {
     text-color:                  @main-fg;
     cursor:                      text;
     placeholder:                 "Filter...";
-    placeholder-color:           #506182cc;
+    placeholder-color:           #AAC7F0;
 }
 
 listview {
@@ -94,4 +94,8 @@ element-text {
     cursor:                      inherit;
     background-color:            transparent;
     text-color:                  inherit;
+}
+
+@media (max-width: 600px) {
+    window { width: 90%; }
 }

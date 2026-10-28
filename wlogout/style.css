@@ -1,62 +1,24 @@
-* {
-    background-image: none;
-    font-family: "JetBrainsMono Nerd Font", monospace;
-    font-size: 14px;
-}
-
-window {
-    background-color: rgba(14, 16, 18, 0.75);
-}
-
+/* Minimal power menu: six evenly spaced cards, keyboard and pointer focus. */
+* { background-image: none; font-family: "JetBrainsMono Nerd Font", monospace; font-size: 14px; }
+window { background-color: rgba(15, 26, 42, 0.85); }
 button {
-    color: #eaedf0;
-    background-color: rgba(15, 26, 42, 0.85);
+    color: #cce1ff;
+    background-color: #182234;
     outline-style: none;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 2px solid #506182;
     border-radius: 16px;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 26%;
-    margin: 32vh 10px;
+    background-size: 48px;
+    margin: 12px;
     box-shadow: none;
     text-shadow: none;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color 120ms ease-out;
 }
-
-button:focus,
-button:hover {
-    background-color: rgba(75, 92, 125, 0.65);
-    border-color: rgba(255, 255, 255, 0.3);
-    background-size: 34%;
-    margin: 30vh 10px;
-    border-radius: 24px;
-    color: #ffffff;
-}
-
-#lock {
-    background-image: image(url("icons/lock_white.png"), url("/usr/share/wlogout/icons/lock.png"));
-    border-radius: 28px 16px 16px 28px;
-    margin-left: 40px;
-}
-
-#logout {
-    background-image: image(url("icons/logout_white.png"), url("/usr/share/wlogout/icons/logout.png"));
-}
-
-#suspend {
-    background-image: image(url("icons/suspend_white.png"), url("/usr/share/wlogout/icons/suspend.png"));
-}
-
-#hibernate {
-    background-image: image(url("icons/hibernate_white.png"), url("/usr/share/wlogout/icons/hibernate.png"));
-}
-
-#shutdown {
-    background-image: image(url("icons/shutdown_white.png"), url("/usr/share/wlogout/icons/shutdown.png"));
-}
-
-#reboot {
-    background-image: image(url("icons/reboot_white.png"), url("/usr/share/wlogout/icons/reboot.png"));
-    border-radius: 16px 28px 28px 16px;
-    margin-right: 40px;
-}
+button:focus, button:hover { background-color: #3a4e6b; border-color: #ca9ee6; color: #ffffff; }
+#lock { background-image: url("icons/lock_white.png"); }
+#logout { background-image: url("icons/logout_white.png"); }
+#suspend { background-image: url("icons/suspend_white.png"); }
+#hibernate { background-image: url("icons/hibernate_white.png"); }
+#shutdown { background-image: url("icons/shutdown_white.png"); }
+#reboot { background-image: url("icons/reboot_white.png"); }

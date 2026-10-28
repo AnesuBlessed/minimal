@@ -1,9 +1,9 @@
 {
-    "custom/menu": {
-        "format": "",
-        "tooltip": true,
-        "tooltip-format": "Left: Launcher | Right: Power Menu",
-        "on-click": "$MINIMAL_ROOT/scripts/launcher.sh",
-        "on-click-right": "$MINIMAL_ROOT/scripts/powermenu.sh"
-    }
+  "custom/menu": {
+    "format": "",
+    "tooltip": true,
+    "tooltip-format": "Left: Launcher | Right: Power Menu",
+    "on-click": "\"$MINIMAL_ROOT/scripts/launcher.sh\"",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/powermenu.sh\""
+  }
 }

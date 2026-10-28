@@ -6,13 +6,15 @@
 set -euo pipefail
 
 ASSETS_DIR="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")/fastfetch/assets"
-TARGET="$ASSETS_DIR/current.png"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+mkdir -p -- "$MINIMAL_STATE"
+TARGET="$MINIMAL_STATE/fastfetch.png"
 
 case "${1:-}" in
     "random")
         CHAR=$(find "$ASSETS_DIR" -type f -name "*.png" ! -name "current.png" | shuf -n 1)
         if [[ -n "$CHAR" ]]; then
-            ln -sf -- "$(basename "$CHAR")" "$TARGET"
+            ln -sf -- "$CHAR" "$TARGET"
             echo "Fastfetch character set to: $(basename "$CHAR" .png)"
         fi
         ;;
@@ -22,7 +24,7 @@ case "${1:-}" in
         ;;
     *)
         if [[ -n "${1:-}" && ! "${1:-}" =~ [/\\] && -f "$ASSETS_DIR/$1.png" ]]; then
-            ln -sf -- "$1.png" "$TARGET"
+            ln -sf -- "$ASSETS_DIR/$1.png" "$TARGET"
             echo "Fastfetch character set to: $1"
         else
             echo "Usage: $0 [<character_name>|random|list]" >&2

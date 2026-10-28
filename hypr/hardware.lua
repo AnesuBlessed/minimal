@@ -26,9 +26,4 @@ local M = {
     blur = true,
 }
 
-hl.config({
-    debug = { vfr = M.vfr },
-    decoration = { blur = { enabled = M.blur } },
-})
-
 return M

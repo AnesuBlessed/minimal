@@ -1,14 +1,9 @@
-/**
- *  MINIMAL — CENTRAL ROFI PALETTE (OBSIDIAN GLASS)
- */
-
 * {
-    main-bg:            #0f1a2af0;
-    main-fg:            #cce1ffe6;
-    main-br:            #3a4e6bcc;
-    main-ex:            #506182e6;
-    select-bg:          #3a4e6bf2;
-    select-fg:          #ffffffff;
-    accent:             #ca9ee6ff;
-    font:               "JetBrainsMono Nerd Font 10";
+    accent:             #CA9EE6;
+    main-bg:            #0F1A2AB3;
+    main-fg:            #CCE1FFE6;
+    main-br:            #695476E6;
+    main-ex:            #506182E6;
+    select-bg:          #A3647ACC;
+    select-fg:          #FFF5F8;
 }

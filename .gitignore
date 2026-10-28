@@ -1,3 +1,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Runtime artifacts and local layout snapshots
+waybar/layouts/backup/

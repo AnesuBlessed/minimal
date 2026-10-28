@@ -1,0 +1,7 @@
+{
+  "custom/keybinds": {
+    "format": "",
+    "tooltip-format": "Minimal keyboard shortcuts",
+    "on-click": "\"$MINIMAL_ROOT/scripts/keybinds.sh\""
+  }
+}

@@ -1,163 +1,77 @@
-/**
- *  MINIMAL — APPLICATION LAUNCHER (DUAL-PANE OBSIDIAN GLASS)
- *  Signature dual-pane card: Left wallpaper banner & mode buttons, right app list.
- */
-
+/* Minimal — wallpaper, mode rail, and searchable application list. */
 configuration {
-    modi:                        "drun,filebrowser,window,run";
-    show-icons:                  true;
-    display-drun:                " ";
-    display-run:                 " ";
-    display-filebrowser:         " ";
-    display-window:              " ";
-    drun-display-format:         "{name}";
-    window-format:               "{w}{t}";
-    font:                        "JetBrainsMono Nerd Font 10";
-    icon-theme:                  "Tela-circle-dracula";
+    modi: "drun,window,run";
+    show-icons: true;
+    display-drun: "";
+    display-window: "";
+    display-run: "";
+    drun-display-format: "{name}";
+    window-format: "{w}{t}";
+    font: "JetBrainsMono Nerd Font 10";
+    icon-theme: "Adwaita";
 }
-
 @theme "theme.rasi"
-
-// Main Window //
 window {
-    height:                      33em;
-    width:                       63em;
-    transparency:                "real";
-    fullscreen:                  false;
-    enabled:                     true;
-    cursor:                      "default";
-    spacing:                     0em;
-    padding:                     0em;
-    border:                      2px;
-    border-radius:               1.5em;
-    border-color:                @main-br;
-    background-color:            @main-bg;
+    width: 85%; height: 560px;
+    border: 2px; border-radius: 20px;
+    border-color: @main-br; background-color: @main-bg;
 }
-
 mainbox {
-    enabled:                     true;
-    spacing:                     0em;
-    padding:                     0em;
-    orientation:                 horizontal;
-    children:                    [ "dummywall" , "listbox" ];
-    background-color:            transparent;
+    orientation: horizontal; spacing: 0px; padding: 0px;
+    children: [ "box-wallpaper", "box-content" ];
+    background-color: transparent;
 }
-
-// Left Pane: Wallpaper Banner & Mode Switcher //
-dummywall {
-    spacing:                     0em;
-    padding:                     0em;
-    width:                       37em;
-    expand:                      false;
-    orientation:                 horizontal;
-    children:                    [ "mode-switcher" , "inputbar" ];
-    background-color:            transparent;
-    background-image:            url("~/.local/state/minimal/wallpaper.set", height);
-    border-radius:               1.5em 0em 0em 1.5em;
+box-wallpaper {
+    orientation: horizontal; width: 32%; expand: false;
+    children: [ "mode-switcher" ];
+    background-image: none; background-color: #182234;
+    border-radius: 18px 0px 0px 18px;
 }
-
 mode-switcher {
-    orientation:                 vertical;
-    enabled:                     true;
-    width:                       3.8em;
-    padding:                     9.2em 0.5em 9.2em 0.5em;
-    spacing:                     1.2em;
-    background-color:            #0f1a2ab3;
+    orientation: vertical; width: 56px; expand: false;
+    padding: 100px 8px; spacing: 12px;
+    background-color: #0f1a2ab3;
 }
-
 button {
-    cursor:                      pointer;
-    border-radius:               2em;
-    background-color:            @main-bg;
-    text-color:                  @main-fg;
+    padding: 12px 0px; border-radius: 20px;
+    background-color: @main-bg; text-color: @main-fg;
 }
-
-button selected {
-    background-color:            @main-fg;
-    text-color:                  @main-bg;
+button selected { background-color: @select-bg; text-color: @select-fg; }
+box-content {
+    orientation: vertical; spacing: 16px; padding: 24px;
+    children: [ "inputbar", "listview" ]; background-color: transparent;
 }
-
 inputbar {
-    enabled:                     true;
-    children:                    [ "entry" ];
-    background-color:            transparent;
+    expand: false; padding: 12px; border: 1px; border-radius: 12px;
+    border-color: @main-br; background-color: #182234;
+    children: [ "entry" ];
 }
-
 entry {
-    enabled:                     false;
+    enabled: true; placeholder: "Search applications...";
+    placeholder-color: #AAC7F0; text-color: @main-fg;
+    background-color: transparent;
 }
-
-// Right Pane: Application List //
-listbox {
-    spacing:                     0em;
-    padding:                     2em;
-    children:                    [ "dummy" , "listview" , "dummy" ];
-    background-color:            transparent;
-}
-
 listview {
-    enabled:                     true;
-    spacing:                     0em;
-    padding:                     0em;
-    columns:                     1;
-    lines:                       8;
-    cycle:                       true;
-    dynamic:                     true;
-    scrollbar:                   false;
-    layout:                      vertical;
-    reverse:                     false;
-    expand:                      false;
-    fixed-height:                true;
-    fixed-columns:               true;
-    cursor:                      "default";
-    background-color:            transparent;
-    text-color:                  @main-fg;
+    columns: 1; lines: 6; spacing: 6px; cycle: true;
+    dynamic: false; fixed-height: false; expand: true;
+    scrollbar: false; background-color: transparent;
 }
-
-dummy {
-    background-color:            transparent;
-}
-
 element {
-    enabled:                     true;
-    spacing:                     0.8em;
-    padding:                     0.4em 0.4em 0.4em 1.2em;
-    cursor:                      pointer;
-    background-color:            transparent;
-    text-color:                  @main-fg;
-    border-radius:               1.5em;
+    padding: 10px 12px; spacing: 12px; border-radius: 12px;
+    background-color: transparent; text-color: @main-fg;
 }
-
-element selected.normal {
-    background-color:            @select-bg;
-    text-color:                  @select-fg;
+element selected.normal { background-color: @select-bg; text-color: @select-fg; }
+element-icon { size: 28px; background-color: transparent; }
+element-text { vertical-align: 0.5; background-color: transparent; text-color: inherit; }
+error-message { children: [ "textbox" ]; background-color: @main-bg; }
+textbox { padding: 12px; background-color: transparent; text-color: @main-fg; }
+@media (max-height: 800px) {
+    window { height: 80%; }
+    box-content { padding: 18px; }
+    mode-switcher { padding: 60px 8px; }
 }
-
-element-icon {
-    size:                        2.8em;
-    cursor:                      inherit;
-    background-color:            transparent;
-    text-color:                  inherit;
-}
-
-element-text {
-    vertical-align:              0.5;
-    horizontal-align:            0.0;
-    cursor:                      inherit;
-    background-color:            transparent;
-    text-color:                  inherit;
-}
-
-error-message {
-    text-color:                  @main-fg;
-    background-color:            @main-bg;
-    text-transform:              capitalize;
-    children:                    [ "textbox" ];
-}
-
-textbox {
-    text-color:                  inherit;
-    background-color:            inherit;
-    vertical-align:              0.5;
-    horizontal-align:            0.5;
+@media (max-width: 1000px) {
+    window { width: 92%; }
+    box-wallpaper { width: 24%; }
+    box-content { padding: 12px; }
 }

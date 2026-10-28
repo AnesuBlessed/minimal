@@ -5,9 +5,9 @@
     "format-source": "",
     "format-source-muted": "",
     "on-click": "pavucontrol -t 4",
-    "on-click-right": "$MINIMAL_ROOT/scripts/volume.sh --toggle-mic-mute",
-    "on-scroll-up": "$MINIMAL_ROOT/scripts/volume.sh --mic-inc",
-    "on-scroll-down": "$MINIMAL_ROOT/scripts/volume.sh --mic-dec",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/volume.sh\" --toggle-mic-mute",
+    "on-scroll-up": "\"$MINIMAL_ROOT/scripts/volume.sh\" --mic-inc",
+    "on-scroll-down": "\"$MINIMAL_ROOT/scripts/volume.sh\" --mic-dec",
     "tooltip-format": "{format_source} {source_desc} // {source_volume}%",
     "scroll-step": 5
   }

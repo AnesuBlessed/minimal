@@ -46,7 +46,7 @@ wallbox {
     expand:                      false;
     orientation:                 horizontal;
     background-color:            transparent;
-    background-image:            url("~/.local/state/minimal/wallpaper.set", width);
+    background-image:            none;
     border-radius:               0.8em;
     children:                    [ "wallframe" , "inputbar" ];
 }
@@ -57,7 +57,7 @@ wallframe {
     padding:                     0em;
     expand:                      false;
     background-color:            transparent;
-    background-image:            url("~/.local/state/minimal/wallpaper.set", height);
+    background-image:            none;
     border-radius:               0.8em 0em 0em 0.8em;
 }
 
@@ -76,7 +76,7 @@ entry {
     text-color:                  @main-fg;
     background-color:            transparent;
     placeholder:                 "Search clipboard...";
-    placeholder-color:           #506182cc;
+    placeholder-color:           #AAC7F0;
     cursor:                      text;
 }
 
@@ -130,4 +130,13 @@ element-text {
     cursor:                      inherit;
     background-color:            transparent;
     text-color:                  inherit;
+}
+
+@media (max-height: 800px) {
+    window { height: 80%; }
+    listview { lines: 7; }
+    entry { padding: 0.8em; }
+}
+@media (max-width: 600px) {
+    window { width: 90%; }
 }

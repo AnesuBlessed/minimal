@@ -1,11 +1,20 @@
 {
   "backlight": {
-    "device": "intel_backlight",
     "rotate": 0,
     "format": "{icon} {percent}%",
-    "format-icons": ["", "", "", "", "", "", "", "", ""],
-    "on-scroll-up": "$MINIMAL_ROOT/scripts/brightness.sh --inc",
-    "on-scroll-down": "$MINIMAL_ROOT/scripts/brightness.sh --dec",
+    "format-icons": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "on-scroll-up": "\"$MINIMAL_ROOT/scripts/brightness.sh\" --inc",
+    "on-scroll-down": "\"$MINIMAL_ROOT/scripts/brightness.sh\" --dec",
     "min-length": 6
   }
 }

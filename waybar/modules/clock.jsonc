@@ -3,7 +3,7 @@
     "format": "{:L%R}",
     "interval": 60,
     "rotate": 0,
-    "format-alt": "{:L%R \udb80\udced %x}",
+    "format-alt": "{:L%R 󰃭 %x}",
     "tooltip-format": "<span>{calendar}</span>",
     "calendar": {
       "mode": "month",

@@ -1,12 +1,10 @@
 {
   "custom/updates": {
-    "exec": "checkupdates 2>/dev/null | wc -l || echo 0",
+    "exec": "\"$MINIMAL_ROOT/scripts/updates.sh\"",
     "return-type": "json",
-    "format": "{0}",
-    "rotate": 0,
-    "on-click": "foot -e sudo pacman -Syu",
-    "interval": 86400,
-    "tooltip": true,
-    "signal": 20
+    "format": "{}",
+    "interval": 1800,
+    "on-click": "footclient -e sudo pacman -Syu || foot -e sudo pacman -Syu",
+    "tooltip": true
   }
 }

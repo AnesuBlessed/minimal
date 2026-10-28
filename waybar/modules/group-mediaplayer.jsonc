@@ -1,20 +1,14 @@
-// Simple implementation of drawers in group modules
-// This is also an example of recursive modules
-// You can add a group module to a group module
-// This module is used to control media playback
-// It includes a drawer that is hovered over to reveal additional options // next ,play, previous
-
 {
   "group/mediaplayer": {
     "orientation": "inherit",
     "drawer": {
-      "transition-duration": "0.5",
+      "transition-duration": 500,
       "children-class": "mediaplayer-drawer",
       "transition-left-to-right": true,
       "click-to-reveal": false
     },
     "modules": [
-      "custom/mediaplayer",
+      "mpris",
       "custom/mediaplayer-previous",
       "custom/mediaplayer-play-pause",
       "custom/mediaplayer-next"

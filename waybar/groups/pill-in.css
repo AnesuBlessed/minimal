@@ -1,6 +1,4 @@
-/* 
-? half pill with the curve pointing inwards 
-*/
+/* Half pill, curve pointing inward */
 
 window#waybar.top #pill-in,
 window#waybar.top #pill-in button {

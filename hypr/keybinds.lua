@@ -67,12 +67,12 @@ hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd(paths.script("clipboard.sh") 
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(paths.script("wallpaper.sh") .. " --menu"))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(paths.script("wallpaper.sh") .. " --random"))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("thunar || xdg-open ~"))
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("firefox || xdg-open https://"))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && (pkill -SIGUSR2 waybar 2>/dev/null || true)"))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("firefox || xdg-open https://www.mozilla.org"))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("hyprctl reload && " .. paths.script("bar.sh") .. " reload"))
 
 -- Waybar Layout Cycle Hotkeys
-hl.bind(mainMod .. " + ALT + Up",   hl.dsp.exec_cmd(paths.script("wbar-switch.sh") .. " next"))
-hl.bind(mainMod .. " + ALT + Down", hl.dsp.exec_cmd(paths.script("wbar-switch.sh") .. " prev"))
+hl.bind(mainMod .. " + ALT + Up",   hl.dsp.exec_cmd(paths.script("bar.sh") .. " next"))
+hl.bind(mainMod .. " + ALT + Down", hl.dsp.exec_cmd(paths.script("bar.sh") .. " prev"))
 
 -- Power & Session Management
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(paths.script("powermenu.sh")))

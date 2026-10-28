@@ -3,7 +3,7 @@ function fish_greeting
     if set -q XDG_CONFIG_HOME
         set config_root "$XDG_CONFIG_HOME"
     end
-    set -l rice "$config_root/minimal"
+    set -l rice (dirname (readlink -f "$config_root/hypr"))
     if set -q MINIMAL_ROOT
         set rice "$MINIMAL_ROOT"
     end

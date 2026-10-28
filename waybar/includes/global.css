@@ -1,10 +1,6 @@
-/*
- * Dynamic Style Configuration
- * Minimal Obsidian Glass Theme Defaults
- */
-
+/* Minimal bar typography; geometry lives in groups/ and border-radius.css. */
 * {
     border-radius: 0em;
-    font-family: "JetBrainsMono Nerd Font","JetBrainsMono Nerd Font";
+    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font";
     font-size: 10px;
 }

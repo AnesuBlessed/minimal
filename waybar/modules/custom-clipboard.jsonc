@@ -1,11 +1,12 @@
 {
-    "custom/clipboard": {
-        "format": "",
-        "rotate": 0,
-        "tooltip-format": "Left: Clipboard Manager | Right: Delete Entries",
-        "on-click": "$MINIMAL_ROOT/scripts/clipboard.sh",
-        "on-click-right": "$MINIMAL_ROOT/scripts/clipboard.sh --delete",
-        "interval": 86400,
-        "tooltip": true
-    }
+  "custom/clipboard": {
+    "format": "",
+    "rotate": 0,
+    "tooltip-format": "Left: Clipboard Manager | Right: Delete Entries | Middle: Wipe",
+    "on-click": "\"$MINIMAL_ROOT/scripts/clipboard.sh\"",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/clipboard.sh\" --delete",
+    "on-click-middle": "\"$MINIMAL_ROOT/scripts/clipboard.sh\" --wipe",
+    "interval": 86400,
+    "tooltip": true
+  }
 }
