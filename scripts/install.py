@@ -15,22 +15,35 @@ from minimal_config import validate_bar
 ROOT = Path(__file__).resolve().parent.parent
 COMPONENTS = ('hypr', 'waybar', 'rofi', 'mako', 'foot', 'wlogout', 'fastfetch')
 # Package names are separate from the executables they supply.
-PACKAGES = {
+# Core packages required for Minimal's desktop session.
+CORE_PACKAGES = {
     'hyprland': 'Hyprland', 'waybar': 'waybar', 'rofi': 'rofi',
     'mako': 'mako', 'foot': 'foot', 'wlogout': 'wlogout',
     'hyprpaper': 'hyprpaper', 'hypridle': 'hypridle', 'hyprlock': 'hyprlock',
-    'pamixer': 'pamixer', 'wireplumber': 'wpctl', 'brightnessctl': 'brightnessctl',
+    'wireplumber': 'wpctl', 'brightnessctl': 'brightnessctl',
     'cliphist': 'cliphist', 'wl-clipboard': 'wl-copy', 'grim': 'grim',
-    'slurp': 'slurp', 'satty': 'satty', 'tesseract': 'tesseract',
-    'tesseract-data-eng': None, 'network-manager-applet': 'nm-applet',
-    'blueman': 'blueman-manager', 'ttf-jetbrains-mono-nerd': None,
-    'playerctl': 'playerctl', 'pavucontrol': 'pavucontrol',
-    'libnotify': 'notify-send', 'pacman-contrib': 'checkupdates',
+    'slurp': 'slurp', 'ttf-jetbrains-mono-nerd': None,
+    'playerctl': 'playerctl', 'libnotify': 'notify-send',
+    'pacman-contrib': 'checkupdates',
     'hyprpolkitagent': '/usr/lib/hyprpolkitagent/hyprpolkitagent',
     'xdg-desktop-portal-hyprland': None, 'xdg-desktop-portal-gtk': None,
-    'xdg-utils': 'xdg-open', 'fastfetch': 'fastfetch', 'thunar': 'thunar',
+    'xdg-utils': 'xdg-open', 'fastfetch': 'fastfetch',
+}
+
+# Optional packages for enhanced features (annotator, OCR, tray applets, GUI tools).
+OPTIONAL_PACKAGES = {
+    'pamixer': 'pamixer',
+    'satty': 'satty',
+    'tesseract': 'tesseract',
+    'tesseract-data-eng': None,
+    'network-manager-applet': 'nm-applet',
+    'blueman': 'blueman-manager',
+    'pavucontrol': 'pavucontrol',
+    'thunar': 'thunar',
     'firefox': 'firefox',
 }
+
+PACKAGES = {**CORE_PACKAGES, **OPTIONAL_PACKAGES}
 
 
 def xdg(name, fallback):
@@ -185,9 +198,11 @@ def deploy(root, config, state, dry_run=False):
     return snapshot
 
 
-def missing_packages():
+def missing_packages(packages=None):
+    if packages is None:
+        packages = CORE_PACKAGES
     missing = []
-    for package, binary in PACKAGES.items():
+    for package, binary in packages.items():
         if binary and shutil.which(binary):
             continue
         if shutil.which('pacman') and subprocess.run(['pacman', '-Qq', package], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
@@ -232,10 +247,13 @@ def doctor(root=ROOT):
     if override and Path(override).expanduser().resolve() != expected.resolve():
         print(f'FAIL: HYPRLAND_CONFIG={override} overrides Minimal ({expected}); unset it in your shell/session environment')
         errors += 1
-    missing = missing_packages()
-    if missing:
-        print('FAIL: missing dependencies: ' + ', '.join(missing))
+    missing_core = missing_packages(CORE_PACKAGES)
+    if missing_core:
+        print('FAIL: missing core dependencies: ' + ', '.join(missing_core))
         errors += 1
+    missing_opt = missing_packages(OPTIONAL_PACKAGES)
+    if missing_opt:
+        print('INFO: optional packages not installed: ' + ', '.join(missing_opt))
     print('Live rendering, hardware and suspend/resume require a desktop smoke test.')
     return 1 if errors else 0
 
@@ -249,6 +267,7 @@ def main(argv=None):
     mode.add_argument('--uninstall', action='store_true', help='Restore the latest recorded snapshot')
     mode.add_argument('--doctor', action='store_true')
     parser.add_argument('--no-tui', action='store_true')
+    parser.add_argument('--all-packages', action='store_true', help='Include optional desktop apps (Firefox, Thunar, Satty, Tesseract, Blueman, Pavucontrol)')
     parser.add_argument('--skip-packages', action='store_true', help='Deploy configs only; dependencies must be supplied separately')
     args = parser.parse_args(argv)
     config, state = paths()
@@ -277,9 +296,11 @@ def main(argv=None):
         if not (ROOT / name).is_dir():
             raise ValueError(f'Missing component: {name}')
     if not args.skip_packages:
-        missing = missing_packages()
+        target_pkgs = PACKAGES if args.all_packages else CORE_PACKAGES
+        missing = missing_packages(target_pkgs)
         if missing:
-            print('Missing packages: ' + ' '.join(missing))
+            label = 'packages' if args.all_packages else 'core desktop packages'
+            print(f'Missing {label}: ' + ' '.join(missing))
             unavailable = unavailable_packages(missing)
             if unavailable:
                 print('Not in your pacman repositories (install from the AUR or another source, '

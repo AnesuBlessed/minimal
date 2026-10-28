@@ -17,15 +17,17 @@
   "group/pill#left1": {
     "orientation": "inherit",
     "modules": [
-      "hyprland/workspaces",
-      "hyprland/window"
+      "custom/power",
+      "custom/menu",
+      "custom/clipboard",
+      "custom/bar",
+      "custom/wallpaper"
     ]
   },
   "group/pill#left2": {
     "orientation": "inherit",
     "modules": [
-      "idle_inhibitor",
-      "clock"
+      "wlr/taskbar"
     ]
   },
   "modules-center": [
@@ -34,8 +36,7 @@
   "group/pill#center": {
     "orientation": "inherit",
     "modules": [
-      "cpu",
-      "memory"
+      "hyprland/workspaces"
     ]
   },
   "modules-right": [
@@ -49,9 +50,7 @@
       "backlight",
       "network",
       "pulseaudio",
-      "pulseaudio#microphone",
-      "custom/updates",
-      "custom/keybinds"
+      "pulseaudio#microphone"
     ]
   },
   "group/pill#right2": {
@@ -65,11 +64,8 @@
   "group/pill#right3": {
     "orientation": "inherit",
     "modules": [
-      "custom/wallpaper",
-      "custom/bar",
-      "custom/clipboard",
-      "custom/menu",
-      "custom/power"
+      "idle_inhibitor",
+      "clock"
     ]
   }
 }

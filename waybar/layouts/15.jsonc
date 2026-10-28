@@ -43,6 +43,7 @@
       "battery",
       "custom/keybinds",
       "custom/clipboard",
+      "custom/bar",
       "custom/menu",
       "custom/power"
     ]

@@ -7,7 +7,6 @@
 @import "groups/pill-out.css";
 @import "groups/leaf.css";
 @import "groups/leaf-inverse.css";
-@import "includes/border-radius.css";
 @import "includes/global.css";
 
 window#waybar {
@@ -47,7 +46,6 @@ window#waybar {
     padding-right: 0.3em;
     margin-right: 0em;
     color: @main-fg;
-    animation: ws_normal 20s ease-in-out 1;
 }
 
 #workspaces button.active {
@@ -57,14 +55,12 @@ window#waybar {
     padding-left: 1.2em;
     padding-right: 1.2em;
     margin-right: 0.3em;
-    animation: ws_active 20s ease-in-out 1;
     transition: all 0.4s cubic-bezier(.55, -0.68, .48, 1.682);
 }
 
 #workspaces button:hover {
     background: @hover-bg;
     color: @hover-fg;
-    animation: ws_hover 20s ease-in-out 1;
     transition: all 0.3s cubic-bezier(.55, -0.68, .48, 1.682);
 }
 
@@ -79,7 +75,6 @@ window#waybar {
     padding-right: 0.3em;
     margin-right: 0em;
     color: @main-fg;
-    animation: tb_normal 20s ease-in-out 1;
 }
 
 #taskbar button.active {
@@ -89,14 +84,12 @@ window#waybar {
     padding-left: 1.2em;
     padding-right: 1.2em;
     margin-right: 0.3em;
-    animation: tb_active 20s ease-in-out 1;
     transition: all 0.4s cubic-bezier(.55, -0.68, .48, 1.682);
 }
 
 #taskbar button:hover {
     background: @hover-bg;
     color: @hover-fg;
-    animation: tb_hover 20s ease-in-out 1;
     transition: all 0.3s cubic-bezier(.55, -0.68, .48, 1.682);
 }
 

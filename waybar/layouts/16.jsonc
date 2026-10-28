@@ -46,7 +46,9 @@
       "cpu",
       "temperature",
       "custom/mako",
-      "custom/menu"
+      "custom/bar",
+      "custom/menu",
+      "custom/power"
     ]
   }
 }

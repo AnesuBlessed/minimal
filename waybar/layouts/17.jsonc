@@ -1,5 +1,6 @@
 {
   "layer": "top",
+  "position": "bottom",
   "output": [
     "*"
   ],
@@ -49,7 +50,9 @@
       "cpu",
       "temperature",
       "custom/mako",
-      "custom/menu"
+      "custom/bar",
+      "custom/menu",
+      "custom/power"
     ]
   }
 }

@@ -27,7 +27,7 @@
   "group/pill#left2": {
     "orientation": "inherit",
     "modules": [
-      "wlr/taskbar",
+      "hyprland/workspaces",
       "mpris#spotify"
     ]
   },

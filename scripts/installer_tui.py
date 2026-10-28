@@ -5,7 +5,10 @@ import curses
 
 def confirm(dry_run, config):
     def screen(win):
-        curses.curs_set(0)
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
         lines = [
             'MINIMAL / Desktop setup', '',
             'Preview only' if dry_run else 'Install with a recoverable configuration backup',
