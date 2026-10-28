@@ -258,6 +258,36 @@ def doctor(root=ROOT):
     return 1 if errors else 0
 
 
+def prompt_wallpaper_pack(dry_run=False, yes=False):
+    dest = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share'))) / 'minimal/wallpapers'
+    if dest.exists() and (dest.is_symlink() or (dest.is_dir() and any(dest.iterdir()))):
+        return
+    docs_wall = Path.home() / 'Documents/Wallpapers'
+    if not sys.stdin.isatty() or yes or dry_run:
+        return
+    print()
+    print('======================================================================')
+    print('  Minimal Wallpaper Pack (Optional)')
+    print('======================================================================')
+    print('  Minimal includes a lightweight set of starter wallpapers.')
+    print('  A full collection of 1,300+ categorized wallpapers (2.5 GB) is available')
+    print('  (Anime, Catppuccin, Cyberpunk, Gruvbox, Monochrome, Nature, Nord, etc.).')
+    print('  Note: Downloading over the network will take some time due to size.')
+    try:
+        ans = input('  Download/link the full wallpaper pack now? [y/N]: ').strip().lower()
+        if ans in ('y', 'yes'):
+            if docs_wall.is_dir():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.symlink_to(docs_wall)
+                print(f'  ✓ Linked local collection from {docs_wall} -> {dest}')
+            else:
+                script = ROOT / 'scripts/wallpaper-pack.sh'
+                if script.is_file():
+                    subprocess.run([str(script)], check=False)
+    except (KeyboardInterrupt, EOFError):
+        print()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Minimal desktop deployment and recovery')
     parser.add_argument('--dry-run', action='store_true', help='Print the plan without changing files or installing packages')
@@ -320,6 +350,7 @@ def main(argv=None):
     with (state / 'install.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         deploy(ROOT, config, state)
+    prompt_wallpaper_pack(args.dry_run, args.yes)
     print('Start a fresh Hyprland session to activate Minimal. Run ./install.sh --doctor for diagnostics.')
     return 0
 

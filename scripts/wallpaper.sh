@@ -11,18 +11,42 @@ set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
 mkdir -p -- "$MINIMAL_STATE"
 
-# Build deduplicated map of available wallpapers (by basename)
+# Build deduplicated map of available wallpapers with category prefixes
 declare -A wall_map
 choices=()
 
-while IFS= read -r file; do
-    [[ -n "$file" && -f "$file" ]] || continue
-    base="$(basename "$file")"
-    if [[ -z "${wall_map["$base"]:-}" ]]; then
-        wall_map["$base"]="$file"
-        choices+=("$base")
+while IFS=$'\t' read -r label path; do
+    [[ -n "$label" && -f "$path" ]] || continue
+    if [[ -z "${wall_map["$label"]:-}" ]]; then
+        wall_map["$label"]="$path"
+        choices+=("$label")
     fi
-done < <(find "$MINIMAL_ROOT/wallpapers" "${HOME}/Pictures/Wallpapers" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) 2>/dev/null | sort -u)
+done < <(python3 - <<'PYCODE'
+import os, sys
+from pathlib import Path
+roots = [
+    Path(os.environ.get('MINIMAL_ROOT', '.')) / 'wallpapers',
+    Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share'))) / 'minimal/wallpapers',
+    Path.home() / 'Documents/Wallpapers',
+    Path.home() / 'Pictures/Wallpapers',
+]
+seen = set()
+for r in roots:
+    if not r.is_dir(): continue
+    for p in sorted(r.rglob('*')):
+        if p.is_file() and p.suffix.lower() in ('.jpg', '.jpeg', '.png', '.webp'):
+            rel = p.relative_to(r)
+            cat = rel.parts[0] if len(rel.parts) > 1 else 'General'
+            name = rel.name
+            key = (cat, name)
+            if key not in seen:
+                seen.add(key)
+                try:
+                    print(f"[{cat}]  {name}\t{p.resolve()}")
+                except BrokenPipeError:
+                    sys.exit(0)
+PYCODE
+)
 
 wall=""
 
@@ -46,10 +70,18 @@ case "${1:-}" in
             wall="$(realpath "$1")"
         elif [[ -f "$MINIMAL_STATE/current_wallpaper" ]] && [[ -f "$(< "$MINIMAL_STATE/current_wallpaper")" ]]; then
             wall="$(< "$MINIMAL_STATE/current_wallpaper")"
-        elif [[ -f "$MINIMAL_ROOT/wallpapers/japan_lake.jpg" ]]; then
-            wall="$MINIMAL_ROOT/wallpapers/japan_lake.jpg"
-        elif ((${#choices[@]} > 0)); then
-            wall="${wall_map["${choices[0]}"]}"
+        else
+            for def in "japan_lake.jpg" "cat_minimal.jpg" "minimal_squares.png"; do
+                for c in "${choices[@]}"; do
+                    if [[ "$c" == *"$def"* ]]; then
+                        wall="${wall_map["$c"]}"
+                        break 2
+                    fi
+                done
+            done
+            if [[ -z "$wall" && ${#choices[@]} -gt 0 ]]; then
+                wall="${wall_map["${choices[0]}"]}"
+            fi
         fi
         ;;
 esac
