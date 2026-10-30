@@ -23,14 +23,14 @@ hl.config({
     decoration = {
         rounding = 12,
         active_opacity   = 1.0,
-        inactive_opacity = 0.92,
+        inactive_opacity = 1.0,
 
         shadow = {
             enabled = false,
         },
         blur = {
             enabled = (hardware.blur ~= false),
-            size = 5,
+            size = 4,
             passes = 1,
             new_optimizations = true,
             ignore_opacity = true,
@@ -49,7 +49,7 @@ hl.config({
     },
 
     misc = {
-        vrr = 1,
+        vrr = 0,
         disable_hyprland_logo    = true,
         disable_splash_rendering = true,
         force_default_wallpaper  = 0,
@@ -61,7 +61,7 @@ hl.config({
     },
 
     cursor = {
-        no_hardware_cursors = 2,
+        no_hardware_cursors = false,
         enable_hyprcursor = true,
         sync_gsettings_theme = true,
     },

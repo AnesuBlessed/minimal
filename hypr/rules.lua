@@ -51,6 +51,26 @@ hl.window_rule({
     center = true,
 })
 
+-- Wallpaper Carousel (3D Coverflow)
+hl.window_rule({
+    name  = "wallpaper_carousel",
+    match = {
+        class = "^(minimal\\.wallpaper\\.carousel)$",
+    },
+    float       = true,
+    center      = true,
+})
+
+-- Wlogout Session Menu
+hl.window_rule({
+    name  = "wlogout_window",
+    match = {
+        class = "^(wlogout)$",
+    },
+    float       = true,
+    center      = true,
+})
+
 -- =====================================================
 -- Layer Shell Rules (Frosted Glass & Alpha)
 -- =====================================================
@@ -88,7 +108,7 @@ hl.layer_rule({
 hl.layer_rule({
     name  = "wlogout_layer",
     match = {
-        namespace = "^(wlogout)$",
+        namespace = "^(wlogout|logout_dialog)$",
     },
     blur         = true,
     ignore_alpha = 0.5,

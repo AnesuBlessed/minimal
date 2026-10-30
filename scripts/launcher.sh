@@ -4,7 +4,7 @@
 # =============================================================================
 set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
-mkdir -p -- "$MINIMAL_STATE"
+mkdir -p -- "$MINIMAL_STATE" "$MINIMAL_CACHE"
 
 # Toggle: close launcher if already open; switch if another rofi is open
 uid="${UID:-$(id -u)}"
@@ -14,7 +14,8 @@ if pgrep -u "$uid" -f "rofi.*launcher\.rasi" >/dev/null 2>&1; then
 fi
 pkill -u "$uid" -x rofi 2>/dev/null || true
 
-banner=$(python3 "$MINIMAL_ROOT/scripts/rofi-banner.py" launcher)
+# Ensure high-fidelity wallpaper thumbnails & blurs are generated
+"$MINIMAL_ROOT/scripts/rofi-banner.sh" >/dev/null 2>&1 || true
 
 mode="${1:-drun}"
-exec rofi -show "$mode" -theme "$MINIMAL_ROOT/rofi/launcher.rasi" -theme-str "$banner"
+exec rofi -show "$mode" -theme "$MINIMAL_ROOT/rofi/launcher.rasi" -theme-str "$("$MINIMAL_ROOT/scripts/rofi-images.sh")"

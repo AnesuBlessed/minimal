@@ -65,7 +65,6 @@
   "group/pill#right3": {
     "modules": [
       "custom/wallpaper",
-      "custom/bar",
       "custom/clipboard",
       "custom/menu",
       "custom/power"

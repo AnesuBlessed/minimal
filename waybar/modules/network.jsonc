@@ -1,15 +1,23 @@
 {
   "network": {
     "tooltip": true,
-    "format-wifi": " ",
+    "format-wifi": "{icon}",
+    "format-icons": [
+      "󰤯",
+      "󰤟",
+      "󰤢",
+      "󰤥",
+      "󰤨"
+    ],
     "rotate": 0,
     "format-ethernet": "󰈀 ",
     "tooltip-format": "Network: <big><b>{essid}</b></big>\nSignal: <b>{signalStrength}%</b>\nIP: <b>{ipaddr}</b>",
     "format-linked": "󰈀 {ifname} (No IP)",
     "format-disconnected": "󰤮 ",
-    "tooltip-format-disconnected": "Disconnected\nLeft-click: Network Settings\nRight-click: Toggle Wi-Fi",
-    "on-click": "nm-connection-editor",
-    "on-click-right": "rfkill toggle wifi",
+    "tooltip-format-disconnected": "Disconnected\nLeft-click: Connect to Wi-Fi\nRight-click: Toggle Wi-Fi\nMiddle-click: Network Settings",
+    "on-click": "\"$MINIMAL_ROOT/scripts/wifi.sh\"",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/wifi.sh\" toggle",
+    "on-click-middle": "nm-connection-editor",
     "interval": 2
   }
 }

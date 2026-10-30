@@ -7,11 +7,8 @@
 set -euo pipefail
 
 get_brightness() {
-    if command -v brightnessctl >/dev/null 2>&1; then
-        brightnessctl -m | awk -F, '{gsub(/%/,"",$4); print $4}' | head -n1 || echo 100
-    else
-        echo 100
-    fi
+    brightnessctl --class=backlight --machine-readable info |
+        awk -F, 'NR == 1 {gsub(/%/,"",$4); print $4}'
 }
 
 send_brightness_osd() {
@@ -38,15 +35,26 @@ send_brightness_osd() {
 
 case "${1:-}" in
     --inc|-i)
-        brightnessctl set 5%+ >/dev/null 2>&1 || true
-        send_brightness_osd
+        adjustment=5%+
         ;;
     --dec|-d)
-        brightnessctl -n 1 set 5%- >/dev/null 2>&1 || true
-        send_brightness_osd
+        adjustment=5%-
         ;;
     *)
         echo "Usage: $0 [--inc|--dec]" >&2
         exit 1
         ;;
 esac
+
+if ! command -v brightnessctl >/dev/null 2>&1; then
+    echo "Brightness unavailable: install brightnessctl." >&2
+    notify-send -a minimal -- "Brightness unavailable" "Install brightnessctl." 2>/dev/null || true
+    exit 1
+fi
+
+if ! error=$(brightnessctl --class=backlight --min-value=1 set "$adjustment" 2>&1); then
+    printf 'Brightness adjustment failed: %s\n' "$error" >&2
+    notify-send -a minimal -- "Brightness adjustment failed" "$error" 2>/dev/null || true
+    exit 1
+fi
+send_brightness_osd

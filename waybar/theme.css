@@ -1,7 +1,7 @@
 @define-color bar-bg rgba(0, 0, 0, 0);
-@define-color main-bg rgba(15,26,42,0.8);
-@define-color main-fg rgba(170,199,240,0.8);
-@define-color active-bg rgba(209,118,139,0.4);
-@define-color active-fg rgba(255,204,216,1);
-@define-color hover-bg rgba(75,92,125,0.4);
-@define-color hover-fg rgba(213,170,240,0.8);
+@define-color main-bg rgba(35,22,45,0.8);
+@define-color main-fg rgba(209,170,240,0.8);
+@define-color active-bg rgba(206,59,67,0.4);
+@define-color active-fg rgba(255,204,207,1);
+@define-color hover-bg rgba(107,75,125,0.4);
+@define-color hover-fg rgba(240,170,212,0.8);

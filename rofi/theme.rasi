@@ -1,9 +1,8 @@
 * {
-    accent:             #CA9EE6;
-    main-bg:            #0F1A2AB3;
-    main-fg:            #CCE1FFE6;
-    main-br:            #695476E6;
-    main-ex:            #506182E6;
-    select-bg:          #A3647ACC;
-    select-fg:          #FFF5F8;
+    main-bg:            #23162DB3;
+    main-fg:            #E9CCFFE6;
+    main-br:            #7C2F5DE6;
+    main-ex:            #442456E6;
+    select-bg:          #F0AAAE80;
+    select-fg:          #52292BE6;
 }

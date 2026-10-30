@@ -1,4 +1,4 @@
-/* Minimal — bundled styles for the existing 17 layouts. */
+/* Minimal: bundled styles, independent of external theme generators. */
 @import "defaults.css";
 @import "theme.css";
 @import "user-style.css";

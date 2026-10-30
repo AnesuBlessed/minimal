@@ -1,6 +1,6 @@
-/* Minimal bar typography; geometry lives in groups/ and border-radius.css. */
+/* Minimal bar typography; geometry lives in groups/. */
 * {
     border-radius: 0em;
-    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font";
+    font-family: "JetBrainsMono Nerd Font","JetBrainsMono Nerd Font";
     font-size: 10px;
 }

@@ -97,7 +97,7 @@ send_mic_osd() {
 
 case "${1:-}" in
     --inc|-i)
-        if command -v pamixer >/dev/null 2>&1 && pamixer -i 5 2>/dev/null; then
+        if command -v pamixer >/dev/null 2>&1 && pamixer --set-limit 100 -i 5 2>/dev/null; then
             :
         elif command -v wpctl >/dev/null 2>&1; then
             wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
@@ -129,7 +129,7 @@ case "${1:-}" in
         send_mic_osd
         ;;
     --mic-inc)
-        if command -v pamixer >/dev/null 2>&1 && pamixer --default-source -i 5 2>/dev/null; then
+        if command -v pamixer >/dev/null 2>&1 && pamixer --default-source --set-limit 100 -i 5 2>/dev/null; then
             :
         elif command -v wpctl >/dev/null 2>&1; then
             wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 5%+

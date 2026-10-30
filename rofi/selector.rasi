@@ -1,5 +1,6 @@
 /**
- *  MINIMAL — SELECTOR MENU THEME (WALLPAPERS, LAYOUTS, ACTIONS)
+ *  MINIMAL — SELECTOR MENU THEME (WALLPAPERS, LAYOUTS, POWER)
+ *  Obsidian glass scrim, wallpaper banner frame, dynamic theme tokens.
  */
 
 configuration {
@@ -10,43 +11,65 @@ configuration {
 @theme "theme.rasi"
 
 window {
-    width:                       26em;
+    width:                       360px;
     transparency:                "real";
     fullscreen:                  false;
     enabled:                     true;
     cursor:                      "default";
-    spacing:                     0em;
-    padding:                     0em;
+    spacing:                     0px;
+    padding:                     0px;
     border:                      2px;
-    border-radius:               1.2em;
+    border-radius:               18px;
     border-color:                @main-br;
     background-color:            @main-bg;
 }
 
 mainbox {
     enabled:                     true;
-    spacing:                     0.8em;
-    padding:                     1.2em;
+    spacing:                     0px;
+    padding:                     8px;
     orientation:                 vertical;
-    children:                    [ "inputbar" , "listview" ];
+    children:                    [ "wallbox" , "listbox" ];
     background-color:            transparent;
+}
+
+// Wallpaper Banner & Filter Header //
+wallbox {
+    spacing:                     0px;
+    padding:                     0px;
+    expand:                      false;
+    orientation:                 horizontal;
+    background-color:            transparent;
+    background-image:            url("~/.cache/minimal/wall.blur", width);
+    border-radius:               12px;
+    children:                    [ "wallframe" , "inputbar" ];
+}
+
+wallframe {
+    width:                       68px;
+    spacing:                     0px;
+    padding:                     0px;
+    expand:                      false;
+    background-color:            transparent;
+    background-image:            url("~/.cache/minimal/wall.quad", width);
+    border-radius:               12px 0px 0px 12px;
 }
 
 inputbar {
     enabled:                     true;
-    spacing:                     0.5em;
-    padding:                     0.7em 1em;
-    border:                      1px;
-    border-radius:               0.8em;
-    border-color:                @main-br;
-    background-color:            #182234cc;
+    padding:                     10px 14px;
+    spacing:                     8px;
     children:                    [ "prompt" , "entry" ];
+    background-color:            @main-ex;
+    border-radius:               0px 12px 12px 0px;
+    expand:                      true;
 }
 
 prompt {
     enabled:                     true;
     background-color:            transparent;
-    text-color:                  @accent;
+    text-color:                  @main-fg;
+    vertical-align:              0.5;
 }
 
 entry {
@@ -55,19 +78,31 @@ entry {
     text-color:                  @main-fg;
     cursor:                      text;
     placeholder:                 "Filter...";
-    placeholder-color:           #AAC7F0;
+    placeholder-color:           @main-fg;
+    vertical-align:              0.5;
+}
+
+// List of Choices //
+listbox {
+    spacing:                     0px;
+    padding:                     6px 0px 0px 0px;
+    orientation:                 vertical;
+    children:                    [ "listview" ];
+    background-color:            transparent;
 }
 
 listview {
     enabled:                     true;
-    spacing:                     0.3em;
-    padding:                     0.2em 0em;
+    spacing:                     4px;
+    padding:                     4px;
     columns:                     1;
     lines:                       8;
     cycle:                       true;
     dynamic:                     true;
     scrollbar:                   false;
     layout:                      vertical;
+    fixed-height:                true;
+    fixed-columns:               true;
     cursor:                      "default";
     background-color:            transparent;
     text-color:                  @main-fg;
@@ -75,12 +110,12 @@ listview {
 
 element {
     enabled:                     true;
-    spacing:                     0.6em;
-    padding:                     0.6em 0.8em;
+    spacing:                     10px;
+    padding:                     8px 14px;
     cursor:                      pointer;
     background-color:            transparent;
     text-color:                  @main-fg;
-    border-radius:               0.6em;
+    border-radius:               10px;
 }
 
 element selected.normal {

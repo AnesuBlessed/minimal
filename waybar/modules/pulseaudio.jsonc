@@ -9,6 +9,7 @@
     "on-scroll-down": "\"$MINIMAL_ROOT/scripts/volume.sh\" --dec",
     "tooltip-format": "{icon} {desc} // {volume}%",
     "scroll-step": 5,
+    "max-volume": 100,
     "format-icons": {
       "headphone": "",
       "hands-free": "",

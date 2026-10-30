@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root=$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")
-exec python3 "$root/scripts/bar.py" "$@"
+exec "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/native.sh" bar "$@"

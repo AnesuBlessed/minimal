@@ -1,77 +1,170 @@
-/* Minimal — wallpaper, mode rail, and searchable application list. */
+/**
+ *  MINIMAL — APPLICATION LAUNCHER (DUAL-PANE)
+ *  Pixel-perfect aligned wallpaper banner + glass depth overlay.
+ */
+
 configuration {
-    modi: "drun,window,run";
-    show-icons: true;
-    display-drun: "";
-    display-window: "";
-    display-run: "";
-    drun-display-format: "{name}";
-    window-format: "{w}{t}";
-    font: "JetBrainsMono Nerd Font 10";
-    icon-theme: "Adwaita";
+    modi:                        "drun,filebrowser,window,run";
+    show-icons:                  true;
+    display-drun:                " ";
+    display-run:                 " ";
+    display-filebrowser:         " ";
+    display-window:              " ";
+    drun-display-format:         "{name}";
+    window-format:               "{w}{t}";
+    font:                        "JetBrainsMono Nerd Font 10";
+    icon-theme:                  "Tela-circle-dracula";
 }
+
 @theme "theme.rasi"
+
+// Main Window //
 window {
-    width: 85%; height: 560px;
-    border: 2px; border-radius: 20px;
-    border-color: @main-br; background-color: @main-bg;
+    width:                       960px;
+    height:                      420px;
+    transparency:                "real";
+    fullscreen:                  false;
+    enabled:                     true;
+    cursor:                      "default";
+    spacing:                     0px;
+    padding:                     0px;
+    border:                      2px;
+    border-radius:               18px;
+    border-color:                @main-br;
+    background-color:            @main-bg;
 }
+
 mainbox {
-    orientation: horizontal; spacing: 0px; padding: 0px;
-    children: [ "box-wallpaper", "box-content" ];
-    background-color: transparent;
+    enabled:                     true;
+    spacing:                     0px;
+    padding:                     0px;
+    orientation:                 horizontal;
+    children:                    [ "dummywall" , "listbox" ];
+    background-color:            transparent;
 }
-box-wallpaper {
-    orientation: horizontal; width: 32%; expand: false;
-    children: [ "mode-switcher" ];
-    background-image: none; background-color: #182234;
-    border-radius: 18px 0px 0px 18px;
+
+// Left Dual-Pane Banner (Pixel-Perfect Aligned Desktop Wallpaper Crop) //
+dummywall {
+    spacing:                     0px;
+    padding:                     0px;
+    width:                       480px;
+    expand:                      false;
+    orientation:                 horizontal;
+    children:                    [ "mode-switcher" , "inputbar" ];
+    background-color:            transparent;
+    background-image:            url("~/.cache/minimal/wall.thmb", height);
+    border-radius:               16px 0px 0px 16px;
 }
+
+// Vertical Mode Switcher Rail (Frosted Glass over Aligned Wallpaper) //
 mode-switcher {
-    orientation: vertical; width: 56px; expand: false;
-    padding: 100px 8px; spacing: 12px;
-    background-color: #0f1a2ab3;
+    orientation:                 vertical;
+    enabled:                     true;
+    width:                       56px;
+    padding:                     75px 8px;
+    spacing:                     14px;
+    background-color:            transparent;
+    background-image:            url("~/.cache/minimal/wall.blur", height);
+    border-radius:               16px 0px 0px 16px;
 }
+
 button {
-    padding: 12px 0px; border-radius: 20px;
-    background-color: @main-bg; text-color: @main-fg;
+    cursor:                      pointer;
+    border-radius:               24px;
+    padding:                     10px 0px;
+    background-color:            @main-bg;
+    text-color:                  @main-fg;
 }
-button selected { background-color: @select-bg; text-color: @select-fg; }
-box-content {
-    orientation: vertical; spacing: 16px; padding: 24px;
-    children: [ "inputbar", "listview" ]; background-color: transparent;
+
+button selected {
+    background-color:            @main-fg;
+    text-color:                  @main-bg;
 }
+
+// Dummy Inputbar on Left (Direct Listview Type-to-Filter) //
 inputbar {
-    expand: false; padding: 12px; border: 1px; border-radius: 12px;
-    border-color: @main-br; background-color: #182234;
-    children: [ "entry" ];
+    enabled:                     true;
+    children:                    [ "entry" ];
+    background-color:            transparent;
 }
+
 entry {
-    enabled: true; placeholder: "Search applications...";
-    placeholder-color: #AAC7F0; text-color: @main-fg;
-    background-color: transparent;
+    enabled:                     false;
 }
+
+// Right Application List //
+listbox {
+    spacing:                     0px;
+    padding:                     24px;
+    children:                    [ "dummy" , "listview" , "dummy" ];
+    background-color:            transparent;
+}
+
 listview {
-    columns: 1; lines: 6; spacing: 6px; cycle: true;
-    dynamic: false; fixed-height: false; expand: true;
-    scrollbar: false; background-color: transparent;
+    enabled:                     true;
+    spacing:                     4px;
+    padding:                     0px;
+    columns:                     1;
+    lines:                       7;
+    cycle:                       true;
+    dynamic:                     true;
+    scrollbar:                   false;
+    layout:                      vertical;
+    reverse:                     false;
+    expand:                      false;
+    fixed-height:                true;
+    fixed-columns:               true;
+    cursor:                      "default";
+    background-color:            transparent;
+    text-color:                  @main-fg;
 }
+
+dummy {
+    background-color:            transparent;
+}
+
+// List Elements //
 element {
-    padding: 10px 12px; spacing: 12px; border-radius: 12px;
-    background-color: transparent; text-color: @main-fg;
+    enabled:                     true;
+    spacing:                     12px;
+    padding:                     6px 16px;
+    cursor:                      pointer;
+    background-color:            transparent;
+    text-color:                  @main-fg;
+    border-radius:               10px;
 }
-element selected.normal { background-color: @select-bg; text-color: @select-fg; }
-element-icon { size: 28px; background-color: transparent; }
-element-text { vertical-align: 0.5; background-color: transparent; text-color: inherit; }
-error-message { children: [ "textbox" ]; background-color: @main-bg; }
-textbox { padding: 12px; background-color: transparent; text-color: @main-fg; }
-@media (max-height: 800px) {
-    window { height: 80%; }
-    box-content { padding: 18px; }
-    mode-switcher { padding: 60px 8px; }
+
+element selected.normal {
+    background-color:            @select-bg;
+    text-color:                  @select-fg;
 }
-@media (max-width: 1000px) {
-    window { width: 92%; }
-    box-wallpaper { width: 24%; }
-    box-content { padding: 12px; }
+
+element-icon {
+    size:                        32px;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+
+element-text {
+    vertical-align:              0.5;
+    horizontal-align:            0.0;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+
+// Error Message //
+error-message {
+    text-color:                  @main-fg;
+    background-color:            @main-bg;
+    text-transform:              capitalize;
+    children:                    [ "textbox" ];
+}
+
+textbox {
+    text-color:                  inherit;
+    background-color:            inherit;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
 }

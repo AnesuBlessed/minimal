@@ -2,7 +2,7 @@
 # =============================================================================
 #  MINIMAL — PATH RESOLUTION
 # =============================================================================
-MINIMAL_ROOT="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+MINIMAL_ROOT="${MINIMAL_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")}"
 MINIMAL_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 MINIMAL_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/minimal"
 MINIMAL_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/minimal"

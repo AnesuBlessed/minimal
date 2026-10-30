@@ -1,21 +1,48 @@
-/* Minimal power menu: six evenly spaced cards, keyboard and pointer focus. */
-* { background-image: none; font-family: "JetBrainsMono Nerd Font", monospace; font-size: 14px; }
-window { background-color: rgba(15, 26, 42, 0.85); }
+/* Minimal power menu: floating horizontal obsidian dock with identical square buttons */
+* {
+    background-image: none;
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+window {
+    background-color: rgba(15, 26, 42, 0.85);
+}
+
 button {
     color: #cce1ff;
     background-color: #182234;
     outline-style: none;
     border: 2px solid #506182;
-    border-radius: 16px;
+    border-radius: 20px;
+    min-width: 116px;
+    min-height: 116px;
+    margin: 0px;
+    padding: 0px;
+    padding-top: 54px;
     background-repeat: no-repeat;
-    background-position: center;
-    background-size: 48px;
-    margin: 12px;
-    box-shadow: none;
+    background-position: center 24%;
+    background-size: 36px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     text-shadow: none;
-    transition: background-color 120ms ease-out;
+    transition: all 140ms ease-out;
 }
-button:focus, button:hover { background-color: #3a4e6b; border-color: #ca9ee6; color: #ffffff; }
+
+button:focus, button:hover {
+    background-color: #3a4e6b;
+    border-color: #ca9ee6;
+    color: #ffffff;
+    box-shadow: 0 0 22px rgba(202, 158, 230, 0.45);
+}
+
+#shutdown:focus, #shutdown:hover {
+    background-color: #3a4e6b;
+    border-color: #e06c75;
+    color: #ffffff;
+    box-shadow: 0 0 22px rgba(224, 108, 117, 0.45);
+}
+
 #lock { background-image: url("icons/lock_white.png"); }
 #logout { background-image: url("icons/logout_white.png"); }
 #suspend { background-image: url("icons/suspend_white.png"); }

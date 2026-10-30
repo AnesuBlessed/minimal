@@ -3,7 +3,7 @@
   "output": [
     "*"
   ],
-  "height": 10,
+  "height": 38,
   "exclusive": true,
   "passthrough": false,
   "reload_style_on_change": true,
@@ -65,7 +65,6 @@
   "group/pill#right3": {
     "modules": [
       "custom/wallpaper",
-      "custom/bar",
       "custom/clipboard",
       "custom/menu",
       "custom/power"

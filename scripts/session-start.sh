@@ -33,11 +33,13 @@ fi
 
 # 4. Notification Daemon (Mako)
 if command -v mako >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -x mako >/dev/null; then
-    mako --config "$MINIMAL_ROOT/mako/config" &
+    mako_config="$MINIMAL_ROOT/mako/config"
+    [[ ! -f "$MINIMAL_STATE/theme/mako.conf" ]] || mako_config="$MINIMAL_STATE/theme/mako.conf"
+    mako --config "$mako_config" &
 fi
 
 # 5. Status Bar (Waybar) — a bar failure must not abort the rest of the session.
-if command -v waybar >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -x waybar >/dev/null; then
+if command -v waybar >/dev/null 2>&1; then
     if ! "$MINIMAL_ROOT/scripts/bar.sh" start; then
         notify-send -u critical "Minimal" "Waybar failed to start; see $MINIMAL_STATE/waybar.log" 2>/dev/null || true
     fi
@@ -45,7 +47,7 @@ fi
 
 # 6. Wallpaper Daemon (Hyprpaper)
 if command -v hyprpaper >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -x hyprpaper >/dev/null; then
-    hyprpaper --config "$MINIMAL_ROOT/hypr/hyprpaper.conf" &
+    systemctl --user start hyprpaper.service 2>/dev/null || hyprpaper --config "$MINIMAL_ROOT/hypr/hyprpaper.conf" &
     # Allow socket to initialize, then apply wallpaper
     (sleep 0.5 && "$MINIMAL_ROOT/scripts/wallpaper.sh") &
 fi
@@ -61,7 +63,9 @@ fi
 
 # 8. Terminal Server (foot server for zero-latency footclient spawns)
 if command -v foot >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -f "^foot --server" >/dev/null; then
-    foot --server &
+    foot_config="$MINIMAL_ROOT/foot/foot.ini"
+    [[ ! -f "$MINIMAL_STATE/theme/foot.ini" ]] || foot_config="$MINIMAL_STATE/theme/foot.ini"
+    foot --server --config "$foot_config" &
 fi
 
 # 9. Battle-Tested Network & Bluetooth Tray Applets

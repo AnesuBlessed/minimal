@@ -1,6 +1,11 @@
-__pycache__/
-*.py[cod]
-*$py.class
-
 # Runtime artifacts and local layout snapshots
 waybar/layouts/backup/
+
+# Native builds
+/build/
+/native/target/
+*.o
+
+# Local wallpaper pack
+/wallpapers/**
+

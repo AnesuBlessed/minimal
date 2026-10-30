@@ -3,161 +3,150 @@
 
 # Minimal
 
-A self-contained Hyprland desktop with dark blue glass, lavender accents, and native Wayland tools.
+A Hyprland desktop configuration for Arch Linux / CachyOS, with translucent surfaces, wallpaper-derived colors, and Wayland desktop utilities.
 </div>
 
-Minimal bundles its bar styles, modules, launcher, notifications, terminal,
-lockscreen, and power menu. Python's standard library powers installation,
-validation, and short-lived configuration helpers; there are no Python watchers.
+---
 
-## Install
+## Highlights
 
-Target: Arch Linux / CachyOS, Hyprland's Lua configuration API (0.56.x),
-Hyprpaper 0.8.x, Rofi 2.x, and Waybar 0.15.x. Local validation used Hyprland
-0.56.2, Hyprpaper 0.8.4, Rofi 2.0.0, Waybar 0.15.0, and Foot 1.28.0.
-Future versions still need validation. Python 3 is required to run the installer.
+- **Modular Lua configuration:** Window rules, keybindings, input, and appearance are split into modules under `hypr/`. Requires a Hyprland build supporting the `hl` Lua API used here; run `./install.sh --doctor` to check your installed build. A minimum supported version has not been established by a version test matrix.
+- **Wallpaper themes:** A compiled Rust helper generates shared colors for Waybar, Hyprland borders, Rofi, Mako, Foot, Hyprlock, and wlogout. Running borders, the bar, and managed Mako instances are refreshed; new menus, locks, and terminals use the generated files.
+- **Wallpaper selection:** A compiled GTK4/Cairo carousel with a Rofi fallback, plus random selection.
+- **Generated Waybar configuration:** Resolves modular JSONC includes and filters selected modules when supported hardware is not detected.
+- **Desktop controls:** Audio, brightness, clipboard history, screenshots, and session actions through scripts and keybindings.
+
+---
+
+## Installation & Deployment
+
+Minimal targets **Arch Linux / CachyOS**. The installer links `hypr`, `waybar`, `rofi`, `mako`, `foot`, `wlogout`, and `fastfetch` into `${XDG_CONFIG_HOME:-~/.config}`. Keep the checkout in place: installed configuration and helpers depend on it.
+
+Missing core packages can be installed through pacman after confirmation. Packages unavailable in configured repositories must be supplied separately. Use `--skip-packages` for configuration-only deployment, `--all-packages` to include optional applications, and `--no-tui` to bypass the interactive installer screen. Package definitions live in [native/src/install.rs](native/src/install.rs). The carousel uses native GTK4/Cairo and json-c; it retains its original coverflow layout and controls.
 
 ```bash
 git clone https://github.com/AnesuBlessed/minimal.git
 cd minimal
+
+# Build once (Arch build dependencies: rust, base-devel, pkgconf, gtk4, json-c)
+./scripts/build.sh
+
+# Validate dependencies and configuration before touching anything
+./install.sh --doctor
+
+# Dry-run preview of symlinks and deployment operations
 ./install.sh --dry-run
+
+# Perform installation (backs up existing configs automatically)
 ./install.sh
 ```
 
-The interactive review screen and CLI use the same backend. Missing packages
-are listed before installation; package errors stop deployment. The package
-manifest lives in `scripts/install.py`. Package availability can differ by
-repository; supply unavailable packages yourself, then use `--skip-packages`
-for configuration-only deployment.
+### Deployment Management
 
-Seven config directories are linked to this checkout: `hypr`, `waybar`, `rofi`,
-`mako`, `foot`, `wlogout`, and `fastfetch`. Keep the checkout at the same path
-while using it. Existing directories, files, and symlinks are backed up before
-replacement. Interrupted or failed changes can be recovered from the snapshot.
-Deployment is recoverable, not a single atomic filesystem transaction.
+| Command | Purpose |
+| :--- | :--- |
+| `./install.sh --doctor` | Audits package dependencies, syntax, bar includes, and compositor configs |
+| `./install.sh --dry-run` | Simulates file operations without modifying the disk |
+| `./install.sh --restore` | Restores the latest pre-installation configuration snapshot |
+| `./install.sh --restore <path>` | Restores a specific recovery snapshot |
+| `./install.sh --uninstall` | Restores the latest recorded configuration snapshot; leaves packages and runtime data installed |
 
-Start a fresh Hyprland session after installation. Installing does not replace
-running daemons or change the current session. In a Minimal session, `Super + R`
-reloads compositor settings and the managed bar.
+After installation, start a fresh Hyprland session. If `HYPRLAND_CONFIG` selects another configuration, update the session environment to select Minimal; the installer does not install the `scripts/session-env.*` helpers automatically.
 
-```bash
-./install.sh --no-tui --dry-run  # Read-only preview, including custom XDG paths
-./install.sh --doctor           # Config parsers, module graph, dependency audit
-./install.sh --restore --dry-run
-./install.sh --restore          # Latest recorded recovery point
-./install.sh --restore /absolute/path/to/backup
-./install.sh --uninstall        # Alias for restoring the latest recovery point
-```
+Snapshots are stored in `${XDG_STATE_HOME:-~/.local/state}/minimal/backups/` and include an independent standalone `restore.sh`.
 
-Snapshots live in `${XDG_STATE_HOME:-~/.local/state}/minimal/backups/` and include
-an independent `restore.sh`. Recovery restores previous contents and removes
-components that did not exist before installation. Reinstalling the same fully
-linked checkout preserves the recovery point. Restore replaces the seven
-managed config paths, including changes made there since the snapshot; copy
-anything you want to keep first. Package installation is not reversed.
+---
 
-## Bar and theme
+## Keybindings Reference
 
-The checked-in `waybar/config.jsonc` preserves the current customized layout.
-All 17 existing presets retain their original group arrangements, geometry,
-fonts, and pill/leaf styling. Broken module references are repaired in place.
-Use the bar's layout button (left: next, right: previous, middle: picker),
-`Super + Alt + Up/Down`, or:
-
-```bash
-./scripts/bar.sh 01
-./scripts/bar.sh custom   # Return to waybar/config.jsonc
-```
-
-The selected existing preset, generated config, PID, and diagnostic log live under the Minimal
-state directory. Switching never rewrites the repository. Only the bar started
-by Minimal is signaled. Logs are in `minimal/waybar.log` under that state directory.
-
-Theme files are owned by Minimal: `waybar/theme.css`, `rofi/theme.rasi`,
-`hypr/colors.lua`, `hypr/hyprlock.conf`, `mako/config`, `foot/foot.ini`, and
-`wlogout/style.css`. Put personal bar CSS overrides in `waybar/user-style.css`.
-See [the design guide](docs/design.md) for the shared visual conventions.
-
-Idle inhibition and media metadata use native Waybar modules. Unimplemented
-GPU, weather, theme-switching, workflow, game-mode, and night-light buttons have
-been removed from the shipped layouts. Hardware indicators are omitted when
-the corresponding battery, backlight, or CPU sensor is absent. Optional modules
-such as MPD, power profiles, display settings (`nwg-displays`), and Cava require
-the corresponding services or Waybar build features when explicitly enabled.
-
-## Everyday tools
-
-The launcher has a visible search field and application/window/command modes.
-Clipboard history supports copy, delete, and confirmed wipe. Wallpaper selection
-uses bundled images and `~/Pictures/Wallpapers`; state is saved only after
-Hyprpaper accepts the change. Commas in wallpaper paths are rejected because
-the IPC request uses comma separators.
-
-The power menu uses a three-column, two-row card grid with keyboard focus.
-Suspend and hibernate depend on the machine's system configuration. The
-lockscreen uses Hyprlock authentication and Hypridle locks before sleep.
-
-To enable the optional Fish greeting, source `fastfetch/greeting.fish` from your
-Fish configuration. `scripts/set_fastfetch_char.sh list` lists available art;
-selecting a character stores the choice in state rather than modifying assets.
-
-## Shortcuts
+### Window & Workspace Navigation
 
 | Shortcut | Action |
 | :--- | :--- |
-| `Super + A` | Application Launcher (Rofi) |
-| `Super + Tab` | Window Switcher (Rofi) |
-| `Super + T` | Terminal (Foot Client / Server) |
-| `Super + C` | Clipboard Manager (Rofi + Cliphist) |
-| `Super + Shift + C` | Clipboard Delete Mode |
-| `Super + W` | Wallpaper Picker Menu |
-| `Super + Shift + W` | Random Wallpaper |
-| `Super + Alt + Up / Down` | Next / Previous Waybar Layout |
-| `Super + B` | Web Browser (Firefox) |
-| `Super + E` | File Manager (Thunar) |
-| `Super + Q` | Close Active Window |
-| `Super + M` / `Super + F11` | Fullscreen Window |
-| `Super + Shift + F` | Toggle Floating |
-| `Super + Arrows` | Move Window Focus |
-| `Super + Ctrl + Arrows` | Move Window |
-| `Super + Shift + Arrows` | Resize Window |
-| `Super + 1–9` / `Super + Shift + 1–9` | Switch Workspace / Move Window to Workspace |
-| `Super + BackSpace` | Toggle Scratchpad (`pocket`) |
-| `Super + Shift + BackSpace` | Move Window to Scratchpad (`pocket`) |
-| `Super + LMB (drag)` | Move Window |
-| `Super + RMB (drag)` | Resize Window |
-| `Super + Scroll Up / Down` | Switch to Prev / Next Workspace |
-| `Print` | Region Screenshot to Clipboard & Pictures |
-| `Shift + Print` | Region Screenshot with Annotation (Satty) |
-| `Super + Print` | Fullscreen Screenshot |
-| `Super + Shift + O` | Region OCR to Clipboard (Tesseract) |
-| `Super + L` | Lock Screen (Hyprlock) |
-| `Super + Escape` / `Power` | Power Menu (Wlogout) |
-| `Laptop Lid Switch` | Lock Screen on Close / Display On on Open |
-| `XF86MonBrightnessUp / Down` | Adjust Brightness with Mako OSD |
-| `XF86AudioRaise / LowerVolume` | Adjust Volume with Mako OSD |
-| `XF86AudioMute / MicMute` | Toggle Audio / Microphone Mute |
-| `Super + Space` / Media Keys | Music Play / Pause / Next / Prev |
-| `Super + R` | Reload Hyprland Configuration & Waybar |
+| `Super + Q` | Close active window |
+| `Super + Shift + F` | Toggle floating mode |
+| `Super + M` / `Super + F11` | Fullscreen active window |
+| `Super + [←/→/↑/↓]` | Focus window directionally |
+| `Super + Ctrl + [←/→/↑/↓]` | Move window position directionally |
+| `Super + Shift + [←/→/↑/↓]` | Resize active window (repeating) |
+| `Super + [1-9]` | Switch to workspace 1–9 |
+| `Super + Shift + [1-9]` | Move active window to workspace 1–9 |
+| `Super + BackSpace` | Toggle "Pocket Dimension" (scratchpad workspace) |
+| `Super + Shift + BackSpace`| Send active window into Pocket Dimension |
+| `Super + LMB drag` | Move floating window |
+| `Super + RMB drag` | Resize floating window |
 
-## Development and validation
+### Applications & Desktop Tools
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Super + T` | Open Foot terminal (synced with active theme) |
+| `Super + A` | Open application launcher (Rofi) |
+| `Super + Tab` | Open active window switcher (Rofi) |
+| `Super + C` | Open clipboard history manager (Cliphist) |
+| `Super + Shift + C` | Open clipboard history in delete mode (wipe is available inside the menu) |
+| `Super + W` | Open wallpaper carousel, with Rofi fallback |
+| `Super + Shift + W` | Apply a random wallpaper from collections |
+| `Super + Escape` | Open Power & Session Menu (wlogout / Rofi) |
+| `Super + L` | Lock screen immediately (Hyprlock) |
+| `Super + R` | Reload compositor, then refresh Waybar |
+
+### Audio & System Controls (Hardware & Fallbacks)
+
+Minimal provides dedicated hardware bindings alongside ergonomic keyboard fallbacks:
+
+| Shortcut | Action | Description |
+| :--- | :--- | :--- |
+| `XF86AudioRaiseVolume` / `Super + =` / `Super + F3` | Volume Up | Increases audio volume by 5% with Mako OSD |
+| `XF86AudioLowerVolume` / `Super + -` / `Super + F2` | Volume Down | Decreases audio volume by 5% with Mako OSD |
+| `XF86AudioMute` / `Super + \` / `Super + F1` | Toggle Mute | Toggles audio sink mute status |
+| `XF86AudioMicMute` / `Super + Shift + M` | Toggle Mic | Toggles default microphone mute |
+| `XF86MonBrightnessUp` / `Super + Up` / `Super + F7` / `Super + ]` | Brightness Up | Increases screen brightness with Mako OSD |
+| `XF86MonBrightnessDown` / `Super + Down` / `Super + F5` / `Super + [` | Brightness Down | Decreases screen brightness with Mako OSD |
+| `Super + Space` / `XF86AudioPlay` | Media Play/Pause | Controls active media player via playerctl |
+| `XF86AudioNext` / `XF86AudioPrev` | Track Navigation | Next or previous track |
+
+---
+
+## Status Bar (Waybar) & Architecture
+
+Waybar configuration is generated into `${XDG_STATE_HOME:-~/.local/state}/minimal/waybar.json`.
+
+- The initial mode is `custom`, using `waybar/config.jsonc` (requested height: 38px). The other bundled preset, `waybar/layouts/01.jsonc`, requests 10px. Content and CSS can increase the rendered height.
+- `Super + R` reloads Hyprland and refreshes the bar, including hardware detection. `./scripts/bar.sh reload` refreshes just the bar.
+- `./scripts/bar.sh custom` and `./scripts/bar.sh 01` select a configuration. `next`, `prev`, and `select` remain available. The optional `custom/bar` module is defined but absent from both bundled module lists.
+- `./scripts/bar.sh render` writes the resolved configuration and selection state without starting or signaling Waybar.
+- Reload normally signals an owned Waybar process with `SIGUSR2`; the helper starts a process if none is found and can replace one using an outdated stylesheet path.
+
+See [Architecture](docs/architecture.md) for paths and runtime behavior, and [Design](docs/design.md) for implemented visual settings.
+
+---
+
+## Wallpaper Picker & Power Menu
+
+- **Wallpaper picker (`Super + W`):** Launches the native GTK4/Cairo coverflow carousel (`build/minimal-carousel`). You can also browse wallpapers via `./scripts/wallpaper.sh --carousel` or `./scripts/wallpaper-carousel.sh`.
+- **Collections:** Searches the checkout's `wallpapers/`, `${XDG_DATA_HOME:-~/.local/share}/minimal/wallpapers/`, `~/Documents/Wallpapers/`, and `~/Pictures/Wallpapers/` for PNG, JPEG, and WebP images. Rofi labels include the collection category.
+- **Random wallpaper (`Super + Shift + W`):** Applies a random discovered image. Successful committed changes trigger banner and theme generation; a theme refresh failure can leave the new wallpaper applied with the old theme.
+- **Power menu (`Super + Escape`):** Opens wlogout with lock, suspend, hibernate, logout, shutdown, and reboot actions. Rofi is used when wlogout is not installed, not when an installed wlogout fails. Both interfaces require a graphical session; suspend and hibernate also depend on system support.
+
+---
+
+## Testing & Quality Assurance
+
+Minimal includes regression and unit tests for deployment, runtime helpers, themes, and wallpaper handling:
 
 ```bash
-python3 scripts/check.py
-python3 -m unittest discover -s tests -v
-./install.sh --doctor
+# Run syntax, parsers, and module graph verification
+./scripts/check.sh
+
+# Run test suite
+./scripts/test.sh
 ```
 
-CI checks shell/Python/Lua syntax, GTK CSS, module references, and regression
-tests for deployment and runtime state. Local checks also use Rofi and Foot
-parsers when installed. Doctor returns a nonzero status for errors and missing
-dependencies; parser success does not certify hardware behavior.
+The checker runs available external parsers; some checks are skipped when their tools are missing. `./install.sh --doctor` additionally checks dependencies and asks the installed Hyprland to verify its configuration. These checks do not establish visual quality, latency, or working suspend/resume; those require a live desktop test.
 
-There is no verified resting-memory claim. Use real measurements on your own
-hardware rather than treating a static configuration as a performance benchmark.
+---
 
-## License and assets
+## License
 
-Source code is MIT licensed; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
-Bundled artwork is not relicensed by the code license. Artwork provenance and
-redistribution permissions remain to be established before an artwork release.
+Source code and configuration use the [MIT License](LICENSE). Bundled artwork is covered separately by [NOTICE.md](NOTICE.md).

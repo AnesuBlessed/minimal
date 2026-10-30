@@ -2,9 +2,9 @@
   "custom/bar": {
     "format": "",
     "rotate": 0,
-    "tooltip-format": "Left: Next Bar | Right: Prev Bar | Middle: Select Bar",
+    "tooltip-format": "Left: Cycle Layout (01 / Custom) | Right: Reload Bar | Middle: Select Bar",
     "on-click": "\"$MINIMAL_ROOT/scripts/bar.sh\" next",
-    "on-click-right": "\"$MINIMAL_ROOT/scripts/bar.sh\" prev",
+    "on-click-right": "\"$MINIMAL_ROOT/scripts/bar.sh\" reload",
     "on-click-middle": "\"$MINIMAL_ROOT/scripts/bar.sh\" select",
     "interval": 86400,
     "tooltip": true
